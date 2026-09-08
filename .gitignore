@@ -1,73 +1,34 @@
-# Python
+﻿# Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.Python
-env/
+*.pyo
+
+# Virtual environments
+.venv/
 venv/
-ENV/
-env.bak/
-venv.bak/
+env/
 
-# Base de datos
-*.db
-*.sqlite
-*.sqlite3
-
-# Archivos de entorno y secretos
+# Environment / secrets
 .env
 .env.*
-*.local
+
+# Runtime data
+data/reclamados.json
+logs/
+*.log
+cache/
+
+# Temporary / backup files
+*.tmp
+*.bak
+*.old
 
 # IDE
 .vscode/
 .idea/
-*.swp
-*.swo
-*.sublime-workspace
-*.sublime-project
 
 # OS
 .DS_Store
 Thumbs.db
 desktop.ini
-
-# Caché y tests
-*.cache
-.pytest_cache/
-.mypy_cache/
-.dmypy.json
-dmypy.json
-.coverage
-htmlcov/
-
-# Logs
-*.log
-logs/
-*.log.*
-
-# Archivos temporales
-tmp/
-temp/
-*.tmp
-*.temp
-
-# Descargas (si tu app descarga algo)
-downloads/
-*.download
-
-# Archivos comprimidos
-*.zip
-*.tar.gz
-*.rar
-*.7z
-
-# Si usas Notebooks
-.ipynb_checkpoints/
-*.ipynb
-
-# Archivos de reportes
-*.pdf
-*.csv
-*.xlsx
