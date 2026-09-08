@@ -32,3 +32,9 @@ cache/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Local backup copies
+*.backup*
+*_backup*
+*BEFORE_*
+*.bak*
