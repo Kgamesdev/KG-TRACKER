@@ -1,4 +1,4 @@
-"""Interfaz gráfica principal de K GAME TRACKER."""
+﻿"""Interfaz gráfica principal de K GAME TRACKER."""
 
 # V5.0 - Control de volumen personalizado integrado en la interfaz
 
@@ -6,15 +6,13 @@ import os
 import sys
 import json
 import re
-import threading
-import queue
 import webbrowser
 import winreg
 from datetime import datetime
 import requests
 import tkinter as tk
 from tkinter import messagebox, ttk
-from PIL import Image, ImageTk, ImageGrab
+from PIL import Image, ImageTk
 import pygame
 import config
 
@@ -71,9 +69,6 @@ class RoundedButton(tk.Frame):
         self._icon_path = icon_path
         self._icon_size = icon_size
         self._icon_photo = None
-        self._hover_job = None
-        self._current_bg = bg
-        self._is_hovered = False
 
         self._canvas = tk.Canvas(
             self,
@@ -151,65 +146,40 @@ class RoundedButton(tk.Frame):
         else:
             self._canvas.create_text(w / 2, h / 2, text=self._text, fill=self._fg, font=self._font, justify="center")
 
-    @staticmethod
-    def _blend(c1, c2, t):
-        try:
-            a = tuple(int(c1.lstrip("#")[i:i+2], 16) for i in (0, 2, 4))
-            b = tuple(int(c2.lstrip("#")[i:i+2], 16) for i in (0, 2, 4))
-            v = tuple(round(x + (y - x) * t) for x, y in zip(a, b))
-            return "#%02X%02X%02X" % v
-        except Exception:
-            return c2
-
-    def _paint(self, fill=None):
+    def _draw(self, _event=None):
         self._canvas.delete("all")
         w = max(20, self._canvas.winfo_width())
         h = max(20, self._canvas.winfo_height())
         r = min(self._radius, w // 2, h // 2)
         self._canvas.create_polygon(
             self._rounded_polygon(1, 1, w - 1, h - 1, r),
-            smooth=True, splinesteps=18,
-            fill=fill or self._bg, outline=self._border, width=self._border_width
+            smooth=True,
+            splinesteps=18,
+            fill=self._bg,
+            outline=self._border,
+            width=self._border_width
         )
         self._draw_contents()
 
-    def _draw(self, _event=None):
-        self._current_bg = self._bg
-        self._paint(self._bg)
-
-    def _animate_hover(self, target, step=0, steps=6):
-        if self._hover_job is not None:
-            try: self.after_cancel(self._hover_job)
-            except Exception: pass
-        if step >= steps:
-            self._current_bg = target
-            self._paint(target)
-            self._hover_job = None
-            return
-        start = self._current_bg
-        t = (step + 1) / float(steps)
-        self._current_bg = self._blend(start, target, t)
-        self._paint(self._current_bg)
-        self._hover_job = self.after(18, lambda: self._animate_hover(target, step + 1, steps))
-
     def _enter(self, _event=None):
-        self._is_hovered = True
-        self._animate_hover(self._hover)
+        self._canvas.delete("all")
+        w = max(20, self._canvas.winfo_width())
+        h = max(20, self._canvas.winfo_height())
+        r = min(self._radius, w // 2, h // 2)
+        self._canvas.create_polygon(
+            self._rounded_polygon(1, 1, w - 1, h - 1, r),
+            smooth=True,
+            splinesteps=18,
+            fill=self._hover,
+            outline=self._border,
+            width=self._border_width
+        )
+        self._draw_contents()
 
     def _leave(self, _event=None):
-        self._is_hovered = False
-        self._animate_hover(self._bg)
+        self._draw()
 
     def _click(self, _event=None):
-        if not callable(self._command):
-            return
-        self._border_width = 2
-        self._paint(self._hover if self._is_hovered else self._bg)
-        self.after(70, self._finish_click)
-
-    def _finish_click(self):
-        self._border_width = 1
-        self._paint(self._hover if self._is_hovered else self._bg)
         if callable(self._command):
             self._command()
 
@@ -222,7 +192,6 @@ class RoundedButton(tk.Frame):
             self._fg = fg
         if border is not None:
             self._border = border
-        self._current_bg = self._bg
         self._draw()
 
     def config(self, **kwargs):
@@ -392,7 +361,7 @@ class VentanaPrincipal:
         self.ventana.resizable(True, True)
 
         # Estado
-        self.es_modo_oscuro = (config.CURRENT_THEME == "dark")
+        self.es_modo_oscuro = True
         self.audio_silenciado = False
         self.volumen_anterior = 20
         self.todas_activado = False
@@ -404,12 +373,6 @@ class VentanaPrincipal:
         self._icon_refs = []
         self._image_refs = []
         self.mostrando_reclamados = False
-        self._busqueda_en_curso = False
-        self._busqueda_queue = queue.Queue()
-        self._busqueda_poll_job = None
-        self._status_anim_job = None
-        self._bubble_hover_jobs = {}
-        self._card_hover_jobs = {}
         self.reclamados = self._cargar_reclamados()
 
         try:
@@ -727,19 +690,13 @@ class VentanaPrincipal:
 
             # Icono
             icon_path = self._store_icon_path(icon_map.get(store, "other.png"))
-            icon_photo_normal = None
-            icon_photo_hover = None
             try:
                 if os.path.exists(icon_path):
                     img = Image.open(icon_path).convert("RGBA")
-                    normal_img = img.copy()
-                    normal_img.thumbnail((64, 64), Image.Resampling.LANCZOS)
-                    hover_img = img.copy()
-                    hover_img.thumbnail((70, 70), Image.Resampling.LANCZOS)
-                    icon_photo_normal = ImageTk.PhotoImage(normal_img)
-                    icon_photo_hover = ImageTk.PhotoImage(hover_img)
-                    self._icon_refs.extend([icon_photo_normal, icon_photo_hover])
-                    icon_item = canvas.create_image(40, 40, image=icon_photo_normal, tags=("store_icon",))
+                    img.thumbnail((64, 64), Image.Resampling.LANCZOS)
+                    photo = ImageTk.PhotoImage(img)
+                    self._icon_refs.append(photo)
+                    canvas.create_image(40, 40, image=photo)
             except Exception:
                 pass
 
@@ -758,68 +715,22 @@ class VentanaPrincipal:
                 "label": label,
                 "badge_bg": badge_bg,
                 "badge_text": badge_text,
-                "item": item,
-                "icon_item": locals().get("icon_item"),
-                "icon_photo_normal": icon_photo_normal,
-                "icon_photo_hover": icon_photo_hover
+                "item": item
             }
 
-            for target in (item, canvas, label):
-                target.bind("<Enter>", lambda e, s=store: self._programar_bubble_hover(s, True), add="+")
-                target.bind("<Leave>", lambda e, s=store: self._programar_bubble_hover(s, False), add="+")
-                target.bind("<Button-1>", lambda e, s=store: self._toggle_tienda(s), add="+")
-
-    def _bubble_inside(self, store):
-        w = self.bubble_widgets.get(store)
-        if not w or not w["item"].winfo_exists():
-            return False
-        item = w["item"]
-        try:
-            x, y = self.ventana.winfo_pointerxy()
-            rx, ry = item.winfo_rootx(), item.winfo_rooty()
-            return rx <= x < rx + item.winfo_width() and ry <= y < ry + item.winfo_height()
-        except Exception:
-            return False
-
-    def _programar_bubble_hover(self, store, is_hover):
-        old = self._bubble_hover_jobs.get(store)
-        if old is not None:
-            try: self.ventana.after_cancel(old)
-            except Exception: pass
-        self._bubble_hover_jobs[store] = self.ventana.after(35, lambda: self._on_bubble_hover(store, is_hover))
+            for w in (item, canvas, label):
+                w.bind("<Enter>", lambda e, s=store: self._on_bubble_hover(s, True))
+                w.bind("<Leave>", lambda e, s=store: self._on_bubble_hover(s, False))
+                w.bind("<Button-1>", lambda e, s=store: self._toggle_tienda(s))
 
     def _on_bubble_hover(self, store, is_hover):
-        if is_hover and not self._bubble_inside(store):
-            return
-        if not is_hover and self._bubble_inside(store):
-            return
-        w = self.bubble_widgets.get(store)
-        if not w:
-            return
-
-        canvas = w["canvas"]
-        icon_item = w.get("icon_item")
-        target_photo = w.get("icon_photo_hover") if is_hover else w.get("icon_photo_normal")
-        start_bg = COLOR_BG_CARD
-        end_bg = RoundedButton._blend(COLOR_BG_CARD, COLOR_ACCENT_LIGHT, 0.16) if is_hover else COLOR_BG_CARD
-        start_fg = COLOR_TEXT_PRIMARY if not self.active_filters[store] else COLOR_SUCCESS
-        end_fg = COLOR_ACCENT_LIGHT if is_hover else (COLOR_SUCCESS if self.active_filters[store] else COLOR_TEXT_PRIMARY)
-
-        def animate(step=0):
-            if not w["item"].winfo_exists():
-                return
-            t = min(1.0, (step + 1) / 6.0)
-            bg = RoundedButton._blend(start_bg, end_bg, t)
-            fg = RoundedButton._blend(start_fg, end_fg, t)
-            canvas.config(bg=bg, highlightthickness=2 if is_hover else 0,
-                          highlightbackground=COLOR_ACCENT_LIGHT if is_hover else COLOR_BG_CARD)
-            w["label"].config(fg=fg)
-            if icon_item and target_photo and step >= 2:
-                canvas.itemconfig(icon_item, image=target_photo)
-            if step < 5:
-                self.ventana.after(18, lambda: animate(step + 1))
-
-        animate()
+        w = self.bubble_widgets[store]
+        if is_hover:
+            w["canvas"].config(bg=COLOR_ACCENT_LIGHT)
+            w["label"].config(fg=COLOR_ACCENT_LIGHT)
+        else:
+            w["canvas"].config(bg=COLOR_BG_CARD)
+            w["label"].config(fg=COLOR_SUCCESS if self.active_filters[store] else COLOR_TEXT_PRIMARY)
 
     # ------------------------------------------------------------------------
     # AUDIO
@@ -896,38 +807,18 @@ class VentanaPrincipal:
     # ------------------------------------------------------------------------
 
     def buscar_juegos(self):
-        """Busca ofertas en segundo plano sin bloquear ni tocar Tkinter desde el hilo worker."""
-        if self._busqueda_en_curso:
-            return
-
-        self._busqueda_en_curso = True
-        self._animar_estado_busqueda_inicio()
-        self.status_pill.config(text="● BUSCANDO")
+        limpiar_cache_imagenes()
+        self.status_pill.config(text="● BUSCANDO", fg=COLOR_WARNING)
         self.ventana.update_idletasks()
-
-        # El hilo solo trabaja con datos Python. La interfaz se actualiza
-        # exclusivamente desde el hilo principal mediante polling.
-        threading.Thread(target=self._buscar_juegos_worker, daemon=True).start()
-        self._programar_poll_busqueda()
-
-    def _buscar_juegos_worker(self):
         try:
-            limpiar_cache_imagenes()
-            response = requests.get(
-                API_URL,
-                headers=API_HEADERS,
-                timeout=(5, 12)
-            )
+            response = requests.get(API_URL, headers=API_HEADERS, timeout=10)
             response.raise_for_status()
             giveaways = response.json()
             if not isinstance(giveaways, list):
                 raise ValueError("Formato de API no válido")
 
             juegos_validos = []
-            exclusiones_totales = list(EXCLUSIONES) + [
-                "dlc", "demo", "soundtrack", "ost", "expansion",
-                "pack", "bundle", "skin", "avatar"
-            ]
+            exclusiones_totales = list(EXCLUSIONES) + ["dlc", "demo", "soundtrack", "ost", "expansion", "pack", "bundle", "skin", "avatar"]
 
             for g in giveaways:
                 titulo = str(g.get("title", "")).lower()
@@ -938,99 +829,49 @@ class VentanaPrincipal:
                     continue
                 juegos_validos.append(g)
 
+            # Eliminar duplicados de la respuesta de la API.
+            # Para KG TRACKER el juego + tienda es la identidad funcional:
+            # una misma oferta puede cambiar de URL/ID y no debe aparecer dos veces.
             juegos_unicos = {}
             for juego in juegos_validos:
                 clave = self._clave_juego(juego)
                 if clave not in juegos_unicos:
                     juegos_unicos[clave] = juego
 
-            juegos_cache = list(juegos_unicos.values())
+            self.juegos_cache_global = list(juegos_unicos.values())
+
+            # Si un juego histórico no tenía valor guardado, aprovechamos el
+            # `worth` actual de GamerPower cuando vuelve a aparecer en la API.
+            historico_actualizado = False
+            for juego in self.juegos_cache_global:
+                clave = self._clave_juego(juego)
+                registro = self.reclamados.get(clave)
+                if registro is not None:
+                    valor_actual = self._valor_juego(juego)
+                    if valor_actual > 0 and self._parsear_valor_juego(registro.get("worth_value")) <= 0:
+                        registro["worth_value"] = valor_actual
+                        registro["worth"] = str(juego.get("worth") or "")
+                        historico_actualizado = True
+            if historico_actualizado:
+                self._guardar_reclamados()
+            self._actualizar_contador_ahorrado()
+
+            disponibles = [j for j in self.juegos_cache_global if not self._esta_reclamado(j)]
             conteos = {s: 0 for s in STORES_MAPPING.values()}
-            disponibles = [j for j in juegos_cache if not self._esta_reclamado(j)]
             for juego in disponibles:
                 tienda = self._asignar_tienda(juego)
                 if tienda in conteos:
                     conteos[tienda] += 1
 
-            self._busqueda_queue.put(("ok", juegos_cache, conteos))
+            self.actualizar_insignias(conteos)
+            self.status_pill.config(text=f"● {len(disponibles)} OFERTAS", fg=COLOR_SUCCESS)
+            self.btn_side_todas.pack()
+            self.mostrando_reclamados = False
+            self._actualizar_vista_juegos()
 
         except Exception as e:
-            self._busqueda_queue.put(("error", str(e)))
-
-    def _programar_poll_busqueda(self):
-        if self._busqueda_poll_job is not None:
-            try:
-                self.ventana.after_cancel(self._busqueda_poll_job)
-            except Exception:
-                pass
-        self._busqueda_poll_job = self.ventana.after(60, self._poll_busqueda)
-
-    def _poll_busqueda(self):
-        """Comprueba resultados del worker desde el hilo principal de Tkinter."""
-        try:
-            resultado = self._busqueda_queue.get_nowait()
-        except queue.Empty:
-            if self._busqueda_en_curso and self.ventana.winfo_exists():
-                self._programar_poll_busqueda()
-            return
-
-        self._busqueda_poll_job = None
-        if resultado[0] == "ok":
-            self._finalizar_busqueda(resultado[1], resultado[2])
-        else:
-            self._finalizar_busqueda_error(resultado[1])
-
-    def _finalizar_busqueda(self, juegos_cache, conteos):
-        if not self.ventana.winfo_exists():
-            return
-        self.juegos_cache_global = juegos_cache
-
-        historico_actualizado = False
-        for juego in self.juegos_cache_global:
-            clave = self._clave_juego(juego)
-            registro = self.reclamados.get(clave)
-            if registro is not None:
-                valor_actual = self._valor_juego(juego)
-                if valor_actual > 0 and self._parsear_valor_juego(registro.get("worth_value")) <= 0:
-                    registro["worth_value"] = valor_actual
-                    registro["worth"] = str(juego.get("worth") or "")
-                    historico_actualizado = True
-        if historico_actualizado:
-            self._guardar_reclamados()
-
-        self._actualizar_contador_ahorrado()
-        self.actualizar_insignias(conteos)
-        disponibles = sum(conteos.values())
-        self.status_pill.config(text=f"● {disponibles} OFERTAS", fg=COLOR_SUCCESS)
-        self.btn_side_todas.pack()
-        self.mostrando_reclamados = False
-        self._actualizar_vista_juegos()
-        self._animar_pulso_estado(COLOR_SUCCESS, COLOR_ACCENT_LIGHT, ciclos=2)
-        self._busqueda_en_curso = False
-
-    def _finalizar_busqueda_error(self, error):
-        if not self.ventana.winfo_exists():
-            return
-        self._busqueda_en_curso = False
-        self._busqueda_poll_job = None
-        self.status_pill.config(text="● ERROR", fg=COLOR_ERROR)
-        messagebox.showerror("Error", f"No se pudieron cargar los juegos:\n{error}")
-
-    def _animar_estado_busqueda_inicio(self):
-        if not hasattr(self, "status_pill"):
-            return
-        if self._status_anim_job is not None:
-            try:
-                self.ventana.after_cancel(self._status_anim_job)
-            except Exception:
-                pass
-        colores = [COLOR_WARNING, COLOR_ACCENT_LIGHT, COLOR_WARNING]
-        def paso(i=0):
-            if not self.ventana.winfo_exists() or not self._busqueda_en_curso:
-                return
-            self.status_pill.config(text="● BUSCANDO", fg=colores[i % len(colores)])
-            self._status_anim_job = self.ventana.after(180, lambda: paso(i + 1))
-        paso()
+            self.status_pill.config(text="● ERROR", fg=COLOR_ERROR)
+            messagebox.showerror("Error", f"No se pudieron cargar los juegos:\n{e}")
 
     def _asignar_tienda(self, juego):
         platforms = str(juego.get("platforms", "")).lower()
@@ -1069,73 +910,6 @@ class VentanaPrincipal:
     # ------------------------------------------------------------------------
     # VISTA DE JUEGOS
     # ------------------------------------------------------------------------
-
-    def _animar_pulso_estado(self, color_base=None, color_luz=None, ciclos=2):
-        if not hasattr(self, "status_pill"):
-            return
-        color_base = color_base or COLOR_SUCCESS
-        color_luz = color_luz or COLOR_ACCENT_LIGHT
-        total = max(1, ciclos) * 2
-        def paso(i=0):
-            if not self.status_pill.winfo_exists(): return
-            t = i / float(total)
-            t = 1 - abs(2 * t - 1)
-            self.status_pill.config(fg=RoundedButton._blend(color_base, color_luz, t))
-            if i < total: self.ventana.after(70, lambda: paso(i+1))
-            else: self.status_pill.config(fg=color_base)
-        paso()
-
-    def _animar_contador_ahorro(self, anterior, nuevo, duracion=450):
-        if not hasattr(self, "ahorro_pill"):
-            return
-        pasos = max(8, int(duracion / 30))
-        def paso(i=0):
-            if not self.ahorro_pill.winfo_exists(): return
-            t = min(1.0, i / float(pasos))
-            t = 1 - (1 - t) ** 3
-            valor = anterior + (nuevo - anterior) * t
-            self.ahorro_pill.config(text=f"$ AHORRADO : {valor:,.2f}")
-            if i < pasos:
-                self.ventana.after(max(15, duracion // pasos), lambda: paso(i+1))
-            else:
-                self.ahorro_pill.config(text=f"$ AHORRADO : {nuevo:,.2f}")
-                self._animar_pulso_ahorro()
-        paso()
-
-    def _animar_pulso_ahorro(self):
-        if not hasattr(self, "ahorro_pill"): return
-        base = COLOR_BG_CARD
-        luz = "#5A4A1A" if config.CURRENT_THEME == "dark" else "#E7D59A"
-        fg = COLOR_WARNING if config.CURRENT_THEME == "light" else "#F2C94C"
-        def paso(i=0):
-            if not self.ahorro_pill.winfo_exists(): return
-            t = 1 - abs(2 * (i/8.0) - 1)
-            self.ahorro_pill.set_colors(bg=RoundedButton._blend(base, luz, t), fg=fg)
-            if i < 8: self.ventana.after(45, lambda: paso(i+1))
-            else: self.ahorro_pill.set_colors(bg=base, fg=fg)
-        paso()
-
-    def _animar_tarjeta_entrada(self, card, delay=0):
-        def run():
-            try:
-                if not card.winfo_exists(): return
-                card.configure(highlightbackground=COLOR_ACCENT_LIGHT, highlightthickness=2)
-                def settle(i=0):
-                    if not card.winfo_exists(): return
-                    if i >= 5:
-                        card.configure(highlightbackground=COLOR_BORDER, highlightthickness=1)
-                        return
-                    card.configure(highlightbackground=RoundedButton._blend(COLOR_ACCENT_LIGHT, COLOR_BORDER, (i+1)/5))
-                    self.ventana.after(35, lambda: settle(i+1))
-                self.ventana.after(35, settle)
-            except Exception: pass
-        self.ventana.after(delay, run)
-
-    def _animar_tarjetas_stagger(self, tareas, indice=0):
-        if indice >= len(tareas): return
-        juego, store = tareas[indice]
-        self._crear_tarjeta_juego(juego, store, animar=True, delay=indice*45)
-        self.ventana.after(20, lambda: self._animar_tarjetas_stagger(tareas, indice+1))
 
     def _actualizar_vista_juegos(self):
         for widget in self.frame_lista.winfo_children():
@@ -1178,13 +952,14 @@ class VentanaPrincipal:
                 tk.Label(self.frame_lista, text=f"No hay elementos disponibles en {store} actualmente.",
                          font=("Segoe UI", 9, "italic"), bg=COLOR_BG, fg=COLOR_TEXT_MUTED).pack(pady=6)
                 continue
-            self._animar_tarjetas_stagger([(juego, store) for juego in juegos])
+            for juego in juegos:
+                self._crear_tarjeta_juego(juego, store)
 
     def _toggle_acordeon(self, store):
         self.acordeon_estados[store] = not self.acordeon_estados.get(store, True)
         self._actualizar_vista_juegos()
 
-    def _crear_tarjeta_juego(self, juego, nombre_tienda, animar=False, delay=0):
+    def _crear_tarjeta_juego(self, juego, nombre_tienda):
         titulo = juego.get("title", "Elemento sin título")
         thumb_url = juego.get("image") or juego.get("thumbnail")
         link_url = str(juego.get("open_giveaway_url") or "").strip()
@@ -1195,8 +970,6 @@ class VentanaPrincipal:
         card = tk.Frame(self.frame_lista, bg=COLOR_BG_CARD, highlightthickness=1, highlightbackground=COLOR_BORDER)
         card.pack(fill="x", pady=4)
         card.columnconfigure(1, weight=1)
-        if animar:
-            self._animar_tarjeta_entrada(card, delay)
 
         image_box = tk.Frame(card, bg=COLOR_BG_DESC, width=190, height=104)
         image_box.grid(row=0, column=0, rowspan=2, padx=10, pady=10, sticky="nsw")
@@ -1231,36 +1004,6 @@ class VentanaPrincipal:
             ).pack(fill="x", pady=(3, 0))
 
         esta_reclamado = self._esta_reclamado(juego)
-
-        def _card_inside():
-            try:
-                x, y = self.ventana.winfo_pointerxy()
-                rx, ry = card.winfo_rootx(), card.winfo_rooty()
-                return rx <= x < rx + card.winfo_width() and ry <= y < ry + card.winfo_height()
-            except Exception:
-                return False
-
-        def _card_hover(state):
-            if state and not _card_inside(): return
-            if not state and _card_inside(): return
-            try:
-                card.configure(highlightbackground=COLOR_ACCENT_LIGHT if state else COLOR_BORDER,
-                               highlightthickness=2 if state else 1)
-                image_box.configure(bg=RoundedButton._blend(COLOR_BG_DESC, COLOR_ACCENT_LIGHT, 0.12 if state else 0.0),
-                                    width=194 if state else 190, height=106 if state else 104)
-            except Exception:
-                pass
-
-        def _schedule_card(state):
-            old = self._card_hover_jobs.get(str(card))
-            if old is not None:
-                try: self.ventana.after_cancel(old)
-                except Exception: pass
-            self._card_hover_jobs[str(card)] = self.ventana.after(30, lambda: _card_hover(state))
-
-        for _w in (card, image_box, info):
-            _w.bind("<Enter>", lambda e: _schedule_card(True), add="+")
-            _w.bind("<Leave>", lambda e: _schedule_card(False), add="+")
 
         # Los dos botones tienen funciones independientes:
         # RECLAMAR abre la oferta; MARCAR RECLAMADO la guarda en el histórico.
@@ -1484,7 +1227,6 @@ class VentanaPrincipal:
             webbrowser.open(url)
 
     def _alternar_reclamado(self, juego):
-        total_anterior = self._dinero_ahorrado()
         clave = self._clave_juego(juego)
         if clave in self.reclamados:
             del self.reclamados[clave]
@@ -1504,9 +1246,7 @@ class VentanaPrincipal:
             }
 
         self._guardar_reclamados()
-        total_nuevo = self._dinero_ahorrado()
         self._actualizar_contador_ahorrado()
-        self._animar_contador_ahorro(total_anterior, total_nuevo)
         self._actualizar_vista_juegos()
 
         disponibles = [
@@ -1581,11 +1321,11 @@ class VentanaPrincipal:
             pady=10
         ).pack(side="left")
 
-        for indice, registro in enumerate(sorted(
+        for registro in sorted(
             self.reclamados.values(),
             key=lambda x: str(x.get("claimed_at", "")),
             reverse=True
-        )):
+        ):
             juego = {
                 "id": registro.get("id"),
                 "title": registro.get("title", "Elemento sin título"),
@@ -1598,7 +1338,7 @@ class VentanaPrincipal:
                 "worth_value": registro.get("worth_value", 0),
                 "__reclamado_key": registro.get("key")
             }
-            self._crear_tarjeta_juego(juego, registro.get("store", "Otras Plataformas"), animar=True, delay=indice*45)
+            self._crear_tarjeta_juego(juego, registro.get("store", "Otras Plataformas"))
 
     def abrir_enlace(self, url):
         if url:
@@ -1681,9 +1421,9 @@ class VentanaPrincipal:
     # ------------------------------------------------------------------------
 
     def alternar_tema(self):
-        """Cambia de tema con una transición visual suave mediante crossfade."""
+        """Cambia entre tema oscuro y claro reconstruyendo la UI con la nueva paleta."""
         estado = {
-            "active_filters": list(getattr(self, "active_filters", [])),
+            "active_filters": dict(getattr(self, "active_filters", {})),
             "acordeon_estados": dict(getattr(self, "acordeon_estados", {})),
             "tienda_seleccionada": getattr(self, "tienda_seleccionada", None),
             "mostrando_reclamados": getattr(self, "mostrando_reclamados", False),
@@ -1693,24 +1433,20 @@ class VentanaPrincipal:
             "silenciado": getattr(self, "silenciado", False),
         }
 
-        old_snapshot = None
-        try:
-            self.ventana.update_idletasks()
-            x = self.ventana.winfo_rootx()
-            y = self.ventana.winfo_rooty()
-            w = self.ventana.winfo_width()
-            h = self.ventana.winfo_height()
-            old_snapshot = ImageGrab.grab(bbox=(x, y, x + w, y + h))
-        except Exception:
-            pass
-
         config.CURRENT_THEME = "light" if config.CURRENT_THEME == "dark" else "dark"
         tema = config.THEMES[config.CURRENT_THEME]
+
         for nombre, valor in tema.items():
             globals()[nombre] = valor
             setattr(config, nombre, valor)
 
+        icon_path = self._icon_path(
+            "dark_theme.png" if config.CURRENT_THEME == "dark" else "light_theme.png"
+        )
+
         self.es_modo_oscuro = config.CURRENT_THEME == "dark"
+
+        # Reconstruimos para que todos los widgets nazcan con la paleta correcta.
         self.root_frame.destroy()
         self._build_ui()
 
@@ -1722,46 +1458,11 @@ class VentanaPrincipal:
         self.juegos_cache_global = estado["juegos_cache_global"]
         self.volumen = estado["volumen"]
         self.silenciado = estado["silenciado"]
+
+        if hasattr(self, "btn_side_theme"):
+            self.btn_side_theme.set_icon(icon_path)
+
         self._actualizar_vista_juegos()
-
-        if old_snapshot is None:
-            return
-
-        try:
-            self.ventana.update_idletasks()
-            x = self.ventana.winfo_rootx()
-            y = self.ventana.winfo_rooty()
-            w = self.ventana.winfo_width()
-            h = self.ventana.winfo_height()
-            new_snapshot = ImageGrab.grab(bbox=(x, y, x + w, y + h))
-
-            overlay = tk.Toplevel(self.ventana)
-            overlay.overrideredirect(True)
-            overlay.attributes("-topmost", True)
-            overlay.attributes("-alpha", 1.0)
-            overlay.geometry(f"{w}x{h}+{x}+{y}")
-            photo = ImageTk.PhotoImage(old_snapshot)
-            label = tk.Label(overlay, image=photo, bd=0)
-            label.image = photo
-            label.pack(fill="both", expand=True)
-
-            frames = 14
-            duration = 320
-            def fade(i=0):
-                if not overlay.winfo_exists(): return
-                t = min(1.0, i / float(frames))
-                blend = Image.blend(old_snapshot, new_snapshot, t)
-                ph = ImageTk.PhotoImage(blend)
-                label.configure(image=ph)
-                label.image = ph
-                if i < frames:
-                    overlay.after(max(15, duration // frames), lambda: fade(i + 1))
-                else:
-                    overlay.destroy()
-            fade()
-        except Exception:
-            try: overlay.destroy()
-            except Exception: pass
 
     def _apply_theme(self, bg, card, desc, text, secondary, icon_path):
         """Compatibilidad con llamadas antiguas; aplica el tema mediante reconstrucción."""
@@ -1964,4 +1665,5 @@ class VentanaPrincipal:
         btn_cancelar.pack(side="left", padx=10, ipadx=10, ipady=4)
 
         modal.deiconify()
+
 
