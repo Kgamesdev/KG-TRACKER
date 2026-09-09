@@ -13,6 +13,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 from PIL import Image, ImageTk
 import pygame
+import config
 
 from config import (
     API_URL, API_HEADERS, EXCLUSIONES, STORES_MAPPING,
@@ -22,7 +23,8 @@ from config import (
     COLOR_SUCCESS_HOVER, COLOR_WARNING, COLOR_ERROR,
     WINDOW_TITLE, ICON_PATH, THUMBNAIL_SIZE,
     AUDIO_PATH, AUTOSTART_REG_PATH, AUTOSTART_APP_NAME,
-    LOGO_PATH
+    LOGO_PATH, COLOR_SIDEBAR, COLOR_SIDEBAR_HOVER,
+    COLOR_BORDER, COLOR_HOVER
 )
 from core.images import (
     descargar_imagen_thumbnail,
@@ -41,12 +43,12 @@ class RoundedButton(tk.Frame):
         command=None,
         width=120,
         height=42,
-        bg="#2D2D3F",
-        hover_bg="#38384D",
-        fg="white",
+        bg=COLOR_BG_CARD,
+        hover_bg=COLOR_HOVER,
+        fg=COLOR_TEXT_PRIMARY,
         radius=12,
         font=("Segoe UI", 9, "bold"),
-        border="#3A3A50",
+        border=COLOR_BORDER,
         border_width=1,
         icon_path=None,
         icon_size=(20, 20),
@@ -220,10 +222,10 @@ class VolumeSlider(tk.Frame):
         to=100,
         length=120,
         command=None,
-        bg="#1E1E2E",
-        track_bg="#3A3A50",
-        fill_bg="#6C63FF",
-        knob_bg="#F3F4F6",
+        bg=COLOR_BG,
+        track_bg=COLOR_BORDER,
+        fill_bg=COLOR_ACCENT,
+        knob_bg=COLOR_TEXT_PRIMARY,
         **kwargs
     ):
         super().__init__(parent, bg=bg, bd=0, highlightthickness=0, **kwargs)
@@ -358,7 +360,7 @@ class VentanaPrincipal:
         self.ventana.resizable(True, True)
 
         # Estado
-        self.es_modo_oscuro = True
+        self.es_modo_oscuro = (config.CURRENT_THEME == "dark")
         self.audio_silenciado = False
         self.volumen_anterior = 20
         self.todas_activado = False
@@ -395,24 +397,24 @@ class VentanaPrincipal:
         # ------------------------------------------------------------
         # SIDEBAR
         # ------------------------------------------------------------
-        self.sidebar = tk.Frame(self.root_frame, bg=COLOR_BG_CARD, width=74)
+        self.sidebar = tk.Frame(self.root_frame, bg=COLOR_SIDEBAR, width=74)
         self.sidebar.pack(side="left", fill="y", expand=True)
         self.sidebar.pack_propagate(False)
 
         # Zona superior (logo, volver, TODAS/NINGUNA)
-        self.sidebar_top = tk.Frame(self.sidebar, bg=COLOR_BG_CARD)
+        self.sidebar_top = tk.Frame(self.sidebar, bg=COLOR_SIDEBAR)
         self.sidebar_top.pack(side="top", fill="both", expand=True)
 
         # Logo
         try:
             logo_img = Image.open(LOGO_PATH).resize((50, 50), Image.Resampling.LANCZOS)
             self.logo_photo = ImageTk.PhotoImage(logo_img)
-            self.logo_btn = tk.Label(self.sidebar_top, image=self.logo_photo, bg=COLOR_BG_CARD, cursor="hand2")
+            self.logo_btn = tk.Label(self.sidebar_top, image=self.logo_photo, bg=COLOR_SIDEBAR, cursor="hand2")
             self.logo_btn.pack(pady=(16, 12))
             self.logo_btn.bind("<Button-1>", lambda e: self.resetear_app())
         except Exception:
             self.logo_btn = tk.Label(self.sidebar_top, text="K\nG", font=("Segoe UI", 17, "bold"),
-                                     bg=COLOR_BG_CARD, fg=COLOR_ACCENT_LIGHT, justify="center", cursor="hand2")
+                                     bg=COLOR_SIDEBAR, fg=COLOR_ACCENT_LIGHT, justify="center", cursor="hand2")
             self.logo_btn.pack(pady=(24, 28))
             self.logo_btn.bind("<Button-1>", lambda e: self.resetear_app())
 
@@ -423,10 +425,10 @@ class VentanaPrincipal:
             command=self.volver_atras,
             width=54,
             height=50,
-            bg=COLOR_BG_CARD,
+            bg=COLOR_SIDEBAR,
             hover_bg=COLOR_ACCENT,
             fg=COLOR_TEXT_PRIMARY,
-            border="#3A3A50",
+            border=COLOR_SIDEBAR_HOVER,
             radius=13,
             icon_path=self._icon_path("back.png"),
             icon_size=(28, 28)
@@ -452,7 +454,7 @@ class VentanaPrincipal:
         self.btn_side_todas.pack_forget()  # oculto inicialmente
 
         # Zona inferior (ajustes y tema)
-        self.sidebar_bottom = tk.Frame(self.sidebar, bg=COLOR_BG_CARD)
+        self.sidebar_bottom = tk.Frame(self.sidebar, bg=COLOR_SIDEBAR)
         self.sidebar_bottom.pack(side="bottom", fill="x", pady=(0, 10))
 
         # Botón Ko-fi (café) - Donaciones
@@ -462,10 +464,10 @@ class VentanaPrincipal:
             command=self.abrir_kofi,
             width=54,
             height=50,
-            bg=COLOR_BG_CARD,
+            bg=COLOR_SIDEBAR,
             hover_bg=COLOR_ACCENT,
             fg=COLOR_TEXT_PRIMARY,
-            border="#3A3A50",
+            border=COLOR_SIDEBAR_HOVER,
             radius=13,
             icon_path=self._icon_path("cafe.png"),
             icon_size=(28, 28)
@@ -478,10 +480,10 @@ class VentanaPrincipal:
             command=self.abrir_ajustes,
             width=54,
             height=50,
-            bg=COLOR_BG_CARD,
+            bg=COLOR_SIDEBAR,
             hover_bg=COLOR_ACCENT,
             fg=COLOR_TEXT_PRIMARY,
-            border="#3A3A50",
+            border=COLOR_SIDEBAR_HOVER,
             radius=13,
             icon_path=self._icon_path("settings.png"),
             icon_size=(28, 28)
@@ -494,10 +496,10 @@ class VentanaPrincipal:
             command=self.alternar_tema,
             width=54,
             height=50,
-            bg=COLOR_BG_CARD,
+            bg=COLOR_SIDEBAR,
             hover_bg=COLOR_ACCENT,
             fg=COLOR_TEXT_PRIMARY,
-            border="#3A3A50",
+            border=COLOR_SIDEBAR_HOVER,
             radius=13,
             icon_path=self._icon_path("dark_theme.png"),
             icon_size=(28, 28)
@@ -515,7 +517,7 @@ class VentanaPrincipal:
             self.content,
             bg=COLOR_BG_CARD,
             highlightthickness=1,
-            highlightbackground="#3A3A50",
+            highlightbackground=COLOR_BORDER,
             height=220
         )
         self.store_panel.pack(fill="x", padx=28, pady=(16, 16))
@@ -587,9 +589,9 @@ class VentanaPrincipal:
             width=142,
             height=34,
             bg=COLOR_BG_CARD,
-            hover_bg="#39394D",
+            hover_bg=COLOR_HOVER,
             fg=COLOR_ACCENT_LIGHT,
-            border="#3A3A50",
+            border=COLOR_BORDER,
             radius=10,
             font=("Segoe UI", 8, "bold")
         )
@@ -614,7 +616,7 @@ class VentanaPrincipal:
             length=120,
             command=self.cambiar_volumen,
             bg=COLOR_BG,
-            track_bg="#3A3A50",
+            track_bg=COLOR_BORDER,
             fill_bg=COLOR_ACCENT,
             knob_bg=COLOR_TEXT_PRIMARY
         )
@@ -628,9 +630,9 @@ class VentanaPrincipal:
             width=42,
             height=38,
             bg=COLOR_BG_CARD,
-            hover_bg="#39394D",
+            hover_bg=COLOR_HOVER,
             fg=COLOR_TEXT_PRIMARY,
-            border="#3A3A50",
+            border=COLOR_BORDER,
             radius=11,
             icon_path=self._icon_path("volume.png"),
             icon_size=(21, 21)
@@ -927,7 +929,7 @@ class VentanaPrincipal:
         if len(descripcion) > 170:
             descripcion = descripcion[:167] + "..."
 
-        card = tk.Frame(self.frame_lista, bg=COLOR_BG_CARD, highlightthickness=1, highlightbackground="#3A3A50")
+        card = tk.Frame(self.frame_lista, bg=COLOR_BG_CARD, highlightthickness=1, highlightbackground=COLOR_BORDER)
         card.pack(fill="x", pady=4)
         card.columnconfigure(1, weight=1)
 
@@ -999,9 +1001,9 @@ class VentanaPrincipal:
                 width=128,
                 height=32,
                 bg=COLOR_BG_CARD,
-                hover_bg="#39394D",
+                hover_bg=COLOR_HOVER,
                 fg=COLOR_ACCENT_LIGHT,
-                border="#3A3A50",
+                border=COLOR_BORDER,
                 radius=10,
                 font=("Segoe UI", 7, "bold")
             )
@@ -1165,7 +1167,7 @@ class VentanaPrincipal:
             self.btn_reclamados.config(
                 text="★ RECLAMADOS",
                 bg=COLOR_BG_CARD,
-                activebackground="#39394D",
+                activebackground=COLOR_HOVER,
                 fg=COLOR_ACCENT_LIGHT
             )
             disponibles = [
@@ -1276,7 +1278,7 @@ class VentanaPrincipal:
         self.btn_reclamados.config(
             text="★ RECLAMADOS",
             bg=COLOR_BG_CARD,
-            activebackground="#39394D",
+            activebackground=COLOR_HOVER,
             fg=COLOR_ACCENT_LIGHT
         )
         for s in self.active_filters:
@@ -1302,67 +1304,80 @@ class VentanaPrincipal:
     # ------------------------------------------------------------------------
 
     def alternar_tema(self):
-        import config
-        self.es_modo_oscuro = not self.es_modo_oscuro
-        if self.es_modo_oscuro:
-            bg, card, desc, text, secondary = "#1E1E2E", "#2D2D3F", "#232333", "#F3F4F6", "#9CA3AF"
-            icon_path = self._icon_path("dark_theme.png")
-        else:
-            bg, card, desc, text, secondary = "#F3F4F6", "#FFFFFF", "#E5E7EB", "#111827", "#4B5563"
-            icon_path = self._icon_path("light_theme.png")
+        """Cambia entre los dos temas sin tocar la lógica funcional de la aplicación."""
+        estado_filtros = dict(self.active_filters)
+        estado_acordeon = dict(self.acordeon_estados)
+        tienda = self.tienda_seleccionada
+        mostrando_reclamados = self.mostrando_reclamados
+        todas_activado = self.todas_activado
+        juegos_cache = list(self.juegos_cache_global)
+        volumen = self.slider_volumen.get() if hasattr(self, "slider_volumen") else 20
+        audio_silenciado = self.audio_silenciado
+        volumen_anterior = self.volumen_anterior
 
-        config.COLOR_BG = bg
-        config.COLOR_BG_CARD = card
-        config.COLOR_BG_DESC = desc
-        config.COLOR_TEXT_PRIMARY = text
-        config.COLOR_TEXT_SECONDARY = secondary
-        self._apply_theme(bg, card, desc, text, secondary, icon_path)
+        config.CURRENT_THEME = "light" if config.CURRENT_THEME == "dark" else "dark"
+        tema = config.THEMES[config.CURRENT_THEME]
 
-    def _apply_theme(self, bg, card, desc, text, secondary, icon_path):
-        self.ventana.config(bg=bg)
-        self.root_frame.config(bg=bg)
-        self.content.config(bg=bg)
-        self.sidebar.config(bg=card)
-        self.sidebar_top.config(bg=card)
-        self.sidebar_bottom.config(bg=card)
-        self.store_panel.config(bg=card, highlightbackground=desc)
-        self.bottom.config(bg=bg)
+        # Actualizar las constantes importadas en este módulo.
+        for nombre, valor in tema.items():
+            globals()[nombre] = valor
+            setattr(config, nombre, valor)
+
+        self.es_modo_oscuro = config.CURRENT_THEME == "dark"
+
+        # Reconstruimos únicamente la capa visual. Los datos y estado se conservan.
+        self.root_frame.destroy()
+        self.bubble_widgets = {}
+        self._icon_refs = []
+        self._image_refs = []
+
+        self._build_ui()
+
+        self.active_filters = estado_filtros
+        self.acordeon_estados = estado_acordeon
+        self.tienda_seleccionada = tienda
+        self.mostrando_reclamados = mostrando_reclamados
+        self.todas_activado = todas_activado
+        self.juegos_cache_global = juegos_cache
+        self.audio_silenciado = audio_silenciado
+        self.volumen_anterior = volumen_anterior
+
         if hasattr(self, "slider_volumen"):
-            self.slider_volumen.set_colors(
-                bg=bg,
-                track_bg=desc,
-                fill_bg=COLOR_ACCENT,
-                knob_bg=text
+            self.slider_volumen.set(volumen)
+
+        for store, widgets in self.bubble_widgets.items():
+            activo = self.active_filters.get(store, False)
+            widgets["label"].config(
+                fg=COLOR_SUCCESS if activo else COLOR_TEXT_PRIMARY
             )
-        self.container.config(bg=bg)
-        self.canvas.config(bg=bg)
-        self.frame_lista.config(bg=bg)
 
-        # Botones sidebar
-        self.btn_side_theme.set_icon(icon_path)
-        self.btn_side_theme.config(bg=card, activebackground="#39394D", fg=text)
-        self.btn_side_settings.config(bg=card, activebackground="#39394D", fg=text)
-        self.btn_side_back.config(bg=card, activebackground="#39394D", fg=text)
-        self.btn_side_todas.config(bg=COLOR_ACCENT, hover_bg=COLOR_ACCENT_HOVER, fg="white", activebackground=COLOR_ACCENT_HOVER)
+        if self.todas_activado:
+            self.btn_side_todas.config(text="NINGUNA")
+            self.btn_side_todas.pack(pady=5)
+        else:
+            self.btn_side_todas.config(text="TODAS")
+            self.btn_side_todas.pack_forget()
 
-        self.btn_mute.config(bg=card, fg=text)
         if self.mostrando_reclamados:
-            self.btn_reclamados.config(bg=COLOR_ACCENT, fg="white", activebackground=COLOR_ACCENT_HOVER)
+            self.btn_reclamados.config(
+                text="★ VER RECLAMADOS",
+                bg=COLOR_ACCENT,
+                activebackground=COLOR_ACCENT_HOVER,
+                fg="white"
+            )
         else:
-            self.btn_reclamados.config(bg=card, fg=COLOR_ACCENT_LIGHT, activebackground="#39394D")
-
-        current_text = self.status_pill.cget("text")
-        if "LISTO" in current_text:
-            self.status_pill.config(bg=card, fg=COLOR_SUCCESS)
-        else:
-            self.status_pill.config(bg=card, fg=COLOR_WARNING)
-
-        for w in self.bubble_widgets.values():
-            w["item"].config(bg=card)
-            w["canvas"].config(bg=card)
-            w["label"].config(bg=card, fg=text)
+            self.btn_reclamados.config(
+                text="★ RECLAMADOS",
+                bg=COLOR_BG_CARD,
+                activebackground=COLOR_HOVER,
+                fg=COLOR_ACCENT_LIGHT
+            )
 
         self._actualizar_vista_juegos()
+
+    def _apply_theme(self, *args, **kwargs):
+        # Compatibilidad con llamadas antiguas.
+        self.alternar_tema()
 
     # ------------------------------------------------------------------------
     # AJUSTES
@@ -1552,7 +1567,7 @@ class VentanaPrincipal:
             frame_botones, 
             text="Cancelar", 
             font=("Segoe UI", 10), 
-            bg="#3A3A50", 
+            bg=COLOR_BORDER, 
             fg="#ffffff",
             relief="flat",
             cursor="hand2",
