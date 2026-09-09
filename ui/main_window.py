@@ -1,4 +1,4 @@
-"""Interfaz gráfica principal de K GAME TRACKER."""
+﻿"""Interfaz gráfica principal de K GAME TRACKER."""
 
 # V5.0 - Control de volumen personalizado integrado en la interfaz
 
@@ -360,7 +360,7 @@ class VentanaPrincipal:
         self.ventana.resizable(True, True)
 
         # Estado
-        self.es_modo_oscuro = True
+        self.es_modo_oscuro = (config.CURRENT_THEME == "dark")
         self.audio_silenciado = False
         self.volumen_anterior = 20
         self.todas_activado = False
@@ -501,7 +501,7 @@ class VentanaPrincipal:
             fg=COLOR_TEXT_PRIMARY,
             border=COLOR_BORDER,
             radius=13,
-            icon_path=self._icon_path("dark_theme.png"),
+            icon_path=self._icon_path("light_theme.png" if self.es_modo_oscuro else "dark_theme.png"),
             icon_size=(28, 28)
         )
         self.btn_side_theme.pack(pady=5)
@@ -1323,10 +1323,6 @@ class VentanaPrincipal:
             globals()[nombre] = valor
             setattr(config, nombre, valor)
 
-        icon_path = self._icon_path(
-            "dark_theme.png" if config.CURRENT_THEME == "dark" else "light_theme.png"
-        )
-
         self.es_modo_oscuro = config.CURRENT_THEME == "dark"
 
         # Reconstruimos para que todos los widgets nazcan con la paleta correcta.
@@ -1342,8 +1338,6 @@ class VentanaPrincipal:
         self.volumen = estado["volumen"]
         self.silenciado = estado["silenciado"]
 
-        if hasattr(self, "btn_side_theme"):
-            self.btn_side_theme.set_icon(icon_path)
 
         self._actualizar_vista_juegos()
 
@@ -1548,3 +1542,5 @@ class VentanaPrincipal:
         btn_cancelar.pack(side="left", padx=10, ipadx=10, ipady=4)
 
         modal.deiconify()
+
+
