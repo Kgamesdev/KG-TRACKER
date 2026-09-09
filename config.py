@@ -33,9 +33,7 @@ STORES_MAPPING = {
     "other": "Otras Plataformas"
 }
 
-# --- PALETAS DE COLORES PARA TEMAS ---
-# Diseño: azul grisáceo de baja luminosidad + acento violeta KG.
-# El modo claro evita blanco puro para reducir fatiga visual.
+# --- PALETAS DE COLORES PARA TEMAS (OSCURO / CLARO) ---
 THEMES = {
     "dark": {
         "COLOR_BG": "#1E1E2E",
@@ -57,30 +55,28 @@ THEMES = {
         "COLOR_HOVER": "#39394D",
     },
     "light": {
-        # Azul grisáceo oscuro, inspirado en launchers modernos.
-        "COLOR_BG": "#536B99",
-        "COLOR_BG_CARD": "#6079A8",
-        "COLOR_BG_DESC": "#6E86B2",
-        "COLOR_SIDEBAR": "#172744",
-        "COLOR_SIDEBAR_HOVER": "#243A61",
-        "COLOR_TEXT_PRIMARY": "#F1F5FC",
-        "COLOR_TEXT_SECONDARY": "#D4DEEE",
-        "COLOR_TEXT_MUTED": "#B9C7DD",
-        # El violeta queda reservado para acciones/acento.
-        "COLOR_ACCENT": "#665CF0",
-        "COLOR_ACCENT_HOVER": "#554AE0",
-        "COLOR_ACCENT_LIGHT": "#A7B4FF",
-        "COLOR_SUCCESS": "#43C5A0",
-        "COLOR_SUCCESS_HOVER": "#2DAF8B",
-        "COLOR_WARNING": "#F0B85B",
-        "COLOR_ERROR": "#F07A7A",
-        "COLOR_BORDER": "#7890BC",
-        "COLOR_HOVER": "#6D86B4",
+        "COLOR_BG": "#D8E4F3",
+        "COLOR_BG_CARD": "#C4D5EA",
+        "COLOR_BG_DESC": "#B5C9E2",
+        "COLOR_SIDEBAR": "#243A5A",
+        "COLOR_SIDEBAR_HOVER": "#304D75",
+        "COLOR_TEXT_PRIMARY": "#172A46",
+        "COLOR_TEXT_SECONDARY": "#405775",
+        "COLOR_TEXT_MUTED": "#607694",
+        "COLOR_ACCENT": "#5B6FE8",
+        "COLOR_ACCENT_HOVER": "#4B5DD1",
+        "COLOR_ACCENT_LIGHT": "#7183F0",
+        "COLOR_SUCCESS": "#159A7A",
+        "COLOR_SUCCESS_HOVER": "#0F8166",
+        "COLOR_WARNING": "#B97816",
+        "COLOR_ERROR": "#C94C4C",
+        "COLOR_BORDER": "#9CB2D0",
+        "COLOR_HOVER": "#AEC2DD",
     }
 }
 
+# Paleta predeterminada (Modo Oscuro)
 CURRENT_THEME = "dark"
-
 COLOR_BG = THEMES[CURRENT_THEME]["COLOR_BG"]
 COLOR_BG_CARD = THEMES[CURRENT_THEME]["COLOR_BG_CARD"]
 COLOR_BG_DESC = THEMES[CURRENT_THEME]["COLOR_BG_DESC"]

@@ -21,10 +21,10 @@ from config import (
     COLOR_TEXT_SECONDARY, COLOR_TEXT_MUTED, COLOR_ACCENT,
     COLOR_ACCENT_HOVER, COLOR_ACCENT_LIGHT, COLOR_SUCCESS,
     COLOR_SUCCESS_HOVER, COLOR_WARNING, COLOR_ERROR,
+    COLOR_SIDEBAR, COLOR_SIDEBAR_HOVER, COLOR_BORDER, COLOR_HOVER,
     WINDOW_TITLE, ICON_PATH, THUMBNAIL_SIZE,
     AUDIO_PATH, AUTOSTART_REG_PATH, AUTOSTART_APP_NAME,
-    LOGO_PATH, COLOR_SIDEBAR, COLOR_SIDEBAR_HOVER,
-    COLOR_BORDER, COLOR_HOVER
+    LOGO_PATH
 )
 from core.images import (
     descargar_imagen_thumbnail,
@@ -43,9 +43,9 @@ class RoundedButton(tk.Frame):
         command=None,
         width=120,
         height=42,
-        bg=COLOR_BG_CARD,
-        hover_bg=COLOR_HOVER,
-        fg=COLOR_TEXT_PRIMARY,
+        bg="#2D2D3F",
+        hover_bg="#38384D",
+        fg="white",
         radius=12,
         font=("Segoe UI", 9, "bold"),
         border=COLOR_BORDER,
@@ -222,10 +222,10 @@ class VolumeSlider(tk.Frame):
         to=100,
         length=120,
         command=None,
-        bg=COLOR_BG,
+        bg="#1E1E2E",
         track_bg=COLOR_BORDER,
-        fill_bg=COLOR_ACCENT,
-        knob_bg=COLOR_TEXT_PRIMARY,
+        fill_bg="#6C63FF",
+        knob_bg="#F3F4F6",
         **kwargs
     ):
         super().__init__(parent, bg=bg, bd=0, highlightthickness=0, **kwargs)
@@ -360,7 +360,7 @@ class VentanaPrincipal:
         self.ventana.resizable(True, True)
 
         # Estado
-        self.es_modo_oscuro = (config.CURRENT_THEME == "dark")
+        self.es_modo_oscuro = True
         self.audio_silenciado = False
         self.volumen_anterior = 20
         self.todas_activado = False
@@ -428,7 +428,7 @@ class VentanaPrincipal:
             bg=COLOR_SIDEBAR,
             hover_bg=COLOR_ACCENT,
             fg=COLOR_TEXT_PRIMARY,
-            border=COLOR_SIDEBAR_HOVER,
+            border=COLOR_BORDER,
             radius=13,
             icon_path=self._icon_path("back.png"),
             icon_size=(28, 28)
@@ -467,7 +467,7 @@ class VentanaPrincipal:
             bg=COLOR_SIDEBAR,
             hover_bg=COLOR_ACCENT,
             fg=COLOR_TEXT_PRIMARY,
-            border=COLOR_SIDEBAR_HOVER,
+            border=COLOR_BORDER,
             radius=13,
             icon_path=self._icon_path("cafe.png"),
             icon_size=(28, 28)
@@ -483,7 +483,7 @@ class VentanaPrincipal:
             bg=COLOR_SIDEBAR,
             hover_bg=COLOR_ACCENT,
             fg=COLOR_TEXT_PRIMARY,
-            border=COLOR_SIDEBAR_HOVER,
+            border=COLOR_BORDER,
             radius=13,
             icon_path=self._icon_path("settings.png"),
             icon_size=(28, 28)
@@ -499,7 +499,7 @@ class VentanaPrincipal:
             bg=COLOR_SIDEBAR,
             hover_bg=COLOR_ACCENT,
             fg=COLOR_TEXT_PRIMARY,
-            border=COLOR_SIDEBAR_HOVER,
+            border=COLOR_BORDER,
             radius=13,
             icon_path=self._icon_path("dark_theme.png"),
             icon_size=(28, 28)
@@ -1167,7 +1167,7 @@ class VentanaPrincipal:
             self.btn_reclamados.config(
                 text="★ RECLAMADOS",
                 bg=COLOR_BG_CARD,
-                activebackground=COLOR_HOVER,
+                activebackground=COLOR_SIDEBAR_HOVER,
                 fg=COLOR_ACCENT_LIGHT
             )
             disponibles = [
@@ -1278,7 +1278,7 @@ class VentanaPrincipal:
         self.btn_reclamados.config(
             text="★ RECLAMADOS",
             bg=COLOR_BG_CARD,
-            activebackground=COLOR_HOVER,
+            activebackground=COLOR_SIDEBAR_HOVER,
             fg=COLOR_ACCENT_LIGHT
         )
         for s in self.active_filters:
@@ -1304,79 +1304,51 @@ class VentanaPrincipal:
     # ------------------------------------------------------------------------
 
     def alternar_tema(self):
-        """Cambia entre los dos temas sin tocar la lógica funcional de la aplicación."""
-        estado_filtros = dict(self.active_filters)
-        estado_acordeon = dict(self.acordeon_estados)
-        tienda = self.tienda_seleccionada
-        mostrando_reclamados = self.mostrando_reclamados
-        todas_activado = self.todas_activado
-        juegos_cache = list(self.juegos_cache_global)
-        volumen = self.slider_volumen.get() if hasattr(self, "slider_volumen") else 20
-        audio_silenciado = self.audio_silenciado
-        volumen_anterior = self.volumen_anterior
+        """Cambia entre tema oscuro y claro reconstruyendo la UI con la nueva paleta."""
+        estado = {
+            "active_filters": list(getattr(self, "active_filters", [])),
+            "acordeon_estados": dict(getattr(self, "acordeon_estados", {})),
+            "tienda_seleccionada": getattr(self, "tienda_seleccionada", None),
+            "mostrando_reclamados": getattr(self, "mostrando_reclamados", False),
+            "todas_activado": getattr(self, "todas_activado", False),
+            "juegos_cache_global": list(getattr(self, "juegos_cache_global", [])),
+            "volumen": getattr(self, "volumen", 0.1),
+            "silenciado": getattr(self, "silenciado", False),
+        }
 
         config.CURRENT_THEME = "light" if config.CURRENT_THEME == "dark" else "dark"
         tema = config.THEMES[config.CURRENT_THEME]
 
-        # Actualizar las constantes importadas en este módulo.
         for nombre, valor in tema.items():
             globals()[nombre] = valor
             setattr(config, nombre, valor)
 
+        icon_path = self._icon_path(
+            "dark_theme.png" if config.CURRENT_THEME == "dark" else "light_theme.png"
+        )
+
         self.es_modo_oscuro = config.CURRENT_THEME == "dark"
 
-        # Reconstruimos únicamente la capa visual. Los datos y estado se conservan.
+        # Reconstruimos para que todos los widgets nazcan con la paleta correcta.
         self.root_frame.destroy()
-        self.bubble_widgets = {}
-        self._icon_refs = []
-        self._image_refs = []
-
         self._build_ui()
 
-        self.active_filters = estado_filtros
-        self.acordeon_estados = estado_acordeon
-        self.tienda_seleccionada = tienda
-        self.mostrando_reclamados = mostrando_reclamados
-        self.todas_activado = todas_activado
-        self.juegos_cache_global = juegos_cache
-        self.audio_silenciado = audio_silenciado
-        self.volumen_anterior = volumen_anterior
+        self.active_filters = estado["active_filters"]
+        self.acordeon_estados = estado["acordeon_estados"]
+        self.tienda_seleccionada = estado["tienda_seleccionada"]
+        self.mostrando_reclamados = estado["mostrando_reclamados"]
+        self.todas_activado = estado["todas_activado"]
+        self.juegos_cache_global = estado["juegos_cache_global"]
+        self.volumen = estado["volumen"]
+        self.silenciado = estado["silenciado"]
 
-        if hasattr(self, "slider_volumen"):
-            self.slider_volumen.set(volumen)
-
-        for store, widgets in self.bubble_widgets.items():
-            activo = self.active_filters.get(store, False)
-            widgets["label"].config(
-                fg=COLOR_SUCCESS if activo else COLOR_TEXT_PRIMARY
-            )
-
-        if self.todas_activado:
-            self.btn_side_todas.config(text="NINGUNA")
-            self.btn_side_todas.pack(pady=5)
-        else:
-            self.btn_side_todas.config(text="TODAS")
-            self.btn_side_todas.pack_forget()
-
-        if self.mostrando_reclamados:
-            self.btn_reclamados.config(
-                text="★ VER RECLAMADOS",
-                bg=COLOR_ACCENT,
-                activebackground=COLOR_ACCENT_HOVER,
-                fg="white"
-            )
-        else:
-            self.btn_reclamados.config(
-                text="★ RECLAMADOS",
-                bg=COLOR_BG_CARD,
-                activebackground=COLOR_HOVER,
-                fg=COLOR_ACCENT_LIGHT
-            )
+        if hasattr(self, "btn_side_theme"):
+            self.btn_side_theme.set_icon(icon_path)
 
         self._actualizar_vista_juegos()
 
-    def _apply_theme(self, *args, **kwargs):
-        # Compatibilidad con llamadas antiguas.
+    def _apply_theme(self, bg, card, desc, text, secondary, icon_path):
+        """Compatibilidad con llamadas antiguas; aplica el tema mediante reconstrucción."""
         self.alternar_tema()
 
     # ------------------------------------------------------------------------
