@@ -5,6 +5,7 @@
 import os
 import sys
 import json
+import re
 import webbrowser
 import winreg
 from datetime import datetime
@@ -360,7 +361,7 @@ class VentanaPrincipal:
         self.ventana.resizable(True, True)
 
         # Estado
-        self.es_modo_oscuro = (config.CURRENT_THEME == "dark")
+        self.es_modo_oscuro = True
         self.audio_silenciado = False
         self.volumen_anterior = 20
         self.todas_activado = False
@@ -567,7 +568,8 @@ class VentanaPrincipal:
         self.bottom.pack(fill="x", padx=28, pady=(0, 14))
         self.bottom.columnconfigure(0, weight=0)
         self.bottom.columnconfigure(1, weight=0)
-        self.bottom.columnconfigure(2, weight=1)
+        self.bottom.columnconfigure(2, weight=0)
+        self.bottom.columnconfigure(3, weight=1)
 
         # Estado (izquierda)
         self.status_pill = tk.Label(
@@ -597,9 +599,28 @@ class VentanaPrincipal:
         )
         self.btn_reclamados.grid(row=0, column=1, sticky="w", padx=(10, 0))
 
+        # Dinero ahorrado por los juegos marcados como reclamados
+        # Contador de ahorro: mismo "cuadro" visual que RECLAMADOS,
+        # pero con texto dorado para darle sensación de recompensa.
+        self.ahorro_pill = RoundedButton(
+            self.bottom,
+            text="$ AHORRADO : 0.00",
+            command=lambda: None,
+            width=156,
+            height=34,
+            bg=COLOR_BG_CARD,
+            hover_bg=COLOR_HOVER,
+            fg=(COLOR_WARNING if config.CURRENT_THEME == "light" else "#F2C94C"),
+            border=COLOR_BORDER,
+            radius=10,
+            font=("Segoe UI", 8, "bold")
+        )
+        self.ahorro_pill.grid(row=0, column=2, sticky="w", padx=(10, 0))
+        self._actualizar_contador_ahorrado()
+
         # Volumen (derecha)
         right_frame = tk.Frame(self.bottom, bg=COLOR_BG)
-        right_frame.grid(row=0, column=2, sticky="e")
+        right_frame.grid(row=0, column=3, sticky="e")
 
         tk.Label(
             right_frame,
@@ -818,6 +839,23 @@ class VentanaPrincipal:
                     juegos_unicos[clave] = juego
 
             self.juegos_cache_global = list(juegos_unicos.values())
+
+            # Si un juego histórico no tenía valor guardado, aprovechamos el
+            # `worth` actual de GamerPower cuando vuelve a aparecer en la API.
+            historico_actualizado = False
+            for juego in self.juegos_cache_global:
+                clave = self._clave_juego(juego)
+                registro = self.reclamados.get(clave)
+                if registro is not None:
+                    valor_actual = self._valor_juego(juego)
+                    if valor_actual > 0 and self._parsear_valor_juego(registro.get("worth_value")) <= 0:
+                        registro["worth_value"] = valor_actual
+                        registro["worth"] = str(juego.get("worth") or "")
+                        historico_actualizado = True
+            if historico_actualizado:
+                self._guardar_reclamados()
+            self._actualizar_contador_ahorrado()
+
             disponibles = [j for j in self.juegos_cache_global if not self._esta_reclamado(j)]
             conteos = {s: 0 for s in STORES_MAPPING.values()}
             for juego in disponibles:
@@ -954,6 +992,17 @@ class VentanaPrincipal:
         tk.Label(info, text=nombre_tienda.upper(), font=("Segoe UI", 7, "bold"),
                  bg=COLOR_BG_CARD, fg=COLOR_ACCENT_LIGHT, anchor="w").pack(fill="x", pady=(6, 0))
 
+        valor_juego = self._valor_juego(juego)
+        if valor_juego > 0:
+            tk.Label(
+                info,
+                text=f"VALOR ESTIMADO: ${valor_juego:,.2f}",
+                font=("Segoe UI", 7, "bold"),
+                bg=COLOR_BG_CARD,
+                fg=COLOR_SUCCESS,
+                anchor="w"
+            ).pack(fill="x", pady=(3, 0))
+
         esta_reclamado = self._esta_reclamado(juego)
 
         # Los dos botones tienen funciones independientes:
@@ -1051,6 +1100,8 @@ class VentanaPrincipal:
 
                 if clave not in limpios:
                     registro_limpio = dict(registro)
+                    if "worth_value" not in registro_limpio:
+                        registro_limpio["worth_value"] = self._parsear_valor_juego(registro_limpio.get("worth"))
                     registro_limpio["key"] = clave
                     limpios[clave] = registro_limpio
                 else:
@@ -1058,6 +1109,8 @@ class VentanaPrincipal:
                     anterior = limpios[clave]
                     if str(registro.get("claimed_at", "")) > str(anterior.get("claimed_at", "")):
                         registro_limpio = dict(registro)
+                        if "worth_value" not in registro_limpio:
+                            registro_limpio["worth_value"] = self._parsear_valor_juego(registro_limpio.get("worth"))
                         registro_limpio["key"] = clave
                         limpios[clave] = registro_limpio
 
@@ -1073,6 +1126,64 @@ class VentanaPrincipal:
 
         except Exception:
             return {}
+
+    def _parsear_valor_juego(self, valor):
+        """Convierte el campo `worth` de GamerPower a USD numérico."""
+        if valor is None:
+            return 0.0
+        if isinstance(valor, (int, float)):
+            return max(0.0, float(valor))
+
+        texto = str(valor).strip()
+        if not texto or texto.upper() in {"N/A", "NA", "NONE", "NULL", "FREE"}:
+            return 0.0
+
+        # GamerPower suele devolver valores como "$19.99".
+        limpio = re.sub(r"[^0-9,.-]", "", texto)
+        if not limpio:
+            return 0.0
+
+        # Admite tanto 19.99 como 19,99 y separadores de miles.
+        if "," in limpio and "." in limpio:
+            if limpio.rfind(",") > limpio.rfind("."):
+                limpio = limpio.replace(".", "").replace(",", ".")
+            else:
+                limpio = limpio.replace(",", "")
+        elif "," in limpio:
+            partes = limpio.split(",")
+            if len(partes[-1]) in (1, 2):
+                limpio = "".join(partes[:-1]) + "." + partes[-1]
+            else:
+                limpio = limpio.replace(",", "")
+
+        try:
+            return max(0.0, float(limpio))
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _valor_juego(self, juego):
+        """Devuelve el valor estimado del juego en USD."""
+        if not isinstance(juego, dict):
+            return 0.0
+        return self._parsear_valor_juego(juego.get("worth_value", juego.get("worth")))
+
+    def _dinero_ahorrado(self):
+        """Suma el valor de todos los juegos actualmente reclamados."""
+        total = 0.0
+        for registro in self.reclamados.values():
+            if isinstance(registro, dict):
+                total += self._parsear_valor_juego(
+                    registro.get("worth_value", registro.get("worth"))
+                )
+        return total
+
+    def _actualizar_contador_ahorrado(self):
+        """Actualiza el contador visual de ahorro sin romper la UI si aún no existe."""
+        if not hasattr(self, "ahorro_pill"):
+            return
+        total = self._dinero_ahorrado()
+        color_ahorro = COLOR_WARNING if config.CURRENT_THEME == "light" else "#F2C94C"
+        self.ahorro_pill.config(text=f"$ AHORRADO : {total:,.2f}", fg=color_ahorro)
 
     def _guardar_reclamados(self):
         try:
@@ -1128,10 +1239,14 @@ class VentanaPrincipal:
                 "image": juego.get("image") or juego.get("thumbnail"),
                 "description": juego.get("description") or "",
                 "open_giveaway_url": str(juego.get("open_giveaway_url") or ""),
+                "worth": str(juego.get("worth") or ""),
+                "worth_value": self._valor_juego(juego),
+                "worth_currency": "USD",
                 "claimed_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
 
         self._guardar_reclamados()
+        self._actualizar_contador_ahorrado()
         self._actualizar_vista_juegos()
 
         disponibles = [
@@ -1219,6 +1334,8 @@ class VentanaPrincipal:
                 "thumbnail": registro.get("image"),
                 "description": registro.get("description", ""),
                 "open_giveaway_url": registro.get("open_giveaway_url", ""),
+                "worth": registro.get("worth", ""),
+                "worth_value": registro.get("worth_value", 0),
                 "__reclamado_key": registro.get("key")
             }
             self._crear_tarjeta_juego(juego, registro.get("store", "Otras Plataformas"))
@@ -1323,6 +1440,10 @@ class VentanaPrincipal:
             globals()[nombre] = valor
             setattr(config, nombre, valor)
 
+        icon_path = self._icon_path(
+            "dark_theme.png" if config.CURRENT_THEME == "dark" else "light_theme.png"
+        )
+
         self.es_modo_oscuro = config.CURRENT_THEME == "dark"
 
         # Reconstruimos para que todos los widgets nazcan con la paleta correcta.
@@ -1338,6 +1459,8 @@ class VentanaPrincipal:
         self.volumen = estado["volumen"]
         self.silenciado = estado["silenciado"]
 
+        if hasattr(self, "btn_side_theme"):
+            self.btn_side_theme.set_icon(icon_path)
 
         self._actualizar_vista_juegos()
 
@@ -1542,5 +1665,4 @@ class VentanaPrincipal:
         btn_cancelar.pack(side="left", padx=10, ipadx=10, ipady=4)
 
         modal.deiconify()
-
 
