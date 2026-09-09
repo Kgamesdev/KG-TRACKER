@@ -1,218 +1,407 @@
-"""Pantalla de bienvenida con transparencia real, sombra y animación.
+"""Splash de KG TRACKER usando el logo maestro con alfa real por píxel en Windows.
 
-- Si el logo tiene canal alfa, se usa directamente.
-- En Windows se aplica chroma key con un color seguro (#010101) para que
-  el sistema recorte el rectángulo de fondo y solo quede la silueta.
-- En otros sistemas (macOS/Linux) se usa COLOR_BG como fallback.
-- Incluye animación de entrada (fade + zoom) y salida (fade).
+No usa chroma key, transparentcolor ni sombra externa.
+La animación está ajustada a unos 4 segundos, con entrada y salida suaves.
 """
 
+import ctypes
+from ctypes import wintypes
+import os
 import tkinter as tk
-import numpy as np
-from PIL import Image, ImageTk, ImageDraw, ImageFilter
-from config import COLOR_BG, LOGO_PATH, SPLASH_MAX_WIDTH, SPLASH_CORNER_RADIUS
 
-# ---- Parámetros de animación ----
-DURACION_ENTRADA_MS = 380
-DURACION_ESPERA_MS = 900
-DURACION_SALIDA_MS = 280
-INTERVALO_FRAME_MS = 16
-ESCALA_INICIAL = 0.82
+from PIL import Image
+from config import COLOR_BG, LOGO_PATH, SPLASH_MAX_WIDTH
 
-# ---- Parámetros de la sombra ----
-SOMBRA_MARGEN = 26
-SOMBRA_DESPLAZAMIENTO_Y = 8
-SOMBRA_DIFUMINADO = 10
-SOMBRA_OPACIDAD = 95
-SOMBRA_UMBRAL_CORTE = 18
+# ---- Animación original ----
+DURACION_ENTRADA_MS = 500
+DURACION_ESPERA_MS = 3000
+DURACION_SALIDA_MS = 500
+INTERVALO_FRAME_MS = 8
+ESCALA_INICIAL = 1.0
 
-# Color que se usará como clave de transparencia (debe ser un color que
-# NO aparezca en el logo). #010101 es negro muy oscuro, raramente usado.
-CHROMA_KEY = "#010101"
+if os.name == "nt":
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    gdi32 = ctypes.WinDLL("gdi32", use_last_error=True)
 
-def _color_rgba(hex_color):
-    """Convierte #RRGGBB a (r, g, b, 255)."""
-    hex_color = hex_color.lstrip("#")
-    return (int(hex_color[0:2], 16),
-            int(hex_color[2:4], 16),
-            int(hex_color[4:6], 16),
-            255)
+    LRESULT = ctypes.c_ssize_t
 
-def _crear_sombra(tam_logo, radio):
-    """Genera una máscara de sombra difuminada para el logo."""
-    ancho, alto = tam_logo
-    # Lienzo más grande para la sombra
-    lienzo = Image.new("L", (ancho + SOMBRA_MARGEN*2,
-                             alto + SOMBRA_MARGEN*2), 0)
-    draw = ImageDraw.Draw(lienzo)
-    draw.rounded_rectangle(
-        [
-            (SOMBRA_MARGEN, SOMBRA_MARGEN + SOMBRA_DESPLAZAMIENTO_Y),
-            (SOMBRA_MARGEN + ancho - 1,
-             SOMBRA_MARGEN + alto - 1 + SOMBRA_DESPLAZAMIENTO_Y)
-        ],
-        radius=radio,
-        fill=SOMBRA_OPACIDAD
+    class POINT(ctypes.Structure):
+        _fields_ = [("x", wintypes.LONG), ("y", wintypes.LONG)]
+
+    class SIZE(ctypes.Structure):
+        _fields_ = [("cx", wintypes.LONG), ("cy", wintypes.LONG)]
+
+    class BLENDFUNCTION(ctypes.Structure):
+        _fields_ = [
+            ("BlendOp", wintypes.BYTE),
+            ("BlendFlags", wintypes.BYTE),
+            ("SourceConstantAlpha", wintypes.BYTE),
+            ("AlphaFormat", wintypes.BYTE),
+        ]
+
+    WNDPROC = ctypes.WINFUNCTYPE(
+        LRESULT,
+        wintypes.HWND,
+        wintypes.UINT,
+        wintypes.WPARAM,
+        wintypes.LPARAM,
     )
-    # Desenfoque gaussiano
-    lienzo = lienzo.filter(ImageFilter.GaussianBlur(SOMBRA_DIFUMINADO))
-    # Recortar valores muy bajos para evitar un halo enorme
-    arr = np.asarray(lienzo).astype(np.float32)
-    arr = np.where(arr < SOMBRA_UMBRAL_CORTE, 0, arr)
-    rango = 255.0 - SOMBRA_UMBRAL_CORTE
-    arr = np.where(arr > 0, (arr - SOMBRA_UMBRAL_CORTE) / rango * 255.0, 0)
-    return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), mode="L")
 
-def _ease_out_cubic(t):
-    """Curva de aceleración suave (ease-out)."""
+    class WNDCLASSW(ctypes.Structure):
+        _fields_ = [
+            ("style", wintypes.UINT),
+            ("lpfnWndProc", WNDPROC),
+            ("cbClsExtra", ctypes.c_int),
+            ("cbWndExtra", ctypes.c_int),
+            ("hInstance", wintypes.HINSTANCE),
+            ("hIcon", wintypes.HICON),
+            ("hCursor", wintypes.HCURSOR),
+            ("hbrBackground", wintypes.HBRUSH),
+            ("lpszMenuName", wintypes.LPCWSTR),
+            ("lpszClassName", wintypes.LPCWSTR),
+        ]
+
+    class BITMAPINFOHEADER(ctypes.Structure):
+        _fields_ = [
+            ("biSize", wintypes.DWORD),
+            ("biWidth", wintypes.LONG),
+            ("biHeight", wintypes.LONG),
+            ("biPlanes", wintypes.WORD),
+            ("biBitCount", wintypes.WORD),
+            ("biCompression", wintypes.DWORD),
+            ("biSizeImage", wintypes.DWORD),
+            ("biXPelsPerMeter", wintypes.LONG),
+            ("biYPelsPerMeter", wintypes.LONG),
+            ("biClrUsed", wintypes.DWORD),
+            ("biClrImportant", wintypes.DWORD),
+        ]
+
+    class BITMAPINFO(ctypes.Structure):
+        _fields_ = [
+            ("bmiHeader", BITMAPINFOHEADER),
+            ("bmiColors", wintypes.DWORD * 1),
+        ]
+
+    # Win32 constants
+    WS_POPUP = 0x80000000
+    WS_EX_LAYERED = 0x00080000
+    WS_EX_TOOLWINDOW = 0x00000080
+    WS_EX_TOPMOST = 0x00000008
+    WS_EX_NOACTIVATE = 0x08000000
+    SW_SHOWNOACTIVATE = 4
+    HWND_TOPMOST = wintypes.HWND(-1)
+    SWP_NOSIZE = 0x0001
+    SWP_NOMOVE = 0x0002
+    SWP_NOACTIVATE = 0x0010
+    SWP_SHOWWINDOW = 0x0040
+    ULW_ALPHA = 0x00000002
+    AC_SRC_ALPHA = 0x01
+    BI_RGB = 0
+    DIB_RGB_COLORS = 0
+    WM_NCHITTEST = 0x0084
+    HTTRANSPARENT = -1
+
+    user32.DefWindowProcW.argtypes = [
+        wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM
+    ]
+    user32.DefWindowProcW.restype = LRESULT
+
+    user32.RegisterClassW.argtypes = [ctypes.POINTER(WNDCLASSW)]
+    user32.RegisterClassW.restype = wintypes.ATOM
+
+    kernel32.GetModuleHandleW.argtypes = [wintypes.LPCWSTR]
+    kernel32.GetModuleHandleW.restype = wintypes.HMODULE
+
+    user32.CreateWindowExW.argtypes = [
+        wintypes.DWORD, wintypes.LPCWSTR, wintypes.LPCWSTR,
+        wintypes.DWORD, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+        ctypes.c_int, wintypes.HWND, wintypes.HMENU, wintypes.HINSTANCE,
+        wintypes.LPVOID,
+    ]
+    user32.CreateWindowExW.restype = wintypes.HWND
+
+    user32.DestroyWindow.argtypes = [wintypes.HWND]
+    user32.DestroyWindow.restype = wintypes.BOOL
+
+    user32.ShowWindow.argtypes = [wintypes.HWND, ctypes.c_int]
+    user32.ShowWindow.restype = wintypes.BOOL
+
+    user32.SetWindowPos.argtypes = [
+        wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int,
+        ctypes.c_int, ctypes.c_int, wintypes.UINT
+    ]
+    user32.SetWindowPos.restype = wintypes.BOOL
+
+    user32.UpdateLayeredWindow.argtypes = [
+        wintypes.HWND, wintypes.HDC, ctypes.POINTER(POINT),
+        ctypes.POINTER(SIZE), wintypes.HDC, ctypes.POINTER(POINT),
+        wintypes.COLORREF, ctypes.POINTER(BLENDFUNCTION), wintypes.DWORD
+    ]
+    user32.UpdateLayeredWindow.restype = wintypes.BOOL
+
+    user32.GetDC.argtypes = [wintypes.HWND]
+    user32.GetDC.restype = wintypes.HDC
+    user32.ReleaseDC.argtypes = [wintypes.HWND, wintypes.HDC]
+    user32.ReleaseDC.restype = ctypes.c_int
+
+    gdi32.CreateCompatibleDC.argtypes = [wintypes.HDC]
+    gdi32.CreateCompatibleDC.restype = wintypes.HDC
+
+    gdi32.DeleteDC.argtypes = [wintypes.HDC]
+    gdi32.DeleteDC.restype = wintypes.BOOL
+
+    gdi32.CreateDIBSection.argtypes = [
+        wintypes.HDC, ctypes.POINTER(BITMAPINFO), wintypes.UINT,
+        ctypes.POINTER(ctypes.c_void_p), wintypes.HANDLE, wintypes.DWORD
+    ]
+    gdi32.CreateDIBSection.restype = wintypes.HBITMAP
+
+    gdi32.SelectObject.argtypes = [wintypes.HDC, wintypes.HGDIOBJ]
+    gdi32.SelectObject.restype = wintypes.HGDIOBJ
+
+    gdi32.DeleteObject.argtypes = [wintypes.HGDIOBJ]
+    gdi32.DeleteObject.restype = wintypes.BOOL
+
+    _WNDPROC = None
+    _CLASS_NAME = "KG_TRACKER_SPLASH_LAYERED_V1"
+
+    def _wnd_proc(hwnd, msg, wparam, lparam):
+        if msg == WM_NCHITTEST:
+            return HTTRANSPARENT
+        return user32.DefWindowProcW(hwnd, msg, wparam, lparam)
+
+    _WNDPROC = WNDPROC(_wnd_proc)
+
+    def _registrar_clase():
+        hinstance = kernel32.GetModuleHandleW(None)
+        wc = WNDCLASSW()
+        wc.style = 0
+        wc.lpfnWndProc = _WNDPROC
+        wc.cbClsExtra = 0
+        wc.cbWndExtra = 0
+        wc.hInstance = hinstance
+        wc.hIcon = None
+        wc.hCursor = None
+        wc.hbrBackground = None
+        wc.lpszMenuName = None
+        wc.lpszClassName = _CLASS_NAME
+
+        atom = user32.RegisterClassW(ctypes.byref(wc))
+        if not atom:
+            error = ctypes.get_last_error()
+            # 1410 = clase ya registrada. Es válido.
+            if error != 1410:
+                raise ctypes.WinError(error)
+
+    def _rgba_a_premultiplied_bgra(image):
+        """Convierte RGBA a BGRA premultiplicado, necesario para ULW_ALPHA."""
+        import numpy as np
+        arr = np.asarray(image, dtype=np.uint8)
+        rgb = arr[:, :, :3].astype(np.uint16)
+        alpha = arr[:, :, 3].astype(np.uint16)
+        premul = ((rgb * alpha[:, :, None] + 127) // 255).astype(np.uint8)
+        bgra = np.empty_like(arr)
+        bgra[:, :, 0] = premul[:, :, 2]
+        bgra[:, :, 1] = premul[:, :, 1]
+        bgra[:, :, 2] = premul[:, :, 0]
+        bgra[:, :, 3] = alpha.astype(np.uint8)
+        return bgra.tobytes()
+
+    def _actualizar_ventana(hwnd, image, x, y):
+        width, height = image.size
+        pixels = _rgba_a_premultiplied_bgra(image)
+
+        screen_dc = user32.GetDC(None)
+        if not screen_dc:
+            raise ctypes.WinError(ctypes.get_last_error())
+
+        mem_dc = gdi32.CreateCompatibleDC(screen_dc)
+        if not mem_dc:
+            user32.ReleaseDC(None, screen_dc)
+            raise ctypes.WinError(ctypes.get_last_error())
+
+        bits = ctypes.c_void_p()
+        bmi = BITMAPINFO()
+        bmi.bmiHeader.biSize = ctypes.sizeof(BITMAPINFOHEADER)
+        bmi.bmiHeader.biWidth = width
+        bmi.bmiHeader.biHeight = -height  # top-down
+        bmi.bmiHeader.biPlanes = 1
+        bmi.bmiHeader.biBitCount = 32
+        bmi.bmiHeader.biCompression = BI_RGB
+
+        bitmap = gdi32.CreateDIBSection(
+            screen_dc,
+            ctypes.byref(bmi),
+            DIB_RGB_COLORS,
+            ctypes.byref(bits),
+            None,
+            0,
+        )
+        if not bitmap or not bits.value:
+            gdi32.DeleteDC(mem_dc)
+            user32.ReleaseDC(None, screen_dc)
+            raise ctypes.WinError(ctypes.get_last_error())
+
+        old_bitmap = gdi32.SelectObject(mem_dc, bitmap)
+        try:
+            ctypes.memmove(bits.value, pixels, len(pixels))
+
+            dst = POINT(x, y)
+            size = SIZE(width, height)
+            src = POINT(0, 0)
+            blend = BLENDFUNCTION(0, 0, 255, AC_SRC_ALPHA)
+
+            ok = user32.UpdateLayeredWindow(
+                hwnd, screen_dc, ctypes.byref(dst), ctypes.byref(size),
+                mem_dc, ctypes.byref(src), 0, ctypes.byref(blend), ULW_ALPHA
+            )
+            if not ok:
+                raise ctypes.WinError(ctypes.get_last_error())
+        finally:
+            gdi32.SelectObject(mem_dc, old_bitmap)
+            gdi32.DeleteObject(bitmap)
+            gdi32.DeleteDC(mem_dc)
+            user32.ReleaseDC(None, screen_dc)
+
+
+class _NativeSplash:
+    def __init__(self, root, logo):
+        self.root = root
+        self.logo = logo
+        self.hwnd = None
+        self._x = 0
+        self._y = 0
+        self._create()
+
+    def _create(self):
+        _registrar_clase()
+        self.width, self.height = self.logo.size
+        sw = self.root.winfo_screenwidth()
+        sh = self.root.winfo_screenheight()
+        self._x = (sw - self.width) // 2
+        self._y = (sh - self.height) // 2
+
+        hinstance = kernel32.GetModuleHandleW(None)
+        hwnd = user32.CreateWindowExW(
+            WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE,
+            _CLASS_NAME,
+            "",
+            WS_POPUP,
+            self._x, self._y, self.width, self.height,
+            None, None, hinstance, None
+        )
+        if not hwnd:
+            raise ctypes.WinError(ctypes.get_last_error())
+
+        self.hwnd = hwnd
+        user32.ShowWindow(self.hwnd, SW_SHOWNOACTIVATE)
+        user32.SetWindowPos(
+            self.hwnd, HWND_TOPMOST,
+            self._x, self._y, self.width, self.height,
+            SWP_NOACTIVATE | SWP_SHOWWINDOW
+        )
+
+    def render(self, image):
+        _actualizar_ventana(self.hwnd, image, self._x, self._y)
+
+    def destroy(self):
+        if self.hwnd:
+            try:
+                user32.DestroyWindow(self.hwnd)
+            finally:
+                self.hwnd = None
+
+
+def _ease_smooth(t):
+    """Transición suave sin tirón al principio ni al final."""
     t = max(0.0, min(1.0, t))
-    return 1 - pow(1 - t, 3)
+    return t * t * (3.0 - 2.0 * t)
 
-def mostrar_splash_inicio(root, al_terminar):
-    """
-    Muestra el splash con el logo transparente, sombra y animación.
-    Al terminar, destruye la ventana y llama a al_terminar().
-    """
-    # ---- Crear ventana splash ----
-    splash = tk.Toplevel(root)
-    splash.overrideredirect(True)
-    splash.withdraw()  # oculta hasta tener el primer frame
-    try:
-        splash.attributes("-topmost", True)
-    except tk.TclError:
-        pass
 
-    # ---- Cargar y preparar el logo ----
-    try:
-        logo = Image.open(LOGO_PATH).convert("RGBA")
-    except Exception as e:
-        # Si falla, mostrar texto de emergencia
-        splash.geometry("300x150")
-        splash.configure(bg=COLOR_BG)
-        tk.Label(splash, text="K GAME TRACKER",
-                 font=("Segoe UI", 24, "bold"),
-                 bg=COLOR_BG, fg="white").pack(expand=True)
-        splash.deiconify()
-        splash.after(1200, lambda: (splash.destroy(), al_terminar()))
-        print(f"⚠️ Splash: no se pudo cargar el logo: {e}")
-        return
+def _preparar_logo():
+    logo = Image.open(LOGO_PATH).convert("RGBA")
 
-    # Redimensionar si supera el máximo
+    # El PNG maestro ya contiene exactamente la forma y el alfa deseados.
+    # Solo se reduce manteniendo el alfa; no se añade fondo ni sombra.
     if logo.width > SPLASH_MAX_WIDTH:
         ratio = SPLASH_MAX_WIDTH / float(logo.width)
-        logo = logo.resize((SPLASH_MAX_WIDTH,
-                            max(1, int(logo.height * ratio))),
-                           Image.Resampling.LANCZOS)
+        logo = logo.resize(
+            (SPLASH_MAX_WIDTH, max(1, int(logo.height * ratio))),
+            Image.Resampling.LANCZOS,
+        )
+    return logo
 
-    # Asegurar que tiene canal alfa
-    if logo.mode != "RGBA":
-        logo = logo.convert("RGBA")
 
-    # Obtener tamaño original del logo (sin sombra)
-    tam_logo = logo.size
+def mostrar_splash_inicio(root, al_terminar):
+    """Muestra el logo maestro con transparencia alfa real y la animación original."""
 
-    # ---- Configurar transparencia (chroma key) ----
-    transparencia_activa = False
-    try:
-        # Establecer el color clave en la ventana
-        splash.configure(bg=CHROMA_KEY)
-        splash.attributes("-transparentcolor", CHROMA_KEY)
-        transparencia_activa = True
-    except tk.TclError:
-        # Fallback a fondo sólido con COLOR_BG
+    if os.name != "nt":
+        # Fallback simple para sistemas no Windows.
+        splash = tk.Toplevel(root)
+        splash.overrideredirect(True)
         splash.configure(bg=COLOR_BG)
-        print("ℹ️  Splash: transparencia no soportada, usando COLOR_BG como fondo.")
+        logo = _preparar_logo()
+        from PIL import ImageTk
+        foto = ImageTk.PhotoImage(logo)
+        label = tk.Label(splash, image=foto, bg=COLOR_BG, bd=0)
+        label.image = foto
+        label.pack()
+        splash.update_idletasks()
+        x = (splash.winfo_screenwidth() - logo.width) // 2
+        y = (splash.winfo_screenheight() - logo.height) // 2
+        splash.geometry(f"{logo.width}x{logo.height}+{x}+{y}")
+        splash.after(DURACION_ESPERA_MS, lambda: (splash.destroy(), al_terminar()))
+        return
 
-    # El color que se pintará en el lienzo (chroma o fallback)
-    color_fondo = CHROMA_KEY if transparencia_activa else COLOR_BG
-    fondo_rgba = _color_rgba(color_fondo)
-
-    # ---- Crear la sombra ----
-    sombra = _crear_sombra(tam_logo, SPLASH_CORNER_RADIUS)
-    tam_lienzo = sombra.size  # (ancho + 2*margen, alto + 2*margen)
-
-    # Centrar la ventana en la pantalla
-    ancho, alto = tam_lienzo
-    x = (splash.winfo_screenwidth() - ancho) // 2
-    y = (splash.winfo_screenheight() - alto) // 2
-    splash.geometry(f"{ancho}x{alto}+{x}+{y}")
-
-    # ---- Label para mostrar la imagen ----
-    lbl_logo = tk.Label(splash, bg=color_fondo, bd=0, highlightthickness=0)
-    lbl_logo.pack()
-    splash._fotos = []  # evitar garbage collection
-
-    # ---- Función de renderizado ----
-    def renderizar(alpha_frac, escala_frac):
-        """Pinta el logo con la transparencia y escala indicadas."""
-        # Escalar el logo
-        escala = ESCALA_INICIAL + (1 - ESCALA_INICIAL) * escala_frac
-        nuevo_tam = (max(1, round(tam_logo[0] * escala)),
-                     max(1, round(tam_logo[1] * escala)))
-        logo_escalado = logo.resize(nuevo_tam, Image.Resampling.LANCZOS)
-
-        # Aplicar fade al canal alfa del logo
-        r, g, b, a = logo_escalado.split()
-        a = a.point(lambda p: int(p * alpha_frac))
-        logo_escalado = Image.merge("RGBA", (r, g, b, a))
-
-        # Crear un lienzo del tamaño final, relleno con el color clave
-        lienzo = Image.new("RGBA", tam_lienzo, fondo_rgba)
-
-        # Dibujar la sombra con el mismo fade
-        sombra_alpha = sombra.point(lambda p: int(p * alpha_frac))
-        capa_sombra = Image.new("RGBA", tam_lienzo, (0, 0, 0, 0))
-        capa_sombra.putalpha(sombra_alpha)
-        lienzo = Image.alpha_composite(lienzo, capa_sombra)
-
-        # Colocar el logo centrado sobre la sombra
-        pos = ((tam_lienzo[0] - nuevo_tam[0]) // 2,
-               (tam_lienzo[1] - nuevo_tam[1]) // 2)
-        lienzo.paste(logo_escalado, pos, logo_escalado)
-
-        # Convertir a PhotoImage y mostrarlo
-        foto = ImageTk.PhotoImage(lienzo)
-        splash._fotos = [foto]
-        lbl_logo.config(image=foto)
-
-    # ---- Función de finalización ----
-    def finalizar():
-        try:
-            splash.destroy()
-        except tk.TclError:
-            pass
+    try:
+        logo_base = _preparar_logo()
+        splash = _NativeSplash(root, logo_base)
+    except Exception as e:
+        print(f"⚠️ Splash nativo no disponible: {e}")
         al_terminar()
+        return
 
-    # ---- Configurar la animación ----
     pasos_entrada = max(1, DURACION_ENTRADA_MS // INTERVALO_FRAME_MS)
     pasos_salida = max(1, DURACION_SALIDA_MS // INTERVALO_FRAME_MS)
 
-    # Primer frame (totalmente invisible)
-    renderizar(0.0, 0.0)
-    splash.deiconify()       # mostrar ventana
-    splash.lift()
-    splash.focus_force()
+    def renderizar(alpha_frac, escala_frac=None):
+        # El tamaño y la posición de la ventana permanecen FIJOS durante toda
+        # la animación. Solo cambia el alfa del logo; así no hay vibración,
+        # reescalado ni pequeños saltos de posición.
+        frame = logo_base.copy()
+
+        if alpha_frac < 0.999:
+            alpha = frame.getchannel("A")
+            alpha = alpha.point(lambda p: int(p * alpha_frac))
+            frame.putalpha(alpha)
+
+        splash.render(frame)
+
+    def finalizar():
+        splash.destroy()
+        al_terminar()
 
     def animar_entrada(i=1):
-        if not splash.winfo_exists():
+        if not splash.hwnd:
             return
-        t = _ease_out_cubic(i / float(pasos_entrada))
-        renderizar(t, t)        # alpha y escala al mismo tiempo
+        t = _ease_smooth(i / float(pasos_entrada))
+        renderizar(t)
         if i < pasos_entrada:
-            splash.after(INTERVALO_FRAME_MS, lambda: animar_entrada(i + 1))
+            root.after(INTERVALO_FRAME_MS, lambda: animar_entrada(i + 1))
         else:
-            splash.after(DURACION_ESPERA_MS, animar_salida)
+            root.after(DURACION_ESPERA_MS, animar_salida)
 
     def animar_salida(i=1):
-        if not splash.winfo_exists():
+        if not splash.hwnd:
             finalizar()
             return
-        t = i / float(pasos_salida)
-        renderizar(1 - t, 1.0)  # solo fade out, escala fija
+        t = _ease_smooth(i / float(pasos_salida))
+        renderizar(1 - t)
         if i < pasos_salida:
-            splash.after(INTERVALO_FRAME_MS, lambda: animar_salida(i + 1))
+            root.after(INTERVALO_FRAME_MS, lambda: animar_salida(i + 1))
         else:
             finalizar()
 
-    # Iniciar la animación (ligero retraso para asegurar que la ventana está lista)
-    splash.after(20, animar_entrada)
+    renderizar(0.0, 0.0)
+    root.after(8, animar_entrada)
