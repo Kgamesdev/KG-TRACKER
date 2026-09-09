@@ -1,4 +1,4 @@
-﻿"""Interfaz gráfica principal de K GAME TRACKER."""
+"""Interfaz gráfica principal de K GAME TRACKER."""
 
 # V5.0 - Control de volumen personalizado integrado en la interfaz
 
@@ -6,6 +6,9 @@ import os
 import sys
 import json
 import re
+import threading
+import time
+import queue
 import webbrowser
 import winreg
 from datetime import datetime
@@ -373,6 +376,10 @@ class VentanaPrincipal:
         self._icon_refs = []
         self._image_refs = []
         self.mostrando_reclamados = False
+        self._status_anim_job = None
+        self._status_anim_index = 0
+        self._status_busqueda_inicio = 0.0
+        self._busqueda_en_curso = False
         self.reclamados = self._cargar_reclamados()
 
         try:
@@ -571,17 +578,24 @@ class VentanaPrincipal:
         self.bottom.columnconfigure(2, weight=0)
         self.bottom.columnconfigure(3, weight=1)
 
-        # Estado (izquierda)
-        self.status_pill = tk.Label(
+        # Estado (izquierda): misma altura visual que RECLAMADOS.
+        self.status_pill = tk.Frame(
             self.bottom,
+            bg=COLOR_BG_CARD,
+            width=142,
+            height=34
+        )
+        self.status_pill.grid(row=0, column=0, sticky="w")
+        self.status_pill.grid_propagate(False)
+
+        self.status_label = tk.Label(
+            self.status_pill,
             text="● LISTO",
             font=("Segoe UI", 9, "bold"),
             bg=COLOR_BG_CARD,
-            fg=COLOR_SUCCESS,
-            padx=12,
-            pady=6
+            fg=COLOR_SUCCESS
         )
-        self.status_pill.grid(row=0, column=0, sticky="w")
+        self.status_label.place(relx=0.5, rely=0.5, anchor="center")
 
         # Histórico de juegos reclamados
         self.btn_reclamados = RoundedButton(
@@ -806,72 +820,157 @@ class VentanaPrincipal:
     # DATOS Y API
     # ------------------------------------------------------------------------
 
-    def buscar_juegos(self):
-        limpiar_cache_imagenes()
-        self.status_pill.config(text="● BUSCANDO", fg=COLOR_WARNING)
-        self.ventana.update_idletasks()
-        try:
-            response = requests.get(API_URL, headers=API_HEADERS, timeout=10)
-            response.raise_for_status()
-            giveaways = response.json()
-            if not isinstance(giveaways, list):
-                raise ValueError("Formato de API no válido")
+    def _set_status(self, text, fg):
+        if hasattr(self, "status_label") and self.status_label.winfo_exists():
+            self.status_label.config(text=text, fg=fg)
 
-            juegos_validos = []
-            exclusiones_totales = list(EXCLUSIONES) + ["dlc", "demo", "soundtrack", "ost", "expansion", "pack", "bundle", "skin", "avatar"]
+    def _detener_animacion_estado(self):
+        job = getattr(self, "_status_anim_job", None)
+        if job is not None:
+            try:
+                self.ventana.after_cancel(job)
+            except Exception:
+                pass
+        self._status_anim_job = None
 
-            for g in giveaways:
-                titulo = str(g.get("title", "")).lower()
-                g_type = str(g.get("type", "")).lower()
-                if any(exc in g_type for exc in ["dlc", "loot", "demo", "soundtrack"]):
-                    continue
-                if any(exc in titulo for exc in exclusiones_totales):
-                    continue
-                juegos_validos.append(g)
+    def _animar_estado_busqueda(self):
+        if not getattr(self, "_busqueda_en_curso", False):
+            self._detener_animacion_estado()
+            return
 
-            # Eliminar duplicados de la respuesta de la API.
-            # Para KG TRACKER el juego + tienda es la identidad funcional:
-            # una misma oferta puede cambiar de URL/ID y no debe aparecer dos veces.
-            juegos_unicos = {}
-            for juego in juegos_validos:
-                clave = self._clave_juego(juego)
-                if clave not in juegos_unicos:
-                    juegos_unicos[clave] = juego
+        barras = ["▏▎▌▊▌▎▏", "▎▌▊▌▎▏▎", "▌▊▌▎▏▎▌", "▊▌▎▏▎▌▊",
+                  "▌▎▏▎▌▊▌", "▎▏▎▌▊▌▎", "▏▎▌▊▌▎▏"]
+        self.status_label.config(text=barras[self._status_anim_index % len(barras)], fg="#FF9F43")
+        self._status_anim_index += 1
+        self._status_anim_job = self.ventana.after(80, self._animar_estado_busqueda)
 
-            self.juegos_cache_global = list(juegos_unicos.values())
+    def _iniciar_animacion_busqueda(self):
+        self._detener_animacion_estado()
+        self._busqueda_en_curso = True
+        self._status_anim_index = 0
+        self._status_busqueda_inicio = time.monotonic()
+        self._animar_estado_busqueda()
 
-            # Si un juego histórico no tenía valor guardado, aprovechamos el
-            # `worth` actual de GamerPower cuando vuelve a aparecer en la API.
-            historico_actualizado = False
-            for juego in self.juegos_cache_global:
-                clave = self._clave_juego(juego)
-                registro = self.reclamados.get(clave)
-                if registro is not None:
-                    valor_actual = self._valor_juego(juego)
-                    if valor_actual > 0 and self._parsear_valor_juego(registro.get("worth_value")) <= 0:
-                        registro["worth_value"] = valor_actual
-                        registro["worth"] = str(juego.get("worth") or "")
-                        historico_actualizado = True
-            if historico_actualizado:
-                self._guardar_reclamados()
-            self._actualizar_contador_ahorrado()
+    def _finalizar_busqueda(self, juegos_cache, conteos):
+        # Garantiza que la animación haya durado aproximadamente 2 segundos.
+        transcurrido = time.monotonic() - self._status_busqueda_inicio
+        restante_ms = max(0, int(2000 - (transcurrido * 1000)))
 
-            disponibles = [j for j in self.juegos_cache_global if not self._esta_reclamado(j)]
-            conteos = {s: 0 for s in STORES_MAPPING.values()}
-            for juego in disponibles:
-                tienda = self._asignar_tienda(juego)
-                if tienda in conteos:
-                    conteos[tienda] += 1
-
+        def aplicar():
+            self._busqueda_en_curso = False
+            self._detener_animacion_estado()
+            self.juegos_cache_global = juegos_cache
             self.actualizar_insignias(conteos)
-            self.status_pill.config(text=f"● {len(disponibles)} OFERTAS", fg=COLOR_SUCCESS)
             self.btn_side_todas.pack()
             self.mostrando_reclamados = False
+            self._actualizar_contador_ahorrado()
             self._actualizar_vista_juegos()
+            self._set_status("● LISTO", COLOR_SUCCESS)
 
-        except Exception as e:
-            self.status_pill.config(text="● ERROR", fg=COLOR_ERROR)
-            messagebox.showerror("Error", f"No se pudieron cargar los juegos:\n{e}")
+        self.ventana.after(restante_ms, aplicar)
+
+    def _finalizar_error_busqueda(self, error):
+        transcurrido = time.monotonic() - self._status_busqueda_inicio
+        restante_ms = max(0, int(2000 - (transcurrido * 1000)))
+
+        def aplicar():
+            self._busqueda_en_curso = False
+            self._detener_animacion_estado()
+            self._set_status("● ERROR", COLOR_ERROR)
+            messagebox.showerror("Error", f"No se pudieron cargar los juegos:\n{error}")
+
+        self.ventana.after(restante_ms, aplicar)
+
+    def buscar_juegos(self):
+        if self._busqueda_en_curso:
+            return
+
+        self._iniciar_animacion_busqueda()
+        resultado = queue.Queue(maxsize=1)
+
+        def comprobar_resultado():
+            try:
+                tipo, datos = resultado.get_nowait()
+            except queue.Empty:
+                # Esta función se ejecuta siempre desde el hilo principal de Tk.
+                if self._busqueda_en_curso:
+                    self.ventana.after(25, comprobar_resultado)
+                return
+
+            if tipo == "ok":
+                juegos_cache, conteos = datos
+                self._finalizar_busqueda(juegos_cache, conteos)
+            else:
+                self._finalizar_error_busqueda(datos)
+
+        def trabajador():
+            try:
+                limpiar_cache_imagenes()
+                response = requests.get(API_URL, headers=API_HEADERS, timeout=10)
+                response.raise_for_status()
+                giveaways = response.json()
+                if not isinstance(giveaways, list):
+                    raise ValueError("Formato de API no válido")
+
+                juegos_validos = []
+                exclusiones_totales = list(EXCLUSIONES) + [
+                    "dlc", "demo", "soundtrack", "ost", "expansion",
+                    "pack", "bundle", "skin", "avatar"
+                ]
+
+                for g in giveaways:
+                    titulo = str(g.get("title", "")).lower()
+                    g_type = str(g.get("type", "")).lower()
+                    if any(exc in g_type for exc in ["dlc", "loot", "demo", "soundtrack"]):
+                        continue
+                    if any(exc in titulo for exc in exclusiones_totales):
+                        continue
+                    juegos_validos.append(g)
+
+                juegos_unicos = {}
+                for juego in juegos_validos:
+                    clave = self._clave_juego(juego)
+                    if clave not in juegos_unicos:
+                        juegos_unicos[clave] = juego
+
+                juegos_cache = list(juegos_unicos.values())
+
+                historico_actualizado = False
+                for juego in juegos_cache:
+                    clave = self._clave_juego(juego)
+                    registro = self.reclamados.get(clave)
+                    if registro is not None:
+                        valor_actual = self._valor_juego(juego)
+                        if valor_actual > 0 and self._parsear_valor_juego(
+                            registro.get("worth_value")
+                        ) <= 0:
+                            registro["worth_value"] = valor_actual
+                            registro["worth"] = str(juego.get("worth") or "")
+                            historico_actualizado = True
+
+                if historico_actualizado:
+                    self._guardar_reclamados()
+
+                disponibles = [
+                    j for j in juegos_cache if not self._esta_reclamado(j)
+                ]
+                conteos = {s: 0 for s in STORES_MAPPING.values()}
+                for juego in disponibles:
+                    tienda = self._asignar_tienda(juego)
+                    if tienda in conteos:
+                        conteos[tienda] += 1
+
+                # El hilo de trabajo NO toca Tkinter. Solo entrega el resultado.
+                resultado.put(("ok", (juegos_cache, conteos)))
+
+            except Exception as e:
+                # El hilo de trabajo NO llama a self.ventana.after().
+                resultado.put(("error", e))
+
+        # El polling se registra desde el hilo principal antes de lanzar el worker.
+        self.ventana.after(25, comprobar_resultado)
+        threading.Thread(target=trabajador, daemon=True).start()
+
 
     def _asignar_tienda(self, juego):
         platforms = str(juego.get("platforms", "")).lower()
@@ -1260,9 +1359,9 @@ class VentanaPrincipal:
                 conteos[tienda] += 1
         self.actualizar_insignias(conteos)
         if self.mostrando_reclamados:
-            self.status_pill.config(text=f"● {len(self.reclamados)} RECLAMADOS", fg=COLOR_ACCENT_LIGHT)
+            self._set_status("● LISTO", COLOR_SUCCESS)
         else:
-            self.status_pill.config(text=f"● {len(disponibles)} OFERTAS", fg=COLOR_SUCCESS)
+            self._set_status("● LISTO", COLOR_SUCCESS)
 
     def mostrar_reclamados(self):
         self.mostrando_reclamados = not self.mostrando_reclamados
@@ -1274,10 +1373,7 @@ class VentanaPrincipal:
                 activebackground=COLOR_ACCENT_HOVER,
                 fg="white"
             )
-            self.status_pill.config(
-                text=f"● {len(self.reclamados)} RECLAMADOS",
-                fg=COLOR_ACCENT_LIGHT
-            )
+            self._set_status("● LISTO", COLOR_SUCCESS)
         else:
             self.btn_reclamados.config(
                 text="★ RECLAMADOS",
@@ -1289,10 +1385,7 @@ class VentanaPrincipal:
                 j for j in self.juegos_cache_global
                 if not self._esta_reclamado(j)
             ]
-            self.status_pill.config(
-                text=f"● {len(disponibles)} OFERTAS",
-                fg=COLOR_SUCCESS
-            )
+            self._set_status("● LISTO", COLOR_SUCCESS)
 
         self._actualizar_vista_juegos()
 
@@ -1410,7 +1503,7 @@ class VentanaPrincipal:
 
         self.juegos_cache_global = []
         self._actualizar_vista_juegos()
-        self.status_pill.config(text="● LISTO", fg=COLOR_SUCCESS)
+        self._set_status("● LISTO", COLOR_SUCCESS)
 
     def resetear_app(self):
         self.volver_atras()
@@ -1422,6 +1515,11 @@ class VentanaPrincipal:
 
     def alternar_tema(self):
         """Cambia entre tema oscuro y claro reconstruyendo la UI con la nueva paleta."""
+        busqueda_activa = getattr(self, "_busqueda_en_curso", False)
+
+        # Detener cualquier after de la animación antes de destruir los widgets.
+        self._detener_animacion_estado()
+
         estado = {
             "active_filters": dict(getattr(self, "active_filters", {})),
             "acordeon_estados": dict(getattr(self, "acordeon_estados", {})),
@@ -1451,6 +1549,14 @@ class VentanaPrincipal:
         self._build_ui()
 
         self.active_filters = estado["active_filters"]
+
+        # Si la búsqueda sigue activa, continuar la animación en el nuevo widget.
+        if busqueda_activa:
+            self._busqueda_en_curso = True
+            self._status_busqueda_inicio = getattr(
+                self, "_status_busqueda_inicio", time.monotonic()
+            )
+            self._animar_estado_busqueda()
         self.acordeon_estados = estado["acordeon_estados"]
         self.tienda_seleccionada = estado["tienda_seleccionada"]
         self.mostrando_reclamados = estado["mostrando_reclamados"]
