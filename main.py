@@ -53,28 +53,31 @@ def main():
 
     # ---- INICIAR AUDIO DURANTE EL SPLASH ----
     fade_job = None
+    splash_cerrado = False
     try:
         import pygame
         from config import AUDIO_PATH
         if os.path.exists(AUDIO_PATH):
             pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
             pygame.mixer.music.load(AUDIO_PATH)
-            pygame.mixer.music.set_volume(0.0)
+
+            # El audio queda reproduciéndose antes de mostrar el primer frame
+            # del splash, sin el retraso artificial de 100 ms.
+            pygame.mixer.music.set_volume(0.02)
             pygame.mixer.music.play(-1)
             print('🎵 [SPLASH] Audio iniciado')
-            
-            def fade_in(vol=0):
+
+            def fade_in(vol=2):
                 nonlocal fade_job
                 if vol <= 20 and not splash_cerrado:
                     pygame.mixer.music.set_volume(vol / 100.0)
-                    fade_job = root.after(100, lambda: fade_in(vol + 1))
-            fade_job = root.after(100, lambda: fade_in(1))
+                    fade_job = root.after(50, lambda: fade_in(vol + 1))
+
+            fade_job = root.after_idle(fade_in)
         else:
             print(f'⚠️ [SPLASH] Audio no encontrado: {AUDIO_PATH}')
     except Exception as e:
         print(f'⚠️ [SPLASH] Error iniciando audio: {e}')
-
-    splash_cerrado = False
 
     def al_terminar_splash():
         nonlocal splash_cerrado
