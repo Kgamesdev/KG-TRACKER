@@ -1462,3 +1462,5 @@ class VentanaPrincipal:
         from ui.kofi_modal import KofiModal
         KofiModal(self.ventana)
 
+
+

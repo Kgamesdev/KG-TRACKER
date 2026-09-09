@@ -125,11 +125,8 @@ class SettingsModal:
             font=("Segoe UI", 10, "bold"),
             relief="flat",
             cursor="hand2",
-            command=self.guardar_y_cerrar
+            command=self.modal.destroy
         )
         btn_guardar.pack(fill="x", pady=(20, 5))
 
         self.modal.deiconify()
-
-    def guardar_y_cerrar(self):
-        self.modal.destroy()
