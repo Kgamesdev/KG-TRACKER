@@ -1272,107 +1272,9 @@ class VentanaPrincipal:
     # ------------------------------------------------------------------------
 
     def abrir_ajustes(self):
-        """Abre la ventana modal de ajustes de configuración."""
-        modal = tk.Toplevel(self.ventana)
-        modal.withdraw()
-        modal.title("Ajustes de Configuración")
-        modal.geometry("600x500")
-        modal.configure(bg="#121218")
-        modal.resizable(False, False)
-        modal.transient(self.ventana)
-        modal.grab_set()
-
-        try:
-            modal.iconbitmap(ICON_PATH)
-        except Exception:
-            pass
-
-        modal.update_idletasks()
-        x = self.ventana.winfo_x() + (self.ventana.winfo_width() - 600) // 2
-        y = self.ventana.winfo_y() + (self.ventana.winfo_height() - 500) // 2
-        modal.geometry(f"+{x}+{y}")
-
-        # Contenedor principal
-        main_frame = tk.Frame(modal, bg="#1a1a24")
-        main_frame.pack(fill="both", expand=True, padx=25, pady=25)
-
-        # Header
-        header_frame = tk.Frame(main_frame, bg="#1a1a24")
-        header_frame.pack(fill="x", padx=20, pady=(20, 10))
-
-        title_label = tk.Label(
-            header_frame, 
-            text="AJUSTES DE CONFIGURACIÓN", 
-            font=("Segoe UI", 12, "bold"), 
-            bg="#1a1a24", 
-            fg="white"
-        )
-        title_label.pack(side="left")
-
-        btn_close = tk.Button(
-            header_frame, 
-            text="✕", 
-            width=3, 
-            bg="#1a1a24", 
-            fg="white", 
-            relief="flat",
-            activebackground="#2a2a3a",
-            activeforeground="white",
-            command=modal.destroy
-        )
-        btn_close.pack(side="right")
-
-        # Separador
-        sep = tk.Frame(main_frame, height=2, bg="#2a2a3a")
-        sep.pack(fill="x", padx=20, pady=10)
-
-        # Opciones
-        options_frame = tk.Frame(main_frame, bg="#1a1a24")
-        options_frame.pack(fill="both", expand=True, padx=20, pady=10)
-
-        def crear_fila(texto, valores):
-            row = tk.Frame(options_frame, bg="#1a1a24")
-            row.pack(fill="x", pady=12)
-            lbl = tk.Label(row, text=texto, bg="#1a1a24", fg="white", font=("Segoe UI", 11))
-            lbl.pack(side="left")
-            
-            # Usamos un Combobox o OptionMenu nativo estilizado
-            var = tk.StringVar(value=valores[0])
-            menu = tk.OptionMenu(row, var, *valores)
-            menu.config(bg="#121218", fg="white", activebackground="#2a2a3a", activeforeground="white", highlightthickness=0, relief="flat", width=15)
-            menu["menu"].config(bg="#121218", fg="white")
-            menu.pack(side="right")
-            return var
-
-        crear_fila("Idioma de la interfaz", ["Español (ES)", "English (EN)"])
-        crear_fila("Tema visual", ["Neón Cyberpunk", "Oscuro Clásico", "Minimalista"])
-        crear_fila("Buscar ofertas automáticamente", ["Al iniciar", "Cada hora", "Desactivado"])
-
-        # Checkbox iniciar minimizado
-        chk_frame = tk.Frame(options_frame, bg="#1a1a24")
-        chk_frame.pack(fill="x", pady=12)
-        lbl_chk = tk.Label(chk_frame, text="Iniciar minimizado con Windows", bg="#1a1a24", fg="white", font=("Segoe UI", 11))
-        lbl_chk.pack(side="left")
-        
-        chk_var = tk.IntVar()
-        chk = tk.Checkbutton(chk_frame, variable=chk_var, bg="#1a1a24", activebackground="#1a1a24", selectcolor="#121218")
-        chk.pack(side="right")
-
-        # Botón guardar
-        btn_guardar = tk.Button(
-            main_frame, 
-            text="GUARDAR CAMBIOS", 
-            height=2,
-            bg="#5865F2", 
-            fg="white",
-            font=("Segoe UI", 10, "bold"),
-            relief="flat",
-            cursor="hand2",
-            command=modal.destroy
-        )
-        btn_guardar.pack(fill="x", padx=20, pady=(10, 20))
-
-        modal.deiconify()
+        """Abre la ventana modal independiente de Ajustes."""
+        from ui.settings_modal import SettingsModal
+        SettingsModal(self.ventana)
     def _comprobar_autostart(self):
         try:
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, AUTOSTART_REG_PATH, 0, winreg.KEY_READ)
@@ -1461,6 +1363,7 @@ class VentanaPrincipal:
         """Abre la ventana modal independiente de Ko-fi."""
         from ui.kofi_modal import KofiModal
         KofiModal(self.ventana)
+
 
 
 
