@@ -6,8 +6,6 @@ import os
 import sys
 import json
 import re
-import webbrowser
-import winreg
 from datetime import datetime
 import requests
 import tkinter as tk
@@ -15,6 +13,8 @@ from tkinter import messagebox, ttk
 from PIL import Image, ImageTk
 import pygame
 import config
+from ui.kofi_modal import KofiModal
+from ui.settings_modal import SettingsModal
 
 from config import (
     API_URL, API_HEADERS, EXCLUSIONES, STORES_MAPPING,
@@ -463,7 +463,7 @@ class VentanaPrincipal:
         self.btn_side_kofi = RoundedButton(
             self.sidebar_bottom,
             text="",
-            command=self.abrir_kofi,
+            command=lambda: KofiModal(self.ventana),
             width=54,
             height=50,
             bg=COLOR_SIDEBAR,
@@ -479,7 +479,7 @@ class VentanaPrincipal:
         self.btn_side_settings = RoundedButton(
             self.sidebar_bottom,
             text="",
-            command=self.abrir_ajustes,
+            command=lambda: SettingsModal(self.ventana),
             width=54,
             height=50,
             bg=COLOR_SIDEBAR,
@@ -1490,62 +1490,6 @@ class VentanaPrincipal:
     # AJUSTES
     # ------------------------------------------------------------------------
 
-    def abrir_ajustes(self):
-        v = tk.Toplevel(self.ventana)
-        v.title("Ajustes y Configuración")
-        v.geometry("400x285")
-        v.config(bg=COLOR_BG_CARD)
-        v.transient(self.ventana)
-        v.grab_set()
-
-        tk.Label(v, text="OPCIONES DE USUARIO", font=("Segoe UI", 13, "bold"),
-                 bg=COLOR_BG_CARD, fg=COLOR_TEXT_PRIMARY).pack(pady=(22, 18))
-
-        var_max = tk.BooleanVar(value=(self.ventana.state() == "zoomed"))
-        def toggle_max():
-            self.ventana.state("zoomed" if var_max.get() else "normal")
-        tk.Checkbutton(v, text="Pantalla / Ventana Maximizada", variable=var_max,
-                       command=toggle_max, bg=COLOR_BG_CARD, fg=COLOR_TEXT_PRIMARY,
-                       selectcolor=COLOR_BG, activebackground=COLOR_BG_CARD,
-                       activeforeground=COLOR_TEXT_PRIMARY, font=("Segoe UI", 10)).pack(anchor="w", padx=35, pady=6)
-
-        var_auto = tk.BooleanVar(value=self._comprobar_autostart())
-        tk.Checkbutton(v, text="Iniciar cuando enciendo el ordenador", variable=var_auto,
-                       command=lambda: self._guardar_autostart(var_auto.get()),
-                       bg=COLOR_BG_CARD, fg=COLOR_TEXT_PRIMARY,
-                       selectcolor=COLOR_BG, activebackground=COLOR_BG_CARD,
-                       activeforeground=COLOR_TEXT_PRIMARY, font=("Segoe UI", 10)).pack(anchor="w", padx=35, pady=6)
-
-        RoundedButton(v, text="GUARDAR Y CERRAR", command=v.destroy,
-                      width=170, height=42, bg=COLOR_ACCENT,
-                      hover_bg=COLOR_ACCENT_HOVER, fg="white",
-                      border=COLOR_ACCENT, radius=11).pack(pady=24)
-
-    def _comprobar_autostart(self):
-        try:
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, AUTOSTART_REG_PATH, 0, winreg.KEY_READ)
-            winreg.QueryValueEx(key, AUTOSTART_APP_NAME)
-            winreg.CloseKey(key)
-            return True
-        except Exception:
-            return False
-
-    def _guardar_autostart(self, habilitar):
-        try:
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, AUTOSTART_REG_PATH, 0, winreg.KEY_ALL_ACCESS)
-            if habilitar:
-                script_path = os.path.abspath(sys.argv[0])
-                cmd = f'"{sys.executable}" "{script_path}"'
-                winreg.SetValueEx(key, AUTOSTART_APP_NAME, 0, winreg.REG_SZ, cmd)
-            else:
-                try:
-                    winreg.DeleteValue(key, AUTOSTART_APP_NAME)
-                except FileNotFoundError:
-                    pass
-            winreg.CloseKey(key)
-        except Exception as e:
-            messagebox.showwarning("Aviso", f"No se pudo modificar el inicio automático:\n{e}")
-
     # ------------------------------------------------------------------------
     # UTILIDADES
     # ------------------------------------------------------------------------
@@ -1604,87 +1548,3 @@ class VentanaPrincipal:
 
     def _store_icon_path(self, filename):
         return os.path.join(self._icons_root(), "stores", filename)
-
-
-    def abrir_kofi(self):
-        """Muestra la ventana modal centrada y hereda el icono principal de la aplicación."""
-        modal = tk.Toplevel(self.ventana)
-        modal.withdraw()
-        modal.title("Apoyar K Game Tracker")
-        modal.geometry("400x260")
-        modal.configure(bg="#1e1e2f")
-        modal.resizable(False, False)
-        modal.transient(self.ventana)
-        modal.grab_set()
-
-        # Replicar exactamente la carga del icono principal que usa la app
-        try:
-            modal.iconbitmap(ICON_PATH)
-        except Exception:
-            try:
-                # Alternativa si ICON_PATH falla, heredar directamente de la ventana principal
-                if hasattr(self, 'ventana'):
-                    modal.iconbitmap(self.ventana.iconbitmap())
-            except Exception:
-                pass
-
-        modal.update_idletasks()
-        x = self.ventana.winfo_x() + (self.ventana.winfo_width() - 400) // 2
-        y = self.ventana.winfo_y() + (self.ventana.winfo_height() - 260) // 2
-        modal.geometry(f"+{x}+{y}")
-
-        lbl_titulo = tk.Label(
-            modal, 
-            text="☕ ¿Apoyar el proyecto?", 
-            font=("Segoe UI", 14, "bold"), 
-            bg="#1e1e2f", 
-            fg="#ffffff"
-        )
-        lbl_titulo.pack(pady=(20, 10))
-
-        lbl_desc = tk.Label(
-            modal, 
-            text="K Game Tracker es gratuito y se mantiene con esfuerzo.\nSi deseas apoyar el desarrollo, ¡te lo agradecemos muchísimo!", 
-            font=("Segoe UI", 10), 
-            bg="#1e1e2f", 
-            fg="#b0b0c0",
-            justify="center"
-        )
-        lbl_desc.pack(pady=10)
-
-        frame_botones = tk.Frame(modal, bg="#1e1e2f")
-        frame_botones.pack(pady=15)
-
-        def ir_a_kofi():
-            webbrowser.open_new_tab("https://ko-fi.com/kurigamedeveloper")
-            modal.destroy()
-
-        btn_kofi = tk.Button(
-            frame_botones, 
-            text="Continuar a Ko-fi", 
-            font=("Segoe UI", 10, "bold"), 
-            bg="#FFDD00", 
-            fg="#000000",
-            relief="flat",
-            cursor="hand2",
-            command=ir_a_kofi
-        )
-        btn_kofi.pack(side="left", padx=10, ipadx=10, ipady=4)
-
-        btn_cancelar = tk.Button(
-            frame_botones, 
-            text="Cancelar", 
-            font=("Segoe UI", 10), 
-            bg=COLOR_BORDER, 
-            fg="#ffffff",
-            relief="flat",
-            cursor="hand2",
-            command=modal.destroy
-        )
-        btn_cancelar.pack(side="left", padx=10, ipadx=10, ipady=4)
-
-        modal.deiconify()
-
-
-
-
