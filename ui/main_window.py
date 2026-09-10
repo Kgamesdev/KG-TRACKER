@@ -1459,7 +1459,7 @@ class VentanaPrincipal:
             setattr(config, nombre, valor)
 
         icon_path = self._icon_path(
-            "dark_theme.png" if config.CURRENT_THEME == "dark" else "light_theme.png"
+            "light_theme.png" if config.CURRENT_THEME == "dark" else "dark_theme.png"
         )
 
         self.es_modo_oscuro = config.CURRENT_THEME == "dark"
@@ -1684,6 +1684,7 @@ class VentanaPrincipal:
         btn_cancelar.pack(side="left", padx=10, ipadx=10, ipady=4)
 
         modal.deiconify()
+
 
 
 
