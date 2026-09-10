@@ -350,7 +350,7 @@ class VentanaPrincipal:
     # INICIALIZACIÓN
     # ------------------------------------------------------------------------
 
-    def __init__(self, parent=None, al_cerrar_app=None):
+    def __init__(self, parent=None, al_cerrar_app=None, mostrar=True):
         self.parent = parent
         self.al_cerrar_app = al_cerrar_app
         self.ventana = tk.Toplevel(parent) if parent else tk.Tk()
@@ -384,7 +384,8 @@ class VentanaPrincipal:
         # Audio gestionado por main.py durante el splash. No reinicializar aquí.
         self.ventana.geometry("1120x720")
         self._centrar()
-        self.ventana.deiconify()
+        if mostrar:
+            self.ventana.deiconify()
         self.ventana.protocol("WM_DELETE_WINDOW", self._cerrar_ventana)
 
     # ------------------------------------------------------------------------
@@ -1577,7 +1578,8 @@ class VentanaPrincipal:
         self.ventana.destroy()
 
     def mostrar(self):
-        self.ventana.deiconify()
+        if mostrar:
+            self.ventana.deiconify()
         self._centrar()
 
     def run(self):
@@ -1682,5 +1684,6 @@ class VentanaPrincipal:
         btn_cancelar.pack(side="left", padx=10, ipadx=10, ipady=4)
 
         modal.deiconify()
+
 
 
