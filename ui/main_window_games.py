@@ -163,64 +163,78 @@ def _actualizar_visibilidad_contenedor_juegos(self):
 
 
 def _actualizar_vista_juegos(self):
-    # Qt sustituye los hijos de la zona de contenido mediante deleteLater().
-    # El QMainWindow y su árbol estructural permanecen intactos.
-    self._clear_layout(self.frame_lista_layout)
-    self._actualizar_visibilidad_contenedor_juegos()
+    root = self.centralWidget()
+    if root is not None:
+        root.setUpdatesEnabled(False)
+    try:
+        self._clear_layout(self.frame_lista_layout)
+        self._actualizar_visibilidad_contenedor_juegos()
 
-    if self.mostrando_reclamados:
-        self._mostrar_lista_reclamados()
-        return
+        if self.mostrando_reclamados:
+            self._mostrar_lista_reclamados()
+            return
 
-    tiendas = [s for s, a in self.active_filters.items() if a]
-    if not tiendas:
-        return
+        tiendas = [s for s, a in self.active_filters.items() if a]
+        if not tiendas:
+            return
 
-    for store in tiendas:
-        juegos = [
-            j for j in self.juegos_cache_global
-            if self._asignar_tienda(j) == store and not self._esta_reclamado(j)
-        ]
-        open_ = self.acordeon_estados.get(store, True)
+        for store in tiendas:
+            juegos = [
+                j for j in self.juegos_cache_global
+                if self._asignar_tienda(j) == store and not self._esta_reclamado(j)
+            ]
+            open_ = self.acordeon_estados.get(store, True)
 
-        header = QFrame()
-        header.setObjectName("storeHeader")
-        header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.setSpacing(0)
+            header = QFrame()
+            header.setObjectName("storeHeader")
+            header_layout = QHBoxLayout(header)
+            header_layout.setContentsMargins(0, 0, 0, 0)
+            header_layout.setSpacing(0)
 
-        arrow = "▼" if open_ else "▶"
-        header_button = QPushButton(f"{arrow}   {store.upper()}")
-        header_button.setObjectName("storeHeaderButton")
-        header_button.clicked.connect(lambda checked=False, s=store: self._toggle_acordeon(s))
-        header_layout.addWidget(header_button)
+            arrow = "▼" if open_ else "▶"
+            header_button = QPushButton(f"{arrow}   {store.upper()}")
+            header_button.setObjectName("storeHeaderButton")
+            header_button.clicked.connect(lambda checked=False, s=store: self._toggle_acordeon(s))
+            header_layout.addWidget(header_button)
 
-        count_label = QLabel(f"{len(juegos)} ofertas")
-        count_label.setObjectName("offerCount")
-        header_layout.addWidget(count_label)
-        self.frame_lista_layout.addWidget(header)
+            count_label = QLabel(f"{len(juegos)} ofertas")
+            count_label.setObjectName("offerCount")
+            header_layout.addWidget(count_label)
+            self.frame_lista_layout.addWidget(header)
 
-        if not open_:
-            continue
+            if not open_:
+                continue
 
-        if not juegos:
-            empty = QLabel(f"No hay elementos disponibles en {store} actualmente.")
-            empty.setObjectName("emptyLabel")
-            empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            empty.setMinimumHeight(30)
-            self.frame_lista_layout.addWidget(empty)
-            continue
+            if not juegos:
+                empty = QLabel(f"No hay elementos disponibles en {store} actualmente.")
+                empty.setObjectName("emptyLabel")
+                empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                empty.setMinimumHeight(30)
+                self.frame_lista_layout.addWidget(empty)
+                continue
 
-        for juego in juegos:
-            self.frame_lista_layout.addWidget(GameCard(self, juego, store))
+            for juego in juegos:
+                self.frame_lista_layout.addWidget(GameCard(self, juego, store))
 
-    self.frame_lista_layout.addStretch(1)
+        self.frame_lista_layout.addStretch(1)
+    finally:
+        if root is not None:
+            root.setUpdatesEnabled(True)
+            root.update()
 
 
 
 def _toggle_acordeon(self, store):
-    self.acordeon_estados[store] = not self.acordeon_estados.get(store, True)
-    self._actualizar_vista_juegos()
+    root = self.centralWidget()
+    if root is not None:
+        root.setUpdatesEnabled(False)
+    try:
+        self.acordeon_estados[store] = not self.acordeon_estados.get(store, True)
+        self._actualizar_vista_juegos()
+    finally:
+        if root is not None:
+            root.setUpdatesEnabled(True)
+            root.update()
 
 
 

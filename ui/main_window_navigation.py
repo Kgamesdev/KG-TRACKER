@@ -78,8 +78,7 @@ def _actualizar_visibilidad_atras(self):
     hay_filtros = any(self.active_filters.values())
     hay_todas = bool(self.todas_activado)
     hay_reclamados = bool(self.mostrando_reclamados)
-    hay_resultados = bool(self.juegos_cache_global)
-    hay_estado = hay_filtros or hay_todas or hay_reclamados or hay_resultados
+    hay_estado = hay_filtros or hay_todas or hay_reclamados
 
     # Cuando existe cualquier estado generado por la aplicación, las dos
     # acciones contextuales forman un bloque único justo debajo del logo.
@@ -92,44 +91,60 @@ def _actualizar_visibilidad_atras(self):
 
 
 def toggle_todas(self):
-    if self.todas_activado:
-        for s in self.active_filters:
-            self.active_filters[s] = False
-        self.todas_activado = False
-        self.btn_side_todas.setIcon(self._crear_icono_seleccion(True))
-        self.btn_side_todas.setToolTip("Seleccionar todas")
-    else:
-        for s in self.active_filters:
-            self.active_filters[s] = True
-            self.acordeon_estados[s] = True
-        self.todas_activado = True
-        self.btn_side_todas.setIcon(self._crear_icono_seleccion(False))
-        self.btn_side_todas.setToolTip("Deseleccionar todas")
-    self._sync_store_states()
-    self._actualizar_visibilidad_atras()
-    self._actualizar_vista_juegos()
+    root = self.centralWidget()
+    if root is not None:
+        root.setUpdatesEnabled(False)
+    try:
+        if self.todas_activado:
+            for s in self.active_filters:
+                self.active_filters[s] = False
+            self.todas_activado = False
+            self.btn_side_todas.setIcon(self._crear_icono_seleccion(True))
+            self.btn_side_todas.setToolTip("Seleccionar todas")
+        else:
+            for s in self.active_filters:
+                self.active_filters[s] = True
+                self.acordeon_estados[s] = True
+            self.todas_activado = True
+            self.btn_side_todas.setIcon(self._crear_icono_seleccion(False))
+            self.btn_side_todas.setToolTip("Deseleccionar todas")
+        self._sync_store_states()
+        self._actualizar_vista_juegos()
+        self._actualizar_visibilidad_atras()
+    finally:
+        if root is not None:
+            root.setUpdatesEnabled(True)
+            root.update()
 
 
 
 def _toggle_tienda(self, store):
-    if self.todas_activado:
-        self.todas_activado = False
-        self.btn_side_todas.setIcon(self._crear_icono_seleccion(True))
-        self.btn_side_todas.setToolTip("Seleccionar todas")
+    root = self.centralWidget()
+    if root is not None:
+        root.setUpdatesEnabled(False)
+    try:
+        if self.todas_activado:
+            self.todas_activado = False
+            self.btn_side_todas.setIcon(self._crear_icono_seleccion(True))
+            self.btn_side_todas.setToolTip("Seleccionar todas")
 
-    if self.active_filters[store]:
-        self.active_filters[store] = False
-        if store in self.acordeon_estados:
-            self.acordeon_estados[store] = False
-    else:
-        for s in self.active_filters:
-            self.active_filters[s] = False
-        self.active_filters[store] = True
-        self.acordeon_estados[store] = True
+        if self.active_filters[store]:
+            self.active_filters[store] = False
+            if store in self.acordeon_estados:
+                self.acordeon_estados[store] = False
+        else:
+            for s in self.active_filters:
+                self.active_filters[s] = False
+            self.active_filters[store] = True
+            self.acordeon_estados[store] = True
 
-    self._sync_store_states()
-    self._actualizar_visibilidad_atras()
-    self._actualizar_vista_juegos()
+        self._sync_store_states()
+        self._actualizar_vista_juegos()
+        self._actualizar_visibilidad_atras()
+    finally:
+        if root is not None:
+            root.setUpdatesEnabled(True)
+            root.update()
 
 
 
