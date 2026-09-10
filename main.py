@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import io
 import os
 import traceback
@@ -62,36 +62,50 @@ else:
 
 
 # ============================================================
-# SPLASH Qt
-# Mantiene la animación original:
-#   entrada 350 ms
-#   espera 1100 ms
-#   salida 350 ms
-#   alfa suave
+# SPLASH Qt — KGLogo
+# Splash independiente y nativo de Qt.
+# Usa exclusivamente assets/icons/KGLogo.png, conservando su
+# transparencia y su nitidez mediante SmoothTransformation.
 # ============================================================
 
-DURACION_ENTRADA_MS = 350
-DURACION_ESPERA_MS = 1100
-DURACION_SALIDA_MS = 350
-SPLASH_MAX_WIDTH = None
+DURACION_ENTRADA_MS = 500
+DURACION_ESPERA_MS = 1500
+DURACION_SALIDA_MS = 500
+SPLASH_LOGO_SIZE = 460
+
+
+def _ruta_logo_splash():
+    """Devuelve la ruta del nuevo logo dedicado al splash."""
+    return os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "assets",
+        "icons",
+        "KGLogo.png",
+    )
 
 
 def _crear_splash(app):
+    """Crea el splash Qt con KGLogo y una entrada/salida por alfa."""
     from PySide6.QtCore import QEasingCurve, QPropertyAnimation, QTimer, Qt
     from PySide6.QtGui import QPixmap
     from PySide6.QtWidgets import QLabel, QWidget
 
-    from config import LOGO_PATH, SPLASH_MAX_WIDTH
+    ruta_logo = _ruta_logo_splash()
+    logo = QPixmap(ruta_logo)
 
-    logo = QPixmap(LOGO_PATH)
     if logo.isNull():
+        print(f"⚠️ [SPLASH] Logo no encontrado: {ruta_logo}")
         return None, None
 
-    if logo.width() > SPLASH_MAX_WIDTH:
-        logo = logo.scaledToWidth(
-            SPLASH_MAX_WIDTH,
-            Qt.TransformationMode.SmoothTransformation
-        )
+    # El original es grande; se reduce solo para presentación.
+    # Qt mantiene el canal alfa y usa interpolación suave para evitar
+    # bordes dentados o pérdida visible de nitidez.
+    logo = logo.scaled(
+        SPLASH_LOGO_SIZE,
+        SPLASH_LOGO_SIZE,
+        Qt.AspectRatioMode.KeepAspectRatio,
+        Qt.TransformationMode.SmoothTransformation,
+    )
 
     splash = QWidget(
         None,
@@ -99,6 +113,7 @@ def _crear_splash(app):
         | Qt.WindowType.Tool
         | Qt.WindowType.WindowStaysOnTopHint
         | Qt.WindowType.WindowDoesNotAcceptFocus
+        | Qt.WindowType.WindowTransparentForInput,
     )
     splash.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
     splash.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
@@ -122,13 +137,13 @@ def _crear_splash(app):
     splash.show()
     app.processEvents()
 
-    entrada = QPropertyAnimation(splash, b"windowOpacity")
+    entrada = QPropertyAnimation(splash, b"windowOpacity", splash)
     entrada.setDuration(DURACION_ENTRADA_MS)
     entrada.setStartValue(0.0)
     entrada.setEndValue(1.0)
     entrada.setEasingCurve(QEasingCurve.Type.InOutCubic)
 
-    salida = QPropertyAnimation(splash, b"windowOpacity")
+    salida = QPropertyAnimation(splash, b"windowOpacity", splash)
     salida.setDuration(DURACION_SALIDA_MS)
     salida.setStartValue(1.0)
     salida.setEndValue(0.0)
