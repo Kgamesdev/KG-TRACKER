@@ -1,4 +1,4 @@
-"""Splash de KG TRACKER usando el logo maestro con alfa real por píxel en Windows.
+﻿"""Splash de KG TRACKER usando el logo maestro con alfa real por píxel en Windows.
 
 No usa chroma key, transparentcolor ni sombra externa.
 La animación está ajustada a unos 4 segundos, con entrada y salida suaves.
@@ -13,9 +13,9 @@ from PIL import Image
 from config import COLOR_BG, LOGO_PATH, SPLASH_MAX_WIDTH
 
 # ---- Animación original ----
-DURACION_ENTRADA_MS = 500
-DURACION_ESPERA_MS = 3000
-DURACION_SALIDA_MS = 500
+DURACION_ENTRADA_MS = 350
+DURACION_ESPERA_MS = 1100
+DURACION_SALIDA_MS = 350
 INTERVALO_FRAME_MS = 8
 ESCALA_INICIAL = 1.0
 
@@ -405,3 +405,5 @@ def mostrar_splash_inicio(root, al_terminar):
 
     renderizar(0.0, 0.0)
     root.after(8, animar_entrada)
+
+
