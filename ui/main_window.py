@@ -1,6 +1,4 @@
-﻿from ui.widgets import RoundedButton, VolumeSlider
-from ui.store_panel import StorePanel
-"""Interfaz gráfica principal de K GAME TRACKER."""
+﻿"""Interfaz gráfica principal de K GAME TRACKER."""
 
 # V5.0 - Control de volumen personalizado integrado en la interfaz
 
@@ -8,9 +6,6 @@ import os
 import sys
 import json
 import re
-import threading
-import time
-import queue
 import webbrowser
 import winreg
 from datetime import datetime
@@ -38,6 +33,315 @@ from core.images import (
     obtener_tamaño_cache
 )
 
+
+class RoundedButton(tk.Frame):
+    """Botón con esquinas redondeadas y soporte para icono PNG."""
+
+    def __init__(
+        self,
+        parent,
+        text="",
+        command=None,
+        width=120,
+        height=42,
+        bg="#2D2D3F",
+        hover_bg="#38384D",
+        fg="white",
+        radius=12,
+        font=("Segoe UI", 9, "bold"),
+        border=COLOR_BORDER,
+        border_width=1,
+        icon_path=None,
+        icon_size=(20, 20),
+        **kwargs
+    ):
+        super().__init__(parent, bg=parent.cget("bg"), bd=0, highlightthickness=0, **kwargs)
+        self._bg = bg
+        self._hover = hover_bg
+        self._fg = fg
+        self._border = border
+        self._border_width = border_width
+        self._radius = radius
+        self._command = command
+        self._width = width
+        self._height = height
+        self._font = font
+        self._icon_path = icon_path
+        self._icon_size = icon_size
+        self._icon_photo = None
+
+        self._canvas = tk.Canvas(
+            self,
+            width=width,
+            height=height,
+            bg=parent.cget("bg"),
+            bd=0,
+            highlightthickness=0,
+            relief="flat",
+            cursor="hand2"
+        )
+        self._canvas.pack(fill="both", expand=True)
+        self._canvas.bind("<Configure>", self._draw)
+        self._canvas.bind("<Enter>", self._enter)
+        self._canvas.bind("<Leave>", self._leave)
+        self._canvas.bind("<Button-1>", self._click)
+        self._text = text
+        self._load_icon()
+        self._draw()
+
+    def _load_icon(self):
+        self._icon_photo = None
+        if not self._icon_path or not os.path.exists(self._icon_path):
+            return
+        try:
+            img = Image.open(self._icon_path).convert("RGBA")
+            img.thumbnail(self._icon_size, Image.Resampling.LANCZOS)
+            self._icon_photo = ImageTk.PhotoImage(img)
+        except Exception:
+            self._icon_photo = None
+
+    def set_icon(self, icon_path):
+        self._icon_path = icon_path
+        self._load_icon()
+        self._draw()
+
+    def _rounded_polygon(self, x1, y1, x2, y2, r):
+        return [
+            x1 + r, y1,
+            x2 - r, y1,
+            x2, y1,
+            x2, y1 + r,
+            x2, y2 - r,
+            x2, y2,
+            x2 - r, y2,
+            x1 + r, y2,
+            x1, y2,
+            x1, y2 - r,
+            x1, y1 + r,
+            x1, y1
+        ]
+
+    def _draw_contents(self):
+        w = max(20, self._canvas.winfo_width())
+        h = max(20, self._canvas.winfo_height())
+        if self._icon_photo and self._text:
+            text_width = max(1, len(self._text) * 6)
+            total_width = self._icon_size[0] + 8 + text_width
+            start_x = (w - total_width) / 2
+            self._canvas.create_image(
+                start_x + self._icon_size[0] / 2,
+                h / 2,
+                image=self._icon_photo
+            )
+            self._canvas.create_text(
+                start_x + self._icon_size[0] + 8 + text_width / 2,
+                h / 2,
+                text=self._text,
+                fill=self._fg,
+                font=self._font,
+                justify="center"
+            )
+        elif self._icon_photo:
+            self._canvas.create_image(w / 2, h / 2, image=self._icon_photo)
+        else:
+            self._canvas.create_text(w / 2, h / 2, text=self._text, fill=self._fg, font=self._font, justify="center")
+
+    def _draw(self, _event=None):
+        self._canvas.delete("all")
+        w = max(20, self._canvas.winfo_width())
+        h = max(20, self._canvas.winfo_height())
+        r = min(self._radius, w // 2, h // 2)
+        self._canvas.create_polygon(
+            self._rounded_polygon(1, 1, w - 1, h - 1, r),
+            smooth=True,
+            splinesteps=18,
+            fill=self._bg,
+            outline=self._border,
+            width=self._border_width
+        )
+        self._draw_contents()
+
+    def _enter(self, _event=None):
+        self._canvas.delete("all")
+        w = max(20, self._canvas.winfo_width())
+        h = max(20, self._canvas.winfo_height())
+        r = min(self._radius, w // 2, h // 2)
+        self._canvas.create_polygon(
+            self._rounded_polygon(1, 1, w - 1, h - 1, r),
+            smooth=True,
+            splinesteps=18,
+            fill=self._hover,
+            outline=self._border,
+            width=self._border_width
+        )
+        self._draw_contents()
+
+    def _leave(self, _event=None):
+        self._draw()
+
+    def _click(self, _event=None):
+        if callable(self._command):
+            self._command()
+
+    def set_colors(self, bg=None, hover=None, fg=None, border=None):
+        if bg is not None:
+            self._bg = bg
+        if hover is not None:
+            self._hover = hover
+        if fg is not None:
+            self._fg = fg
+        if border is not None:
+            self._border = border
+        self._draw()
+
+    def config(self, **kwargs):
+        if "text" in kwargs:
+            self._text = kwargs.pop("text")
+        if "bg" in kwargs:
+            self._bg = kwargs.pop("bg")
+        if "fg" in kwargs:
+            self._fg = kwargs.pop("fg")
+        if "activebackground" in kwargs:
+            self._hover = kwargs.pop("activebackground")
+        if "font" in kwargs:
+            self._font = kwargs.pop("font")
+        self._draw()
+        if kwargs:
+            super().config(**kwargs)
+
+    configure = config
+
+
+
+class VolumeSlider(tk.Frame):
+    """Slider de volumen personalizado, integrado visualmente con KG TRACKER."""
+
+    def __init__(
+        self,
+        parent,
+        from_=0,
+        to=100,
+        length=120,
+        command=None,
+        bg="#1E1E2E",
+        track_bg=COLOR_BORDER,
+        fill_bg="#6C63FF",
+        knob_bg="#F3F4F6",
+        **kwargs
+    ):
+        super().__init__(parent, bg=bg, bd=0, highlightthickness=0, **kwargs)
+        self._from = float(from_)
+        self._to = float(to)
+        self._value = self._from
+        self._length = int(length)
+        self._command = command
+        self._bg = bg
+        self._track_bg = track_bg
+        self._fill_bg = fill_bg
+        self._knob_bg = knob_bg
+        self._dragging = False
+
+        self._canvas = tk.Canvas(
+            self,
+            width=self._length,
+            height=22,
+            bg=bg,
+            bd=0,
+            highlightthickness=0,
+            relief="flat",
+            cursor="hand2"
+        )
+        self._canvas.pack(fill="both", expand=True)
+        self._canvas.bind("<Configure>", self._draw)
+        self._canvas.bind("<Button-1>", self._click)
+        self._canvas.bind("<B1-Motion>", self._drag)
+        self._canvas.bind("<ButtonRelease-1>", self._release)
+
+        self._draw()
+
+    def _fraction(self):
+        if self._to == self._from:
+            return 0.0
+        return max(0.0, min(1.0, (self._value - self._from) / (self._to - self._from)))
+
+    def _value_from_x(self, x):
+        width = max(1, self._canvas.winfo_width())
+        margin = 7
+        usable = max(1, width - (margin * 2))
+        fraction = max(0.0, min(1.0, (x - margin) / usable))
+        return self._from + fraction * (self._to - self._from)
+
+    def _set_from_pointer(self, x):
+        value = self._value_from_x(x)
+        self.set(value)
+        if self._command:
+            self._command(value)
+
+    def _click(self, event):
+        self._dragging = True
+        self._set_from_pointer(event.x)
+
+    def _drag(self, event):
+        if self._dragging:
+            self._set_from_pointer(event.x)
+
+    def _release(self, event):
+        self._dragging = False
+
+    def set(self, value):
+        try:
+            self._value = max(self._from, min(self._to, float(value)))
+        except (TypeError, ValueError):
+            return
+        self._draw()
+
+    def get(self):
+        return self._value
+
+    def set_colors(self, bg=None, track_bg=None, fill_bg=None, knob_bg=None):
+        if bg is not None:
+            self._bg = bg
+        if track_bg is not None:
+            self._track_bg = track_bg
+        if fill_bg is not None:
+            self._fill_bg = fill_bg
+        if knob_bg is not None:
+            self._knob_bg = knob_bg
+        self.config(bg=self._bg)
+        self._canvas.config(bg=self._bg)
+        self._draw()
+
+    def _draw(self, event=None):
+        c = self._canvas
+        c.delete("all")
+        width = max(self._length, c.winfo_width())
+        height = max(22, c.winfo_height())
+
+        left = 7
+        right = width - 7
+        y = height / 2
+        track_h = 5
+
+        # Pista
+        c.create_round_rect if False else None
+        c.create_rectangle(
+            left, y - track_h / 2, right, y + track_h / 2,
+            fill=self._track_bg, outline=""
+        )
+
+        # Parte activa
+        knob_x = left + (right - left) * self._fraction()
+        c.create_rectangle(
+            left, y - track_h / 2, knob_x, y + track_h / 2,
+            fill=self._fill_bg, outline=""
+        )
+
+        # Tirador
+        r = 7
+        c.create_oval(
+            knob_x - r, y - r, knob_x + r, y + r,
+            fill=self._knob_bg, outline=self._fill_bg, width=2
+        )
 
 class VentanaPrincipal:
     """Ventana principal de K GAME TRACKER."""
@@ -69,10 +373,6 @@ class VentanaPrincipal:
         self._icon_refs = []
         self._image_refs = []
         self.mostrando_reclamados = False
-        self._status_anim_job = None
-        self._status_anim_index = 0
-        self._status_busqueda_inicio = 0.0
-        self._busqueda_en_curso = False
         self.reclamados = self._cargar_reclamados()
 
         try:
@@ -271,24 +571,17 @@ class VentanaPrincipal:
         self.bottom.columnconfigure(2, weight=0)
         self.bottom.columnconfigure(3, weight=1)
 
-        # Estado (izquierda): misma altura visual que RECLAMADOS.
-        self.status_pill = tk.Frame(
+        # Estado (izquierda)
+        self.status_pill = tk.Label(
             self.bottom,
-            bg=COLOR_BG_CARD,
-            width=142,
-            height=34
-        )
-        self.status_pill.grid(row=0, column=0, sticky="w")
-        self.status_pill.grid_propagate(False)
-
-        self.status_label = tk.Label(
-            self.status_pill,
             text="● LISTO",
             font=("Segoe UI", 9, "bold"),
             bg=COLOR_BG_CARD,
-            fg=COLOR_SUCCESS
+            fg=COLOR_SUCCESS,
+            padx=12,
+            pady=6
         )
-        self.status_label.place(relx=0.5, rely=0.5, anchor="center")
+        self.status_pill.grid(row=0, column=0, sticky="w")
 
         # Histórico de juegos reclamados
         self.btn_reclamados = RoundedButton(
@@ -444,17 +737,34 @@ class VentanaPrincipal:
     # ------------------------------------------------------------------------
 
     def _inicializar_audio(self):
+        """Conserva la música iniciada por main.py y evita reinicios/cortes."""
         try:
             if not os.path.exists(AUDIO_PATH):
                 return
-            pygame.mixer.init()
-            pygame.mixer.music.load(os.path.abspath(AUDIO_PATH))
+
+            # main.py inicia pygame y la música antes del splash.
+            # Aquí no se vuelve a cargar, reproducir ni poner el volumen a 0.
+            if not pygame.mixer.get_init():
+                pygame.mixer.init(
+                    frequency=44100,
+                    size=-16,
+                    channels=2,
+                    buffer=512
+                )
+
+            if not pygame.mixer.music.get_busy():
+                pygame.mixer.music.load(os.path.abspath(AUDIO_PATH))
+                pygame.mixer.music.set_volume(0.05)
+                pygame.mixer.music.play(-1)
+
             self.audio_silenciado = False
             self.volumen_anterior = 20
-            pygame.mixer.music.set_volume(0.0)
-            pygame.mixer.music.play(-1)
-            self.slider_volumen.set(0)
-            self._fade_audio(0)
+            volumen_actual = int(round(pygame.mixer.music.get_volume() * 100))
+            if volumen_actual <= 0:
+                volumen_actual = 5
+                pygame.mixer.music.set_volume(volumen_actual / 100.0)
+            self.slider_volumen.set(volumen_actual)
+
         except Exception as e:
             print(f"⚠️ No se pudo inicializar el audio: {e}")
 
@@ -513,157 +823,72 @@ class VentanaPrincipal:
     # DATOS Y API
     # ------------------------------------------------------------------------
 
-    def _set_status(self, text, fg):
-        if hasattr(self, "status_label") and self.status_label.winfo_exists():
-            self.status_label.config(text=text, fg=fg)
+    def buscar_juegos(self):
+        limpiar_cache_imagenes()
+        self.status_pill.config(text="● BUSCANDO", fg=COLOR_WARNING)
+        self.ventana.update_idletasks()
+        try:
+            response = requests.get(API_URL, headers=API_HEADERS, timeout=10)
+            response.raise_for_status()
+            giveaways = response.json()
+            if not isinstance(giveaways, list):
+                raise ValueError("Formato de API no válido")
 
-    def _detener_animacion_estado(self):
-        job = getattr(self, "_status_anim_job", None)
-        if job is not None:
-            try:
-                self.ventana.after_cancel(job)
-            except Exception:
-                pass
-        self._status_anim_job = None
+            juegos_validos = []
+            exclusiones_totales = list(EXCLUSIONES) + ["dlc", "demo", "soundtrack", "ost", "expansion", "pack", "bundle", "skin", "avatar"]
 
-    def _animar_estado_busqueda(self):
-        if not getattr(self, "_busqueda_en_curso", False):
-            self._detener_animacion_estado()
-            return
+            for g in giveaways:
+                titulo = str(g.get("title", "")).lower()
+                g_type = str(g.get("type", "")).lower()
+                if any(exc in g_type for exc in ["dlc", "loot", "demo", "soundtrack"]):
+                    continue
+                if any(exc in titulo for exc in exclusiones_totales):
+                    continue
+                juegos_validos.append(g)
 
-        barras = ["▏▎▌▊▌▎▏", "▎▌▊▌▎▏▎", "▌▊▌▎▏▎▌", "▊▌▎▏▎▌▊",
-                  "▌▎▏▎▌▊▌", "▎▏▎▌▊▌▎", "▏▎▌▊▌▎▏"]
-        self.status_label.config(text=barras[self._status_anim_index % len(barras)], fg="#FF9F43")
-        self._status_anim_index += 1
-        self._status_anim_job = self.ventana.after(80, self._animar_estado_busqueda)
+            # Eliminar duplicados de la respuesta de la API.
+            # Para KG TRACKER el juego + tienda es la identidad funcional:
+            # una misma oferta puede cambiar de URL/ID y no debe aparecer dos veces.
+            juegos_unicos = {}
+            for juego in juegos_validos:
+                clave = self._clave_juego(juego)
+                if clave not in juegos_unicos:
+                    juegos_unicos[clave] = juego
 
-    def _iniciar_animacion_busqueda(self):
-        self._detener_animacion_estado()
-        self._busqueda_en_curso = True
-        self._status_anim_index = 0
-        self._status_busqueda_inicio = time.monotonic()
-        self._animar_estado_busqueda()
+            self.juegos_cache_global = list(juegos_unicos.values())
 
-    def _finalizar_busqueda(self, juegos_cache, conteos):
-        # Garantiza que la animación haya durado aproximadamente 2 segundos.
-        transcurrido = time.monotonic() - self._status_busqueda_inicio
-        restante_ms = max(0, int(2000 - (transcurrido * 1000)))
+            # Si un juego histórico no tenía valor guardado, aprovechamos el
+            # `worth` actual de GamerPower cuando vuelve a aparecer en la API.
+            historico_actualizado = False
+            for juego in self.juegos_cache_global:
+                clave = self._clave_juego(juego)
+                registro = self.reclamados.get(clave)
+                if registro is not None:
+                    valor_actual = self._valor_juego(juego)
+                    if valor_actual > 0 and self._parsear_valor_juego(registro.get("worth_value")) <= 0:
+                        registro["worth_value"] = valor_actual
+                        registro["worth"] = str(juego.get("worth") or "")
+                        historico_actualizado = True
+            if historico_actualizado:
+                self._guardar_reclamados()
+            self._actualizar_contador_ahorrado()
 
-        def aplicar():
-            self._busqueda_en_curso = False
-            self._detener_animacion_estado()
-            self.juegos_cache_global = juegos_cache
+            disponibles = [j for j in self.juegos_cache_global if not self._esta_reclamado(j)]
+            conteos = {s: 0 for s in STORES_MAPPING.values()}
+            for juego in disponibles:
+                tienda = self._asignar_tienda(juego)
+                if tienda in conteos:
+                    conteos[tienda] += 1
+
             self.actualizar_insignias(conteos)
+            self.status_pill.config(text=f"● {len(disponibles)} OFERTAS", fg=COLOR_SUCCESS)
             self.btn_side_todas.pack()
             self.mostrando_reclamados = False
-            self._actualizar_contador_ahorrado()
             self._actualizar_vista_juegos()
-            self._set_status("● LISTO", COLOR_SUCCESS)
 
-        self.ventana.after(restante_ms, aplicar)
-
-    def _finalizar_error_busqueda(self, error):
-        transcurrido = time.monotonic() - self._status_busqueda_inicio
-        restante_ms = max(0, int(2000 - (transcurrido * 1000)))
-
-        def aplicar():
-            self._busqueda_en_curso = False
-            self._detener_animacion_estado()
-            self._set_status("● ERROR", COLOR_ERROR)
-            messagebox.showerror("Error", f"No se pudieron cargar los juegos:\n{error}")
-
-        self.ventana.after(restante_ms, aplicar)
-
-    def buscar_juegos(self):
-        if self._busqueda_en_curso:
-            return
-
-        self._iniciar_animacion_busqueda()
-        resultado = queue.Queue(maxsize=1)
-
-        def comprobar_resultado():
-            try:
-                tipo, datos = resultado.get_nowait()
-            except queue.Empty:
-                # Esta función se ejecuta siempre desde el hilo principal de Tk.
-                if self._busqueda_en_curso:
-                    self.ventana.after(25, comprobar_resultado)
-                return
-
-            if tipo == "ok":
-                juegos_cache, conteos = datos
-                self._finalizar_busqueda(juegos_cache, conteos)
-            else:
-                self._finalizar_error_busqueda(datos)
-
-        def trabajador():
-            try:
-                limpiar_cache_imagenes()
-                response = requests.get(API_URL, headers=API_HEADERS, timeout=10)
-                response.raise_for_status()
-                giveaways = response.json()
-                if not isinstance(giveaways, list):
-                    raise ValueError("Formato de API no válido")
-
-                juegos_validos = []
-                exclusiones_totales = list(EXCLUSIONES) + [
-                    "dlc", "demo", "soundtrack", "ost", "expansion",
-                    "pack", "bundle", "skin", "avatar"
-                ]
-
-                for g in giveaways:
-                    titulo = str(g.get("title", "")).lower()
-                    g_type = str(g.get("type", "")).lower()
-                    if any(exc in g_type for exc in ["dlc", "loot", "demo", "soundtrack"]):
-                        continue
-                    if any(exc in titulo for exc in exclusiones_totales):
-                        continue
-                    juegos_validos.append(g)
-
-                juegos_unicos = {}
-                for juego in juegos_validos:
-                    clave = self._clave_juego(juego)
-                    if clave not in juegos_unicos:
-                        juegos_unicos[clave] = juego
-
-                juegos_cache = list(juegos_unicos.values())
-
-                historico_actualizado = False
-                for juego in juegos_cache:
-                    clave = self._clave_juego(juego)
-                    registro = self.reclamados.get(clave)
-                    if registro is not None:
-                        valor_actual = self._valor_juego(juego)
-                        if valor_actual > 0 and self._parsear_valor_juego(
-                            registro.get("worth_value")
-                        ) <= 0:
-                            registro["worth_value"] = valor_actual
-                            registro["worth"] = str(juego.get("worth") or "")
-                            historico_actualizado = True
-
-                if historico_actualizado:
-                    self._guardar_reclamados()
-
-                disponibles = [
-                    j for j in juegos_cache if not self._esta_reclamado(j)
-                ]
-                conteos = {s: 0 for s in STORES_MAPPING.values()}
-                for juego in disponibles:
-                    tienda = self._asignar_tienda(juego)
-                    if tienda in conteos:
-                        conteos[tienda] += 1
-
-                # El hilo de trabajo NO toca Tkinter. Solo entrega el resultado.
-                resultado.put(("ok", (juegos_cache, conteos)))
-
-            except Exception as e:
-                # El hilo de trabajo NO llama a self.ventana.after().
-                resultado.put(("error", e))
-
-        # El polling se registra desde el hilo principal antes de lanzar el worker.
-        self.ventana.after(25, comprobar_resultado)
-        threading.Thread(target=trabajador, daemon=True).start()
-
+        except Exception as e:
+            self.status_pill.config(text="● ERROR", fg=COLOR_ERROR)
+            messagebox.showerror("Error", f"No se pudieron cargar los juegos:\n{e}")
 
     def _asignar_tienda(self, juego):
         platforms = str(juego.get("platforms", "")).lower()
@@ -1052,9 +1277,9 @@ class VentanaPrincipal:
                 conteos[tienda] += 1
         self.actualizar_insignias(conteos)
         if self.mostrando_reclamados:
-            self._set_status("● LISTO", COLOR_SUCCESS)
+            self.status_pill.config(text=f"● {len(self.reclamados)} RECLAMADOS", fg=COLOR_ACCENT_LIGHT)
         else:
-            self._set_status("● LISTO", COLOR_SUCCESS)
+            self.status_pill.config(text=f"● {len(disponibles)} OFERTAS", fg=COLOR_SUCCESS)
 
     def mostrar_reclamados(self):
         self.mostrando_reclamados = not self.mostrando_reclamados
@@ -1066,7 +1291,10 @@ class VentanaPrincipal:
                 activebackground=COLOR_ACCENT_HOVER,
                 fg="white"
             )
-            self._set_status("● LISTO", COLOR_SUCCESS)
+            self.status_pill.config(
+                text=f"● {len(self.reclamados)} RECLAMADOS",
+                fg=COLOR_ACCENT_LIGHT
+            )
         else:
             self.btn_reclamados.config(
                 text="★ RECLAMADOS",
@@ -1078,7 +1306,10 @@ class VentanaPrincipal:
                 j for j in self.juegos_cache_global
                 if not self._esta_reclamado(j)
             ]
-            self._set_status("● LISTO", COLOR_SUCCESS)
+            self.status_pill.config(
+                text=f"● {len(disponibles)} OFERTAS",
+                fg=COLOR_SUCCESS
+            )
 
         self._actualizar_vista_juegos()
 
@@ -1196,7 +1427,7 @@ class VentanaPrincipal:
 
         self.juegos_cache_global = []
         self._actualizar_vista_juegos()
-        self._set_status("● LISTO", COLOR_SUCCESS)
+        self.status_pill.config(text="● LISTO", fg=COLOR_SUCCESS)
 
     def resetear_app(self):
         self.volver_atras()
@@ -1208,11 +1439,6 @@ class VentanaPrincipal:
 
     def alternar_tema(self):
         """Cambia entre tema oscuro y claro reconstruyendo la UI con la nueva paleta."""
-        busqueda_activa = getattr(self, "_busqueda_en_curso", False)
-
-        # Detener cualquier after de la animación antes de destruir los widgets.
-        self._detener_animacion_estado()
-
         estado = {
             "active_filters": dict(getattr(self, "active_filters", {})),
             "acordeon_estados": dict(getattr(self, "acordeon_estados", {})),
@@ -1242,14 +1468,6 @@ class VentanaPrincipal:
         self._build_ui()
 
         self.active_filters = estado["active_filters"]
-
-        # Si la búsqueda sigue activa, continuar la animación en el nuevo widget.
-        if busqueda_activa:
-            self._busqueda_en_curso = True
-            self._status_busqueda_inicio = getattr(
-                self, "_status_busqueda_inicio", time.monotonic()
-            )
-            self._animar_estado_busqueda()
         self.acordeon_estados = estado["acordeon_estados"]
         self.tienda_seleccionada = estado["tienda_seleccionada"]
         self.mostrando_reclamados = estado["mostrando_reclamados"]
@@ -1272,9 +1490,36 @@ class VentanaPrincipal:
     # ------------------------------------------------------------------------
 
     def abrir_ajustes(self):
-        """Abre la ventana modal independiente de Ajustes."""
-        from ui.settings_modal import SettingsModal
-        SettingsModal(self.ventana)
+        v = tk.Toplevel(self.ventana)
+        v.title("Ajustes y Configuración")
+        v.geometry("400x285")
+        v.config(bg=COLOR_BG_CARD)
+        v.transient(self.ventana)
+        v.grab_set()
+
+        tk.Label(v, text="OPCIONES DE USUARIO", font=("Segoe UI", 13, "bold"),
+                 bg=COLOR_BG_CARD, fg=COLOR_TEXT_PRIMARY).pack(pady=(22, 18))
+
+        var_max = tk.BooleanVar(value=(self.ventana.state() == "zoomed"))
+        def toggle_max():
+            self.ventana.state("zoomed" if var_max.get() else "normal")
+        tk.Checkbutton(v, text="Pantalla / Ventana Maximizada", variable=var_max,
+                       command=toggle_max, bg=COLOR_BG_CARD, fg=COLOR_TEXT_PRIMARY,
+                       selectcolor=COLOR_BG, activebackground=COLOR_BG_CARD,
+                       activeforeground=COLOR_TEXT_PRIMARY, font=("Segoe UI", 10)).pack(anchor="w", padx=35, pady=6)
+
+        var_auto = tk.BooleanVar(value=self._comprobar_autostart())
+        tk.Checkbutton(v, text="Iniciar cuando enciendo el ordenador", variable=var_auto,
+                       command=lambda: self._guardar_autostart(var_auto.get()),
+                       bg=COLOR_BG_CARD, fg=COLOR_TEXT_PRIMARY,
+                       selectcolor=COLOR_BG, activebackground=COLOR_BG_CARD,
+                       activeforeground=COLOR_TEXT_PRIMARY, font=("Segoe UI", 10)).pack(anchor="w", padx=35, pady=6)
+
+        RoundedButton(v, text="GUARDAR Y CERRAR", command=v.destroy,
+                      width=170, height=42, bg=COLOR_ACCENT,
+                      hover_bg=COLOR_ACCENT_HOVER, fg="white",
+                      border=COLOR_ACCENT, radius=11).pack(pady=24)
+
     def _comprobar_autostart(self):
         try:
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, AUTOSTART_REG_PATH, 0, winreg.KEY_READ)
@@ -1360,12 +1605,82 @@ class VentanaPrincipal:
 
 
     def abrir_kofi(self):
-        """Abre la ventana modal independiente de Ko-fi."""
-        from ui.kofi_modal import KofiModal
-        KofiModal(self.ventana)
+        """Muestra la ventana modal centrada y hereda el icono principal de la aplicación."""
+        modal = tk.Toplevel(self.ventana)
+        modal.withdraw()
+        modal.title("Apoyar K Game Tracker")
+        modal.geometry("400x260")
+        modal.configure(bg="#1e1e2f")
+        modal.resizable(False, False)
+        modal.transient(self.ventana)
+        modal.grab_set()
 
+        # Replicar exactamente la carga del icono principal que usa la app
+        try:
+            modal.iconbitmap(ICON_PATH)
+        except Exception:
+            try:
+                # Alternativa si ICON_PATH falla, heredar directamente de la ventana principal
+                if hasattr(self, 'ventana'):
+                    modal.iconbitmap(self.ventana.iconbitmap())
+            except Exception:
+                pass
 
+        modal.update_idletasks()
+        x = self.ventana.winfo_x() + (self.ventana.winfo_width() - 400) // 2
+        y = self.ventana.winfo_y() + (self.ventana.winfo_height() - 260) // 2
+        modal.geometry(f"+{x}+{y}")
 
+        lbl_titulo = tk.Label(
+            modal, 
+            text="☕ ¿Apoyar el proyecto?", 
+            font=("Segoe UI", 14, "bold"), 
+            bg="#1e1e2f", 
+            fg="#ffffff"
+        )
+        lbl_titulo.pack(pady=(20, 10))
 
+        lbl_desc = tk.Label(
+            modal, 
+            text="K Game Tracker es gratuito y se mantiene con esfuerzo.\nSi deseas apoyar el desarrollo, ¡te lo agradecemos muchísimo!", 
+            font=("Segoe UI", 10), 
+            bg="#1e1e2f", 
+            fg="#b0b0c0",
+            justify="center"
+        )
+        lbl_desc.pack(pady=10)
+
+        frame_botones = tk.Frame(modal, bg="#1e1e2f")
+        frame_botones.pack(pady=15)
+
+        def ir_a_kofi():
+            webbrowser.open_new_tab("https://ko-fi.com/kurigamedeveloper")
+            modal.destroy()
+
+        btn_kofi = tk.Button(
+            frame_botones, 
+            text="Continuar a Ko-fi", 
+            font=("Segoe UI", 10, "bold"), 
+            bg="#FFDD00", 
+            fg="#000000",
+            relief="flat",
+            cursor="hand2",
+            command=ir_a_kofi
+        )
+        btn_kofi.pack(side="left", padx=10, ipadx=10, ipady=4)
+
+        btn_cancelar = tk.Button(
+            frame_botones, 
+            text="Cancelar", 
+            font=("Segoe UI", 10), 
+            bg=COLOR_BORDER, 
+            fg="#ffffff",
+            relief="flat",
+            cursor="hand2",
+            command=modal.destroy
+        )
+        btn_cancelar.pack(side="left", padx=10, ipadx=10, ipady=4)
+
+        modal.deiconify()
 
 
