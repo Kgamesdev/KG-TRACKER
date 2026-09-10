@@ -1,8 +1,12 @@
-﻿import sys
+import sys
 import io
 import os
-import tkinter as tk
 import traceback
+
+# Igualar el escalado físico de Qt al de la aplicación Tk original.
+# Evita que Windows (p. ej. 125%) agrande toda la interfaz Qt.
+os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
+os.environ["QT_SCALE_FACTOR"] = "1"
 
 # ============================================================
 # AUDIO DE ARRANQUE
@@ -48,20 +52,122 @@ if sys.stderr is None:
     sys.stderr = open(os.devnull, "w", encoding="utf-8")
 
 
-if hasattr(sys.stdout, 'reconfigure'):
+if hasattr(sys.stdout, "reconfigure"):
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding="utf-8")
     except Exception:
         pass
 else:
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+
+
+# ============================================================
+# SPLASH Qt
+# Mantiene la animación original:
+#   entrada 350 ms
+#   espera 1100 ms
+#   salida 350 ms
+#   alfa suave
+# ============================================================
+
+DURACION_ENTRADA_MS = 350
+DURACION_ESPERA_MS = 1100
+DURACION_SALIDA_MS = 350
+SPLASH_MAX_WIDTH = None
+
+
+def _crear_splash(app):
+    from PySide6.QtCore import QEasingCurve, QPropertyAnimation, QTimer, Qt
+    from PySide6.QtGui import QPixmap
+    from PySide6.QtWidgets import QLabel, QWidget
+
+    from config import LOGO_PATH, SPLASH_MAX_WIDTH
+
+    logo = QPixmap(LOGO_PATH)
+    if logo.isNull():
+        return None, None
+
+    if logo.width() > SPLASH_MAX_WIDTH:
+        logo = logo.scaledToWidth(
+            SPLASH_MAX_WIDTH,
+            Qt.TransformationMode.SmoothTransformation
+        )
+
+    splash = QWidget(
+        None,
+        Qt.WindowType.FramelessWindowHint
+        | Qt.WindowType.Tool
+        | Qt.WindowType.WindowStaysOnTopHint
+        | Qt.WindowType.WindowDoesNotAcceptFocus
+    )
+    splash.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+    splash.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
+    splash.setFixedSize(logo.size())
+
+    label = QLabel(splash)
+    label.setPixmap(logo)
+    label.setFixedSize(logo.size())
+    label.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+    label.setStyleSheet("background: transparent; border: none;")
+    label.move(0, 0)
+
+    screen = app.primaryScreen()
+    if screen is not None:
+        geometry = screen.availableGeometry()
+        x = geometry.x() + (geometry.width() - splash.width()) // 2
+        y = geometry.y() + (geometry.height() - splash.height()) // 2
+        splash.move(x, y)
+
+    splash.setWindowOpacity(0.0)
+    splash.show()
+    app.processEvents()
+
+    entrada = QPropertyAnimation(splash, b"windowOpacity")
+    entrada.setDuration(DURACION_ENTRADA_MS)
+    entrada.setStartValue(0.0)
+    entrada.setEndValue(1.0)
+    entrada.setEasingCurve(QEasingCurve.Type.InOutCubic)
+
+    salida = QPropertyAnimation(splash, b"windowOpacity")
+    salida.setDuration(DURACION_SALIDA_MS)
+    salida.setStartValue(1.0)
+    salida.setEndValue(0.0)
+    salida.setEasingCurve(QEasingCurve.Type.InOutCubic)
+
+    estado = {
+        "entrada": entrada,
+        "salida": salida,
+        "finalizado": False,
+    }
+
+    def finalizar():
+        if estado["finalizado"]:
+            return
+
+        estado["finalizado"] = True
+        splash.close()
+        splash.deleteLater()
+
+    def iniciar_salida():
+        if estado["finalizado"]:
+            return
+        salida.finished.connect(finalizar)
+        salida.start()
+
+    entrada.finished.connect(
+        lambda: QTimer.singleShot(DURACION_ESPERA_MS, iniciar_salida)
+    )
+
+    entrada.start()
+
+    return splash, estado
 
 
 def main():
     """Punto de entrada de la aplicación."""
 
-    # La interfaz se importa después de iniciar el audio.
-    from ui.splash_screen import mostrar_splash_inicio
+    from PySide6.QtCore import QTimer
+    from PySide6.QtWidgets import QApplication
     from ui.main_window import VentanaPrincipal
 
     log_app_iniciada()
@@ -78,131 +184,69 @@ def main():
     except Exception as e:
         log_info(f"⚠️ Autostart: {e}")
 
-    # ---- CREAR ROOT ----
-    root = tk.Tk()
-    root.withdraw()
+    app = QApplication.instance() or QApplication(sys.argv)
+
+    splash = None
 
     try:
-        root.configure(bg='#1e1e2e')
-    except Exception:
-        pass
+        splash, _splash_estado = _crear_splash(app)
 
-    try:
-        root.iconbitmap(
-            os.path.join(
-                os.path.dirname(os.path.abspath(__file__)),
-                'assets',
-                'logo.ico'
+        # La ventana principal se crea oculta durante el splash.
+        ventana = VentanaPrincipal(mostrar=False)
+
+        def mostrar_principal():
+            ventana.show()
+            ventana.raise_()
+            ventana.activateWindow()
+
+        if splash is None:
+            mostrar_principal()
+        else:
+            QTimer.singleShot(
+                DURACION_ENTRADA_MS
+                + DURACION_ESPERA_MS
+                + DURACION_SALIDA_MS,
+                mostrar_principal
             )
-        )
-    except Exception:
-        pass
 
-    root.geometry("1x1+0+0")
+        codigo = app.exec()
 
-    # ---- FINALIZAR SPLASH ----
-    splash_cerrado = False
-
-    fade_job = None
-
-    def al_terminar_splash():
-        nonlocal splash_cerrado
-
-        if splash_cerrado:
-            return
-
-        splash_cerrado = True
-
-        if fade_job is not None:
-            try:
-                root.after_cancel(fade_job)
-            except Exception:
-                pass
-
-        try:
-            # Usamos el mismo intérprete Tk de la aplicación.
-            # Así las PhotoImage no quedan asociadas a un root destruido.
-            app = VentanaPrincipal(parent=root, mostrar=False)
-
-            # Mostrar la ventana principal directamente, sin fade.
-            try:
-                app.ventana.deiconify()
-            except Exception:
-                pass
-
-            # Esperamos a que se cierre la ventana principal.
-            app.run()
-
-            # Al cerrar la app, detenemos completamente el audio.
-            try:
-                if _audio_iniciado and pygame is not None:
-                    if pygame.mixer.get_init():
-                        pygame.mixer.music.stop()
-                        pygame.mixer.quit()
-                        _audio_iniciado = False
-            except Exception:
-                pass
-
-            # Ahora sí podemos destruir el root oculto.
-            try:
-                root.destroy()
-            except Exception:
-                pass
-
-        except Exception as e:
-            log_info(f"❌ Error creando la ventana principal: {e}")
-            traceback.print_exc()
-
-            try:
-                if _audio_iniciado and pygame is not None:
-                    if pygame.mixer.get_init():
-                        pygame.mixer.music.stop()
-                        pygame.mixer.quit()
-            except Exception:
-                pass
-
-            try:
-                root.destroy()
-            except Exception:
-                pass
-
-            sys.exit(1)
-    try:
-        mostrar_splash_inicio(root, al_terminar_splash)
-        root.mainloop()
-
-    except KeyboardInterrupt:
-        pass
-
-    except Exception as e:
-        print(f"Error: {e}")
-        traceback.print_exc()
-
-    finally:
-        # ---- SEGURIDAD: DETENER AUDIO SIEMPRE ----
+        # Al cerrar la app, detenemos completamente el audio.
         try:
             if _audio_iniciado and pygame is not None:
                 if pygame.mixer.get_init():
                     pygame.mixer.music.stop()
                     pygame.mixer.quit()
+                    globals()["_audio_iniciado"] = False
         except Exception:
             pass
 
-        log_app_cerrada()
+        return codigo
+
+    except KeyboardInterrupt:
+        return 0
+
+    except Exception as e:
+        log_info(f"❌ Error creando la aplicación: {e}")
+        traceback.print_exc()
 
         try:
-            sys.exit(0)
-        except SystemExit:
-            pass
+            if _audio_iniciado and pygame is not None:
+                if pygame.mixer.get_init():
+                    pygame.mixer.music.stop()
+                    pygame.mixer.quit()
+                    globals()["_audio_iniciado"] = False
         except Exception:
-            os._exit(0)
+            pass
+
+        return 1
+
+    finally:
+        try:
+            log_app_cerrada()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":
-    main()
-
-
-
-
-
-
+    sys.exit(main())
