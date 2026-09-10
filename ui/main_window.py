@@ -49,6 +49,8 @@ from config import (
     LOGO_PATH,
 )
 from core.images import limpiar_cache_imagenes
+from ui.kofi_modal import KofiModal
+from ui.settings_modal import SettingsModal
 
 
 class RoundedButton(QPushButton):
@@ -176,129 +178,6 @@ class VolumeSlider(QSlider):
             f"QSlider::groove:horizontal {{ height: 5px; background: {track_bg or COLOR_BORDER}; border-radius: 2px; }}"
             f"QSlider::sub-page:horizontal {{ background: {fill_bg or COLOR_ACCENT}; border-radius: 2px; }}"
             f"QSlider::handle:horizontal {{ width: 14px; margin: -5px 0; border-radius: 7px; background: {knob_bg or COLOR_TEXT_PRIMARY}; border: 2px solid {fill_bg or COLOR_ACCENT}; }}"
-        )
-
-
-class KofiModal(QDialog):
-    """Modal Qt equivalente al KofiModal existente."""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Apoyar K Game Tracker")
-        self.setFixedSize(460, 280)
-        if os.path.exists(ICON_PATH):
-            self.setWindowIcon(QIcon(ICON_PATH))
-        self.setModal(True)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(30, 25, 30, 25)
-        layout.setSpacing(12)
-
-        title = QLabel("☕ ¿Apoyar el proyecto?")
-        title.setObjectName("dialogTitle")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title)
-
-        desc = QLabel(
-            "K Game Tracker es gratuito y se mantiene con esfuerzo.\n"
-            "¡Invítame a un café! :)"
-        )
-        desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        desc.setWordWrap(True)
-        layout.addWidget(desc)
-
-        buttons = QHBoxLayout()
-        buttons.addStretch()
-        go = QPushButton("Continuar a Ko-fi")
-        go.setObjectName("accentButton")
-        go.clicked.connect(self.ir_a_kofi)
-        buttons.addWidget(go)
-        cancel = QPushButton("Cancelar")
-        cancel.clicked.connect(self.close)
-        buttons.addWidget(cancel)
-        buttons.addStretch()
-        layout.addLayout(buttons)
-
-        self.setStyleSheet(
-            "QDialog { background: #1E1E2E; color: #FFFFFF; }"
-            "QLabel { color: #B0B0C0; font: 10pt 'Segoe UI'; }"
-            "#dialogTitle { color: #FFFFFF; font: bold 14pt 'Segoe UI'; }"
-            "QPushButton { background: #2A2A3A; color: #FFFFFF; border: 0; padding: 8px 15px; }"
-            "#accentButton { background: #FFDD00; color: #000000; font: bold 10pt 'Segoe UI'; }"
-            "#accentButton:hover { background: #E6C800; }"
-        )
-
-    def ir_a_kofi(self):
-        webbrowser.open_new_tab("https://ko-fi.com/kurigamedeveloper")
-        self.close()
-
-
-class SettingsModal(QDialog):
-    """Modal Qt equivalente al SettingsModal existente."""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Ajustes")
-        self.setFixedSize(520, 420)
-        if os.path.exists(ICON_PATH):
-            self.setWindowIcon(QIcon(ICON_PATH))
-        self.setModal(True)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(35, 25, 35, 25)
-        layout.setSpacing(10)
-
-        title = QLabel("AJUSTES")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setObjectName("dialogTitle")
-        layout.addWidget(title)
-
-        line = QFrame()
-        line.setFrameShape(QFrame.Shape.HLine)
-        line.setObjectName("separator")
-        layout.addWidget(line)
-
-        options = QVBoxLayout()
-        options.setSpacing(12)
-        layout.addLayout(options)
-
-        def add_row(text, values):
-            row = QHBoxLayout()
-            label = QLabel(text)
-            combo = QComboBox()
-            combo.addItems(values)
-            combo.setMinimumWidth(180)
-            row.addWidget(label)
-            row.addStretch()
-            row.addWidget(combo)
-            options.addLayout(row)
-
-        add_row("Idioma de la interfaz", ["Español (ES)", "English (EN)"])
-        add_row("Tema visual", ["Neón Cyberpunk", "Oscuro Clásico", "Minimalista"])
-        add_row("Buscar ofertas automáticamente", ["Al iniciar", "Cada hora", "Desactivado"])
-
-        row = QHBoxLayout()
-        row.addWidget(QLabel("Iniciar minimizado con Windows"))
-        row.addStretch()
-        self.chk_var = QCheckBox()
-        row.addWidget(self.chk_var)
-        options.addLayout(row)
-        options.addStretch()
-
-        save = QPushButton("GUARDAR CAMBIOS")
-        save.setObjectName("accentButton")
-        save.clicked.connect(self.close)
-        layout.addWidget(save)
-
-        self.setStyleSheet(
-            "QDialog { background: #1E1E2E; color: #FFFFFF; }"
-            "QLabel { color: #FFFFFF; font: 11pt 'Segoe UI'; }"
-            "#dialogTitle { font: bold 14pt 'Segoe UI'; }"
-            "#separator { color: #2A2A3A; background: #2A2A3A; max-height: 1px; }"
-            "QComboBox { background: #2A2A3A; color: #FFFFFF; border: 0; padding: 5px; }"
-            "QCheckBox { color: #FFFFFF; }"
-            "#accentButton { background: #5865F2; color: #FFFFFF; font: bold 10pt 'Segoe UI'; padding: 9px; }"
-            "#accentButton:hover { background: #4752C4; }"
         )
 
 

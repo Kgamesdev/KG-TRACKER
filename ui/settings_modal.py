@@ -1,132 +1,89 @@
-﻿import tkinter as tk
+"""Modal de ajustes para K GAME TRACKER basada en PySide6/Qt."""
+
 import os
 
-class SettingsModal:
-    def __init__(self, parent):
-        self.ventana_padre = parent
-        
-        self.modal = tk.Toplevel(parent)
-        self.modal.withdraw()
-        self.modal.title("Ajustes")
-        self.modal.geometry("520x420")
-        self.modal.configure(bg="#1E1E2E")
-        self.modal.resizable(False, False)
-        self.modal.transient(parent)
-        self.modal.grab_set()
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+)
 
-        # Carga del icono oficial logo.ico
-        try:
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            possible_paths = [
-                os.path.join(base_dir, "assets", "logo.ico"),
-                os.path.join(os.getcwd(), "assets", "logo.ico"),
-                "assets/logo.ico",
-                "logo.ico"
-            ]
-            for path in possible_paths:
-                if os.path.exists(path):
-                    self.modal.iconbitmap(path)
-                    break
-            else:
-                self.modal.iconbitmap(parent.iconbitmap())
-        except Exception:
-            pass
+from config import ICON_PATH
 
-        self.modal.update_idletasks()
-        x = parent.winfo_x() + (parent.winfo_width() - 520) // 2
-        y = parent.winfo_y() + (parent.winfo_height() - 420) // 2
-        self.modal.geometry(f"+{x}+{y}")
 
-        # Fondo 100% unificado a #1E1E2E sin marcos ni contrastes
-        main_frame = tk.Frame(self.modal, bg="#1E1E2E")
-        main_frame.pack(fill="both", expand=True, padx=35, pady=25)
+class SettingsModal(QDialog):
+    """Modal Qt para los ajustes de la aplicación."""
 
-        # Título CENTRADO (únicamente AJUSTES)
-        lbl_titulo = tk.Label(
-            main_frame, 
-            text="AJUSTES", 
-            font=("Segoe UI", 14, "bold"), 
-            bg="#1E1E2E", 
-            fg="#ffffff"
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Ajustes")
+        self.setFixedSize(520, 420)
+
+        if os.path.exists(ICON_PATH):
+            self.setWindowIcon(QIcon(ICON_PATH))
+
+        self.setModal(True)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(35, 25, 35, 25)
+        layout.setSpacing(10)
+
+        title = QLabel("AJUSTES")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setObjectName("dialogTitle")
+        layout.addWidget(title)
+
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setObjectName("separator")
+        layout.addWidget(line)
+
+        options = QVBoxLayout()
+        options.setSpacing(12)
+        layout.addLayout(options)
+
+        def add_row(text, values):
+            row = QHBoxLayout()
+            label = QLabel(text)
+            combo = QComboBox()
+            combo.addItems(values)
+            combo.setMinimumWidth(180)
+            row.addWidget(label)
+            row.addStretch()
+            row.addWidget(combo)
+            options.addLayout(row)
+
+        add_row("Idioma de la interfaz", ["Español (ES)", "English (EN)"])
+        add_row("Tema visual", ["Neón Cyberpunk", "Oscuro Clásico", "Minimalista"])
+        add_row("Buscar ofertas automáticamente", ["Al iniciar", "Cada hora", "Desactivado"])
+
+        row = QHBoxLayout()
+        row.addWidget(QLabel("Iniciar minimizado con Windows"))
+        row.addStretch()
+        self.chk_var = QCheckBox()
+        row.addWidget(self.chk_var)
+        options.addLayout(row)
+        options.addStretch()
+
+        save = QPushButton("GUARDAR CAMBIOS")
+        save.setObjectName("accentButton")
+        save.clicked.connect(self.close)
+        layout.addWidget(save)
+
+        self.setStyleSheet(
+            "QDialog { background: #1E1E2E; color: #FFFFFF; }"
+            "QLabel { color: #FFFFFF; font: 11pt 'Segoe UI'; }"
+            "#dialogTitle { font: bold 14pt 'Segoe UI'; }"
+            "#separator { color: #2A2A3A; background: #2A2A3A; max-height: 1px; }"
+            "QComboBox { background: #2A2A3A; color: #FFFFFF; border: 0; padding: 5px; }"
+            "QCheckBox { color: #FFFFFF; }"
+            "#accentButton { background: #5865F2; color: #FFFFFF; font: bold 10pt 'Segoe UI'; padding: 9px; }"
+            "#accentButton:hover { background: #4752C4; }"
         )
-        lbl_titulo.pack(pady=(10, 15))
-
-        # Línea divisoria sutil
-        sep = tk.Frame(main_frame, height=1, bg="#2a2a3a")
-        sep.pack(fill="x", pady=(0, 20))
-
-        # Contenedor de opciones
-        options_frame = tk.Frame(main_frame, bg="#1E1E2E")
-        options_frame.pack(fill="both", expand=True)
-
-        def crear_fila(texto, valores):
-            row = tk.Frame(options_frame, bg="#1E1E2E")
-            row.pack(fill="x", pady=12)
-            
-            lbl = tk.Label(row, text=texto, bg="#1E1E2E", fg="white", font=("Segoe UI", 11))
-            lbl.pack(side="left")
-            
-            var = tk.StringVar(value=valores[0])
-            
-            # Desplegables limpios y planos acordes al tema oscuro
-            menu = tk.OptionMenu(row, var, *valores)
-            menu.config(
-                bg="#2a2a3a", 
-                fg="white", 
-                activebackground="#3a3a4a", 
-                activeforeground="white", 
-                highlightthickness=0, 
-                relief="flat", 
-                font=("Segoe UI", 10),
-                width=18,
-                indicatoron=True
-            )
-            menu["menu"].config(
-                bg="#2a2a3a", 
-                fg="white", 
-                activebackground="#5865F2", 
-                activeforeground="white",
-                font=("Segoe UI", 10)
-            )
-            menu.pack(side="right", ipadx=5, ipady=2)
-            return var
-
-        crear_fila("Idioma de la interfaz", ["Español (ES)", "English (EN)"])
-        crear_fila("Tema visual", ["Neón Cyberpunk", "Oscuro Clásico", "Minimalista"])
-        crear_fila("Buscar ofertas automáticamente", ["Al iniciar", "Cada hora", "Desactivado"])
-
-        # Checkbox integrado
-        chk_frame = tk.Frame(options_frame, bg="#1E1E2E")
-        chk_frame.pack(fill="x", pady=12)
-        
-        lbl_chk = tk.Label(chk_frame, text="Iniciar minimizado con Windows", bg="#1E1E2E", fg="white", font=("Segoe UI", 11))
-        lbl_chk.pack(side="left")
-        
-        self.chk_var = tk.IntVar()
-        chk = tk.Checkbutton(
-            chk_frame, 
-            variable=self.chk_var, 
-            bg="#1E1E2E", 
-            activebackground="#1E1E2E", 
-            selectcolor="#2a2a3a",
-            cursor="hand2"
-        )
-        chk.pack(side="right")
-
-        # Botón guardar
-        btn_guardar = tk.Button(
-            main_frame, 
-            text="GUARDAR CAMBIOS", 
-            height=2,
-            bg="#5865F2", 
-            fg="white",
-            activebackground="#4752c4",
-            activeforeground="white",
-            font=("Segoe UI", 10, "bold"),
-            relief="flat",
-            cursor="hand2",
-            command=self.modal.destroy
-        )
-        btn_guardar.pack(fill="x", pady=(20, 5))
-
-        self.modal.deiconify()
