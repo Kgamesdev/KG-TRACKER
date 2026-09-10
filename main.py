@@ -124,34 +124,11 @@ def main():
             # Así las PhotoImage no quedan asociadas a un root destruido.
             app = VentanaPrincipal(parent=root, mostrar=False)
 
-            # La ventana ya está construida, pero permanece invisible.
-            try:
-                app.ventana.attributes("-alpha", 0.0)
-            except Exception:
-                pass
-
-            # Mostrar la ventana solo después de dejarla completamente transparente.
+            # Mostrar la ventana principal directamente, sin fade.
             try:
                 app.ventana.deiconify()
             except Exception:
                 pass
-
-            # Fade-in suave de la ventana principal.
-            def fade_in_principal(alpha=0.0):
-                try:
-                    alpha += 0.05
-
-                    if alpha >= 1.0:
-                        app.ventana.attributes("-alpha", 1.0)
-                        return
-
-                    app.ventana.attributes("-alpha", alpha)
-                    app.ventana.after(15, lambda: fade_in_principal(alpha))
-
-                except Exception:
-                    pass
-
-            fade_in_principal()
 
             # Esperamos a que se cierre la ventana principal.
             app.run()
@@ -223,6 +200,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
