@@ -1,7 +1,7 @@
 """Interfaz principal de K GAME TRACKER basada en PySide6/Qt.
 
 La capa de datos, estado, filtrado, API y audio conserva la lógica
-existente de la versión Tkinter. El tema se aplica en caliente mediante
+existente de la aplicación. El tema se aplica en caliente mediante
 una hoja QSS global, sin reconstruir la ventana principal.
 """
 
@@ -809,7 +809,7 @@ class VentanaPrincipal(QMainWindow):
             fg="white", border=COLOR_ACCENT, radius=14,
             font=("Segoe UI", 11, "bold"), role="accent",
         )
-        # Este botón ocupa todo el ancho disponible, igual que el botón original de Tk.
+        # Este botón ocupa todo el ancho disponible.
         self.btn_actualizar.setMinimumWidth(0)
         self.btn_actualizar.setMaximumWidth(16777215)
         self.btn_actualizar.setSizePolicy(
