@@ -65,41 +65,21 @@ def _iniciar_animacion_busqueda(self):
         self.status_pill.setGraphicsEffect(effect)
         self._busqueda_neon_effect = effect
 
-    self._busqueda_neon_inicio = time.monotonic()
-    self._busqueda_neon_activo = True
-    self.status_pill.setText("● LISTO")
-    timer.start()
-    self._actualizar_animacion_busqueda()
+    self._busqueda_neon_inicio = time.monotonic(); self._busqueda_neon_activo = True; self.status_pill.setGraphicsEffect(None); self.status_pill.set_colors(bg=COLOR_BG_CARD, border=COLOR_BORDER, fg='transparent'); timer.start(); self._actualizar_animacion_busqueda()
 
 
 def _actualizar_animacion_busqueda(self):
-    if not getattr(self, "_busqueda_neon_activo", False):
-        return
-
-    effect = getattr(self, "_busqueda_neon_effect", None)
-    if effect is None:
-        return
-
-    fase = (time.monotonic() - getattr(self, "_busqueda_neon_inicio", time.monotonic())) * 2.2
-    pulso = (1.0 + __import__("math").sin(fase * 3.1415926535)) / 2.0
-    effect.setBlurRadius(5.0 + pulso * 12.0)
-    color = QColor(COLOR_ACCENT_LIGHT)
-    color.setAlphaF(0.55 + pulso * 0.45)
-    effect.setColor(color)
+    if not getattr(self, "_busqueda_neon_activo", False): return
+    fase = (time.monotonic() - getattr(self, "_busqueda_neon_inicio", time.monotonic())) * 6.0
+    pulso = (1.0 + __import__("math").sin(fase)) / 2.0; alpha = int(40 + pulso * 160); c = __import__('PySide6.QtGui', fromlist=['QColor']).QColor('#00F3FF'); c.setAlpha(alpha)
+    self.status_pill.set_colors(bg=COLOR_BG_CARD, border=c.name(__import__('PySide6.QtGui', fromlist=['QColor']).QColor.NameFormat.HexArgb), fg='transparent')
 
 
 def _detener_animacion_busqueda(self):
     self._busqueda_neon_activo = False
     timer = getattr(self, "_busqueda_neon_timer", None)
-    if timer is not None:
-        timer.stop()
-    effect = getattr(self, "_busqueda_neon_effect", None)
-    if effect is not None:
-        effect.setBlurRadius(0.0)
-        color = QColor(COLOR_ACCENT_LIGHT)
-        color.setAlphaF(0.0)
-        effect.setColor(color)
-    self.status_pill.setText("● LISTO")
+    if timer is not None: timer.stop()
+    self.status_pill.set_colors(bg=COLOR_BG_CARD, border=COLOR_BORDER, fg=COLOR_SUCCESS); self.status_pill.setText("● LISTO")
 
 
 def _finalizar_busqueda(self, giveaways, inicio):
@@ -149,7 +129,7 @@ def _finalizar_busqueda(self, giveaways, inicio):
                 conteos[tienda] += 1
 
         self.actualizar_insignias(conteos)
-        self.btn_side_todas.show()
+        # self.btn_side_todas.show()
         self.mostrando_reclamados = False
 
         transcurrido = int((time.monotonic() - inicio) * 1000)
