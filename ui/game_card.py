@@ -205,27 +205,27 @@ class GameCard(QFrame):
         self._load_image(juego.get("image") or juego.get("thumbnail"))
 
     def _load_image(self, url_img):
-        import requests
-        pixmap = self.owner._load_thumbnail(url_img)
+        if not url_img:
+            self._image_label.setText("SIN\nMINIATURA")
+            return
+
+        self._current_url = url_img
+        self._image_label.setText("CARGANDO...")
+
+        from core.image_loader import ImageLoader
+        ImageLoader.get_instance().cargar(
+            url_img,
+            self._on_miniatura_cargada,
+            (self._image_label.width(), self._image_label.height()),
+        )
+
+    def _on_miniatura_cargada(self, url, pixmap):
+        # Verificar que la tarjeta sigue requiriendo esta URL exacta
+        if getattr(self, "_current_url", None) != url:
+            return
+
         if pixmap is not None and not pixmap.isNull():
-            self._image_label.setPixmap(
-                pixmap.scaled(
-                    self._image_label.size(),
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation,
-                )
-            )
+            self._image_label.setText("")
+            self._image_label.setPixmap(pixmap)
         else:
             self._image_label.setText("SIN\nMINIATURA")
-
-
-
-
-
-
-
-
-
-
-
-

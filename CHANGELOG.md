@@ -1,5 +1,15 @@
 ﻿# Changelog
 
+## [v0.1.18] - 2026-09-11 (Stable)
+
+### Rendimiento y Core
+* **Carga asíncrona de miniaturas (core/image_loader.py):** Desacoplada la descarga de carátulas del hilo principal de la interfaz gráfica mediante QThreadPool y QRunnable.
+* **Caché multinivel:**
+  * L1 (RAM): Acceso instantáneo en memoria para navegación y scroll fluido a 60 FPS sin microcongelaciones.
+  * L2 (Disco): Persistencia local en cache/ mediante hash SHA-256 de las URLs.
+* **Ciclo de vida desacoplado (ui/game_card.py):** Implementado estado transitorio no bloqueante (CARGANDO...) y deduplicación de peticiones concurrentes de red.
+
+
 Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 ## [En desarrollo]
@@ -148,14 +158,3 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 - Retirada progresiva de componentes heredados de Tkinter.
 - Limpieza de imÃ¡genes y paneles obsoletos.
-
-
-
-
-
-
-
-
-
-
-
