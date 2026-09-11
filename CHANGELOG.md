@@ -4,6 +4,12 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 ## [En desarrollo]
 
+## [0.1.13] - 2026-09-11
+
+### Corregido
+- El conteo de notificaciones ahora se sincroniza con el método interno _esta_reclamado() y la estructura dict de reclamados.json.
+- Notificaciones de bandeja y barrido reportan exactamente las ofertas pendientes de reclamar.
+
 ## [0.1.12] - 2026-09-11
 
 ### Corregido
@@ -142,6 +148,7 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 - Retirada progresiva de componentes heredados de Tkinter.
 - Limpieza de imÃ¡genes y paneles obsoletos.
+
 
 
 
