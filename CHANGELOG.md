@@ -4,6 +4,14 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 ## [En desarrollo]
 
+## [0.1.9] - 2026-09-11
+
+### Añadido
+- Modal de Ajustes 100% funcional con persistencia en data/settings.json.
+- Selector de frecuencia de barrido de ofertas en segundo plano (2h, 4h, 8h, 24h, off).
+- Interruptor para activar/desactivar notificaciones de escritorio.
+- Opción de inicio voluntario con Windows vinculada al Registro.
+
 ## [0.1.8] - 2026-09-11
 
 ### Mejorado
@@ -116,6 +124,7 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 - Retirada progresiva de componentes heredados de Tkinter.
 - Limpieza de imÃ¡genes y paneles obsoletos.
+
 
 
 
