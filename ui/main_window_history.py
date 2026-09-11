@@ -201,7 +201,7 @@ def mostrar_reclamados(self):
     if self.mostrando_reclamados:
         self.btn_reclamados.setText("★ VER RECLAMADOS")
         self.btn_reclamados.setProperty("role", "accent")
-        self._set_status(f"● {len(self.reclamados)} RECLAMADOS", "accent")
+        self._set_status("● LISTO", "success")
     else:
         self.btn_reclamados.setText("★ RECLAMADOS")
         self.btn_reclamados.setProperty("role", "secondary")

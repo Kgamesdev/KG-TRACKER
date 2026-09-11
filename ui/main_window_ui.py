@@ -212,7 +212,7 @@ def _build_ui(self):
     self.btn_reclamados = RoundedButton(
         self.bottom, text="★ RECLAMADOS",
         command=self.mostrar_reclamados,
-        width=142, height=34, bg=COLOR_BG_CARD,
+        width=164, height=34, bg=COLOR_BG_CARD,
         hover_bg=COLOR_HOVER, fg=COLOR_ACCENT_LIGHT,
         border=COLOR_BORDER, radius=10,
         font=("Segoe UI", 8, "bold"), role="secondary",
