@@ -1,4 +1,4 @@
-"""Histórico de juegos reclamados."""
+﻿"""Histórico de juegos reclamados."""
 
 import json
 import os
@@ -180,13 +180,16 @@ def _alternar_reclamado(self, juego):
 
     self._guardar_reclamados()
     self._actualizar_contador_ahorrado()
-    if estaba_reclamado and self.mostrando_reclamados:
-        self.mostrando_reclamados = False
-        self.btn_reclamados.setText("★ RECLAMADOS")
-        self.btn_reclamados.setProperty("role", "secondary")
-        self.btn_reclamados.style().unpolish(self.btn_reclamados)
-        self.btn_reclamados.style().polish(self.btn_reclamados)
-        self._actualizar_visibilidad_atras()
+    if getattr(self, 'mostrando_reclamados', False):
+        self._actualizar_vista_juegos()
+        disponibles = [j for j in self.juegos_cache_global if not self._esta_reclamado(j)]
+        conteos = {s: 0 for s in STORES_MAPPING.values()}
+        for j in disponibles:
+            tienda = self._asignar_tienda(j)
+            if tienda in conteos: conteos[tienda] += 1
+        self.actualizar_insignias(conteos)
+        self._set_status(f"● {len(self.reclamados)} RECLAMADOS", "accent")
+        return
     self._actualizar_vista_juegos()
 
     disponibles = [j for j in self.juegos_cache_global if not self._esta_reclamado(j)]

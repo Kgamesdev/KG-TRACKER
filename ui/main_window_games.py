@@ -1,4 +1,4 @@
-"""Búsqueda, filtrado y construcción de la vista de juegos."""
+﻿"""Búsqueda, filtrado y construcción de la vista de juegos."""
 
 import time
 import requests
@@ -288,7 +288,7 @@ def _actualizar_vista_juegos(self):
         self._clear_layout(self.frame_lista_layout)
         self._actualizar_visibilidad_contenedor_juegos()
 
-        if self.mostrando_reclamados:
+        if getattr(self, 'mostrando_reclamados', False):
             self._mostrar_lista_reclamados()
             return
 

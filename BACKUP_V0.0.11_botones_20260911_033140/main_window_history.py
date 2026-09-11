@@ -1,4 +1,4 @@
-"""Histórico de juegos reclamados."""
+﻿"""Histórico de juegos reclamados."""
 
 import json
 import os

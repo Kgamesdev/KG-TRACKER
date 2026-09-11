@@ -1,4 +1,4 @@
-"""Interacción y navegación de la ventana principal."""
+﻿"""Interacción y navegación de la ventana principal."""
 
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QSize
 from PySide6.QtGui import QIcon, QPixmap, QColor, QPainter, QPen
@@ -84,11 +84,14 @@ def _actualizar_visibilidad_atras(self):
     hay_filtros = any(self.active_filters.values())
     hay_todas = bool(self.todas_activado)
     hay_reclamados = bool(self.mostrando_reclamados)
-    hay_estado = hay_filtros or hay_todas or hay_reclamados
-
+    if hay_reclamados:
+        self.btn_side_todas.setVisible(True)
+        self.btn_side_back.setVisible(True)
+        self._ajustar_ventana_por_estado(True)
+        return
+    hay_estado = hay_filtros or hay_todas
     self.btn_side_todas.setVisible(hay_estado)
     self.btn_side_back.setVisible(hay_estado)
-
     self._ajustar_ventana_por_estado(hay_estado)
 
 

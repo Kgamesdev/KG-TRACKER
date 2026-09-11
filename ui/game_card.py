@@ -161,14 +161,24 @@ class GameCard(QFrame):
         actions.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         if owner._esta_reclamado(juego):
-            btn = RoundedButton(
-                self, text="RECLAMADO",
-                command=lambda checked=False, j=juego: owner._alternar_reclamado(j),
-                width=128, height=38,
-                bg=COLOR_ACCENT, hover_bg=COLOR_ACCENT_HOVER,
-                fg="white", border=COLOR_ACCENT, radius=11,
-                font=("Segoe UI", 8, "bold"), role="accent",
-            )
+            if getattr(owner, 'mostrando_reclamados', False):
+                btn = RoundedButton(
+                    self, text="NO RECLAMADO",
+                    command=lambda checked=False, j=juego: owner._alternar_reclamado(j),
+                    width=128, height=38,
+                    bg=COLOR_BG_CARD, hover_bg=COLOR_HOVER,
+                    fg=COLOR_TEXT_PRIMARY, border=COLOR_BORDER, radius=11,
+                    font=("Segoe UI", 8, "bold"), role="secondary",
+                )
+            else:
+                btn = RoundedButton(
+                    self, text="RECLAMADO",
+                    command=lambda checked=False, j=juego: owner._alternar_reclamado(j),
+                    width=128, height=38,
+                    bg=COLOR_ACCENT, hover_bg=COLOR_ACCENT_HOVER,
+                    fg="white", border=COLOR_ACCENT, radius=11,
+                    font=("Segoe UI", 8, "bold"), role="accent",
+                )
             actions.addWidget(btn)
         else:
             btn_reclamar = RoundedButton(
