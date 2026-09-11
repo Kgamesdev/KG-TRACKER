@@ -1,17 +1,17 @@
-"""Modal de apoyo a Ko-fi para K GAME TRACKER basada en PySide6/Qt."""
+"""Modal de apoyo a Ko-fi para K GAME TRACKER basada en PySide6/Qt con Fade In Suave."""
 
 import os
 import webbrowser
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QGraphicsOpacityEffect
 
 from config import ICON_PATH
 
 
 class KofiModal(QDialog):
-    """Modal Qt para apoyar el proyecto mediante Ko-fi."""
+    """Modal Qt para apoyar el proyecto mediante Ko-fi con transición cinemática suave."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -64,6 +64,20 @@ class KofiModal(QDialog):
             "#accentButton:hover { background: #E6C800; }"
         )
 
+        # Activar desvanecimiento cinemático de alta suavidad
+        self._inicializar_fade_in_suave()
+
+    def _inicializar_fade_in_suave(self):
+        self._efecto_opacidad = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(self._efecto_opacidad)
+        
+        self._anim_fade = QPropertyAnimation(self._efecto_opacidad, b"opacity")
+        self._anim_fade.setDuration(380)                             # Tiempo ampliado para mayor suavidad
+        self._anim_fade.setStartValue(0.0)
+        self._anim_fade.setEndValue(1.0)
+        self._anim_fade.setEasingCurve(QEasingCurve.Type.InOutCubic) # Curva sinusoidal orgánica de triple aceleración
+        self._anim_fade.start()
+
     def ir_a_kofi(self):
-        webbrowser.open_new_tab("https://ko-fi.com/kurigamedeveloper")
+        webbrowser.open_new_tab("https://ko-fi.com")
         self.close()
