@@ -4,6 +4,12 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 ## [En desarrollo]
 
+## [0.1.11] - 2026-09-11
+
+### Mejorado
+- Icono personalizado de la app en las notificaciones del sistema (eliminado el icono genérico de aviso).
+- Restauración interactiva de la ventana al hacer clic directamente en la notificación.
+
 ## [0.1.10] - 2026-09-11
 
 ### Añadido
@@ -130,6 +136,7 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 - Retirada progresiva de componentes heredados de Tkinter.
 - Limpieza de imÃ¡genes y paneles obsoletos.
+
 
 
 

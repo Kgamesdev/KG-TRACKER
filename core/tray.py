@@ -38,6 +38,7 @@ class GameTrackerTray:
     def __init__(self, ventana_principal):
         self.ventana = ventana_principal
         self.tray_icon = None
+        self.icono_app = _obtener_icono_seguro()
         self.timer_busqueda = QTimer(ventana_principal)
         self.timer_busqueda.timeout.connect(self._ejecutar_barrido_segundo_plano)
         self._inicializar()
@@ -47,9 +48,11 @@ class GameTrackerTray:
         if not QSystemTrayIcon.isSystemTrayAvailable():
             return
 
-        icono = _obtener_icono_seguro()
-        self.tray_icon = QSystemTrayIcon(icono, self.ventana)
+        self.tray_icon = QSystemTrayIcon(self.icono_app, self.ventana)
         self.tray_icon.setToolTip("K Game Tracker — Ofertas activas")
+
+        # Conectar el clic en la propia notificación de Windows para abrir la app
+        self.tray_icon.messageClicked.connect(self.mostrar_ventana)
 
         menu = QMenu()
         accion_abrir = QAction("Mostrar K Game Tracker", self.ventana)
@@ -100,7 +103,6 @@ class GameTrackerTray:
             print(f"⏰ [TRAY] Temporizador configurado a: {frecuencia}")
 
     def contar_ofertas_disponibles(self):
-        """Calcula ofertas reales cargadas que no han sido reclamadas aún."""
         try:
             juegos = getattr(self.ventana, "juegos_cache_global", []) or []
             if hasattr(self.ventana, "es_reclamado"):
@@ -116,14 +118,15 @@ class GameTrackerTray:
             return
 
         cant = self.contar_ofertas_disponibles()
-        mensaje = f"Tienes {cant} ofertas disponibles en este momento." if cant > 0 else "Vigilando en segundo plano."
+        mensaje = f"Tienes {cant} ofertas disponibles en este momento." if cant > 0 else "Vigilando ofertas en segundo plano."
 
         if self.tray_icon and self.tray_icon.isVisible():
+            # Pasamos self.icono_app en lugar de un icono generico del sistema
             self.tray_icon.showMessage(
                 "K Game Tracker minimizado",
                 f"{mensaje} Haz clic aquí para volver a abrir.",
-                QSystemTrayIcon.MessageIcon.NoIcon,
-                3500
+                self.icono_app,
+                4000
             )
 
     def ejecutar_barrido_manual(self):
@@ -136,13 +139,11 @@ class GameTrackerTray:
 
     def _lanzar_busqueda(self, manual=False):
         try:
-            # Si la ventana tiene su hilo de búsqueda habitual
             if hasattr(self.ventana, "cargar_juegos_thread"):
                 self.ventana.cargar_juegos_thread()
             elif hasattr(self.ventana, "actualizar_ofertas"):
                 self.ventana.actualizar_ofertas()
 
-            # Esperar brevemente a que el hilo de red responda y notificar
             QTimer.singleShot(2500, lambda: self._reportar_resultado_barrido(manual))
         except Exception as e:
             print(f"⚠️ [TRAY] Error lanzando barrido: {e}")
@@ -160,8 +161,8 @@ class GameTrackerTray:
             self.tray_icon.showMessage(
                 titulo,
                 cuerpo,
-                QSystemTrayIcon.MessageIcon.NoIcon,
-                4000
+                self.icono_app,
+                4500
             )
 
     def salir_definitivo(self):
