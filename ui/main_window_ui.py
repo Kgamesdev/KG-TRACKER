@@ -1,4 +1,4 @@
-"""Construcción de la interfaz principal."""
+﻿"""Construcción de la interfaz principal."""
 
 import config
 
@@ -16,6 +16,7 @@ from ui.game_card import RoundedButton, VolumeSlider
 from ui.store_widget import StoreWidget
 from ui.kofi_modal import KofiModal
 from ui.settings_modal import SettingsModal
+from core.i18n import t
 
 
 def _build_ui(self):
@@ -53,9 +54,6 @@ def _build_ui(self):
     sidebar_layout.addWidget(logo, 0, Qt.AlignmentFlag.AlignHCenter)
     sidebar_layout.addSpacing(12)
 
-    # Acciones contextuales: siempre quedan justo debajo del logo.
-    # No se usa un contenedor con stretch porque eso las centraba
-    # verticalmente en la sidebar.
     self.btn_side_todas = RoundedButton(
         self.sidebar, command=self.toggle_todas,
         width=54, height=50, bg=COLOR_SIDEBAR,
@@ -65,7 +63,7 @@ def _build_ui(self):
     )
     self.btn_side_todas.setIcon(self._crear_icono_seleccion(True))
     self.btn_side_todas.setIconSize(QSize(28, 28))
-    self.btn_side_todas.setToolTip("Seleccionar todas")
+    self.btn_side_todas.setToolTip(t("sidebar.select_all"))
     self.btn_side_todas.hide()
     sidebar_layout.addWidget(
         self.btn_side_todas, 0, Qt.AlignmentFlag.AlignHCenter
@@ -84,8 +82,6 @@ def _build_ui(self):
         self.btn_side_back, 0, Qt.AlignmentFlag.AlignHCenter
     )
 
-    # El stretch queda después de las acciones: empuja solo el bloque
-    # inferior hacia abajo.
     sidebar_layout.addStretch(1)
 
     self.sidebar_bottom = QWidget()
@@ -146,13 +142,12 @@ def _build_ui(self):
     self._crear_burbujas_tiendas()
 
     self.btn_actualizar = RoundedButton(
-        self.content, text="BUSCAR JUEGOS GRATUITOS",
+        self.content, text=t("search.button"),
         command=self.buscar_juegos, height=50,
         width=100, bg=COLOR_ACCENT, hover_bg=COLOR_ACCENT_HOVER,
         fg="white", border=COLOR_ACCENT, radius=14,
         font=("Segoe UI", 11, "bold"), role="accent",
     )
-    # Este botón ocupa todo el ancho disponible.
     self.btn_actualizar.setMinimumWidth(0)
     self.btn_actualizar.setMaximumWidth(16777215)
     self.btn_actualizar.setSizePolicy(
@@ -187,13 +182,8 @@ def _build_ui(self):
 
     container_layout.addWidget(self.canvas)
     content_layout.addWidget(self.container, 0)
-    # Mientras no haya juegos, este panel no participa en la distribucion
-    # vertical. La cabecera queda fija arriba.
     self.container.hide()
     content_layout.addSpacing(8)
-
-    # La barra inferior tiene una fila propia en la ventana raíz.
-    # No se desplaza cuando la zona de juegos aparece o desaparece.
 
     self.bottom = QWidget()
     bottom_layout = QHBoxLayout(self.bottom)
@@ -201,7 +191,7 @@ def _build_ui(self):
     bottom_layout.setSpacing(10)
 
     self.status_pill = RoundedButton(
-        self.bottom, text="● LISTO",
+        self.bottom, text=t("status.ready"),
         width=88, height=34, bg=COLOR_BG_CARD,
         hover_bg=COLOR_HOVER, fg=COLOR_SUCCESS,
         border=COLOR_BORDER, radius=10,
@@ -210,7 +200,7 @@ def _build_ui(self):
     bottom_layout.addWidget(self.status_pill)
 
     self.btn_reclamados = RoundedButton(
-        self.bottom, text="★ RECLAMADOS",
+        self.bottom, text=t("claimed.btn"),
         command=self.mostrar_reclamados,
         width=164, height=34, bg=COLOR_BG_CARD,
         hover_bg=COLOR_HOVER, fg=COLOR_ACCENT_LIGHT,
@@ -232,9 +222,10 @@ def _build_ui(self):
 
     bottom_layout.addStretch()
 
-    volume_label = QLabel("VOLUMEN")
-    volume_label.setObjectName("volumeLabel")
-    bottom_layout.addWidget(volume_label)
+    # Label de volumen como atributo de instancia
+    self.volume_label = QLabel(t("volume.label"))
+    self.volume_label.setObjectName("volumeLabel")
+    bottom_layout.addWidget(self.volume_label)
 
     self.slider_volumen = VolumeSlider(
         self.bottom, from_=0, to=100, length=120,
@@ -253,8 +244,6 @@ def _build_ui(self):
     )
     bottom_layout.addWidget(self.btn_mute)
 
-    # La barra inferior NO pertenece al layout vertical del contenido.
-    # Su fila propia la mantiene anclada al borde inferior en ambos estados.
     self.bottom_host = QWidget()
     bottom_host_layout = QHBoxLayout(self.bottom_host)
     bottom_host_layout.setContentsMargins(0, 0, 0, 14)
@@ -266,17 +255,14 @@ def _build_ui(self):
     self._inicializar_audio()
 
 
-
 def _abrir_kofi(self):
     dialog = KofiModal(self)
     dialog.exec()
 
 
-
 def _abrir_settings(self):
     dialog = SettingsModal(self)
     dialog.exec()
-
 
 
 def _crear_burbujas_tiendas(self):
@@ -298,7 +284,6 @@ def _crear_burbujas_tiendas(self):
         self.acordeon_estados.setdefault(store, True)
 
 
-
 def _on_bubble_hover(self, store, is_hover):
     widget = self.bubble_widgets.get(store)
     if widget is None:
@@ -311,7 +296,6 @@ def _on_bubble_hover(self, store, is_hover):
     widget.style().polish(widget)
 
 
-
 def _sync_store_states(self):
     for store, widget in self.bubble_widgets.items():
         widget.setProperty("active", bool(self.active_filters.get(store, False)))
@@ -319,17 +303,10 @@ def _sync_store_states(self):
         widget.style().polish(widget)
 
 
-
 def instalar_metodos(cls):
-
     cls._build_ui = _build_ui
-
     cls._abrir_kofi = _abrir_kofi
-
     cls._abrir_settings = _abrir_settings
-
     cls._crear_burbujas_tiendas = _crear_burbujas_tiendas
-
     cls._on_bubble_hover = _on_bubble_hover
-
     cls._sync_store_states = _sync_store_states

@@ -1,4 +1,4 @@
-"""Utilidades y compatibilidad de la ventana principal."""
+﻿"""Utilidades y compatibilidad de la ventana principal."""
 
 import hashlib
 import os
@@ -198,3 +198,70 @@ def instalar_metodos(cls):
     cls.mostrar = mostrar
 
     cls.run = run
+    cls._actualizar_textos_idioma = _actualizar_textos_idioma
+def _actualizar_textos_idioma(self):
+    """Refresca todos los textos de la interfaz al cambiar de idioma."""
+    from core.i18n import t
+
+    if hasattr(self, "btn_actualizar"):
+        self.btn_actualizar.setText(t("search.button"))
+
+    if hasattr(self, "btn_reclamados"):
+        if getattr(self, "mostrando_reclamados", False):
+            self.btn_reclamados.setText(t("claimed.btn_active"))
+        else:
+            self.btn_reclamados.setText(t("claimed.btn"))
+
+    if hasattr(self, "status_pill"):
+        disponibles = [j for j in getattr(self, "juegos_cache_global", []) if not self._esta_reclamado(j)]
+        if getattr(self, "mostrando_reclamados", False):
+            self._set_status(t("status.claimed", count=len(self.reclamados)), "accent")
+        elif disponibles:
+            self._set_status(t("status.offers", count=len(disponibles)), "success")
+        else:
+            self._set_status(t("status.ready"), "success")
+
+    self._actualizar_contador_ahorrado()
+
+    if hasattr(self, "btn_side_todas"):
+        tooltip = t("sidebar.deselect_all") if getattr(self, "todas_activado", False) else t("sidebar.select_all")
+        self.btn_side_todas.setToolTip(tooltip)
+
+    # Si hay juegos mostrándose, refrescar las tarjetas para que apliquen el nuevo idioma
+    if hasattr(self, "_actualizar_vista_juegos") and (self.mostrando_reclamados or any(self.active_filters.values())):
+        self._actualizar_vista_juegos()
+
+def _actualizar_textos_idioma(self):
+    """Refresca todos los textos de la interfaz al cambiar de idioma."""
+    from core.i18n import t
+
+    if hasattr(self, "btn_actualizar"):
+        self.btn_actualizar.setText(t("search.button"))
+
+    if hasattr(self, "btn_reclamados"):
+        if getattr(self, "mostrando_reclamados", False):
+            self.btn_reclamados.setText(t("claimed.btn_active"))
+        else:
+            self.btn_reclamados.setText(t("claimed.btn"))
+
+    if hasattr(self, "volume_label"):
+        self.volume_label.setText(t("volume.label"))
+
+    if hasattr(self, "status_pill"):
+        disponibles = [j for j in getattr(self, "juegos_cache_global", []) if not self._esta_reclamado(j)]
+        if getattr(self, "mostrando_reclamados", False):
+            self._set_status(t("status.claimed", count=len(self.reclamados)), "accent")
+        elif disponibles:
+            self._set_status(t("status.offers", count=len(disponibles)), "success")
+        else:
+            self._set_status(t("status.ready"), "success")
+
+    self._actualizar_contador_ahorrado()
+
+    if hasattr(self, "btn_side_todas"):
+        tooltip = t("sidebar.deselect_all") if getattr(self, "todas_activado", False) else t("sidebar.select_all")
+        self.btn_side_todas.setToolTip(tooltip)
+
+    # Reconstruir la lista de tarjetas visibles para aplicar el nuevo idioma a títulos, descripciones y valores
+    if hasattr(self, "_actualizar_vista_juegos"):
+        self._actualizar_vista_juegos()

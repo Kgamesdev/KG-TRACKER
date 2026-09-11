@@ -1,5 +1,17 @@
 ﻿# Changelog
 
+## [v0.1.19] - 2026-09-11 (Stable)
+
+### Internacionalización (i18n) e Idiomas
+* **Motor central i18n (core/i18n.py):** Diccionario bilingüe estructurado (Español / Inglés) que centraliza botones, estados de búsqueda, etiquetas de volumen, insignias y modales.
+* **Selector reactivo en Ajustes (ui/settings_modal.py):** Opciones de frecuencia y temas completamente localizadas, con refresco de la interfaz en caliente al guardar cambios sin necesidad de reiniciar la app.
+
+### Traducción Dinámica de Juegos
+* **Motor asíncrono multicanal (core/translator.py):** Pasarela web optimizada (Google Mobile Web + MyMemory) inmune a bloqueos por 403 Forbidden y caídas de red.
+* **Cola secuencial no bloqueante (QThread + queue.Queue):** Descarga educada en segundo plano que desacopla la traducción del hilo principal y conserva los 60 FPS estables.
+* **Caché en disco persistente (data/translations_cache.json):** Almacenamiento local de descripciones traducidas para despliegue instantáneo (0 ms) en posteriores aperturas.
+
+
 ## [v0.1.18] - 2026-09-11 (Stable)
 
 ### Rendimiento y Core
