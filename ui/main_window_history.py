@@ -64,6 +64,12 @@ def _cargar_reclamados(self):
                     json.dump(limpios, f, ensure_ascii=False, indent=2)
             except Exception:
                 pass
+
+                if _scroll_bar and hasattr(_scroll_bar, 'verticalScrollBar'):
+
+                    from PySide6.QtCore import QTimer
+
+                    QTimer.singleShot(0, lambda: _scroll_bar.verticalScrollBar().setValue(_pos_scroll))
         return limpios
     except Exception:
         return {}
@@ -208,6 +214,8 @@ def _alternar_reclamado(self, juego):
 
 
 def mostrar_reclamados(self):
+        _scroll_bar = getattr(self, 'scroll_area', None) or getattr(self, 'scroll', None)
+        _pos_scroll = _scroll_bar.verticalScrollBar().value() if (_scroll_bar and hasattr(_scroll_bar, 'verticalScrollBar')) else 0
     self.mostrando_reclamados = not self.mostrando_reclamados
     if self.mostrando_reclamados:
         self.btn_reclamados.setText("★ VER RECLAMADOS")
@@ -294,3 +302,4 @@ def instalar_metodos(cls):
     cls.mostrar_reclamados = mostrar_reclamados
 
     cls._mostrar_lista_reclamados = _mostrar_lista_reclamados
+
