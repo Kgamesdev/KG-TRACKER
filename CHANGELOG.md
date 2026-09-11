@@ -10,6 +10,12 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 - Corregido el salto automático del scroll al fondo al pulsar 'NO RECLAMADO'.
 - Preservada la posición exacta de visualización del usuario tras modificar el estado de un juego.
 
+## [0.1.5] - 2026-09-11
+
+### Corregido
+- Corregido el salto automático del scroll al fondo al pulsar 'NO RECLAMADO'.
+- Preservada la posición exacta de visualización del usuario tras modificar el estado de un juego.
+
 ## [0.1.4] - 2026-09-11
 
 ### Corregido
@@ -90,5 +96,6 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 - Retirada progresiva de componentes heredados de Tkinter.
 - Limpieza de imÃ¡genes y paneles obsoletos.
+
 
 
