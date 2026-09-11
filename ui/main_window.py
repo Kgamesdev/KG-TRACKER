@@ -1,3 +1,4 @@
+from core.tray import GameTrackerTray
 """Ventana principal coordinadora de K GAME TRACKER."""
 
 import sys
@@ -104,3 +105,20 @@ if __name__ == "__main__":
     window = VentanaPrincipal()
     window.show()
     sys.exit(app.exec())
+
+
+    def closeEvent(self, event):
+        if getattr(self, "_salida_forzada", False):
+            event.accept()
+            return
+
+        if self._tray is None:
+            try:
+                self._tray = GameTrackerTray(self)
+            except Exception:
+                pass
+
+        event.ignore()
+        self.hide()
+        if self._tray:
+            self._tray.notificar_primer_cierre()
