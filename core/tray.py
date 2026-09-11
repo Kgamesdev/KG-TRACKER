@@ -9,17 +9,15 @@ CONFIG_TRAY_PATH = os.path.join(BASE_DIR, "data", "settings.json")
 
 
 def _obtener_icono_seguro():
-    """Obtiene un QIcon garantizado para que Windows nunca lo ignore."""
     if os.path.exists(ICON_PATH):
         icono = QIcon(ICON_PATH)
         if not icono.isNull():
             return icono
 
-    # Si por alguna razón el archivo .ico no está o falla, generamos uno nítido en memoria
     pixmap = QPixmap(32, 32)
     pixmap.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pixmap)
-    painter.setBrush(QColor("#6366F1"))  # Color morado/azul de la app
+    painter.setBrush(QColor("#6366F1"))
     painter.setPen(Qt.PenStyle.NoPen)
     painter.drawRoundedRect(2, 2, 28, 28, 6, 6)
     painter.end()
@@ -53,18 +51,13 @@ class GameTrackerTray:
 
     def _inicializar(self):
         if not QSystemTrayIcon.isSystemTrayAvailable():
-            print("⚠️ [TRAY] El sistema operativo no tiene soporte para bandeja.")
             return
 
         icono = _obtener_icono_seguro()
-        
-        # Anclar firmemente al objeto de la ventana para evitar Garbage Collection
         self.tray_icon = QSystemTrayIcon(icono, self.ventana)
-        self.tray_icon.setToolTip("K Game Tracker — Ofertas Activas")
+        self.tray_icon.setToolTip("K Game Tracker — Ofertas activas")
 
-        # Menú contextual
         menu = QMenu()
-
         accion_abrir = QAction("Mostrar K Game Tracker", self.ventana)
         accion_abrir.triggered.connect(self.mostrar_ventana)
         menu.addAction(accion_abrir)
@@ -77,14 +70,9 @@ class GameTrackerTray:
 
         self.tray_icon.setContextMenu(menu)
         self.tray_icon.activated.connect(self._on_activado)
-        
-        # Mostrar el icono en Windows
         self.tray_icon.show()
-        self.tray_icon.setVisible(True)
-        print("✅ [TRAY] Icono registrado y visible en la barra de Windows.")
 
     def _on_activado(self, reason):
-        # Click normal (Trigger) o Doble Click abre la app
         if reason in (QSystemTrayIcon.ActivationReason.Trigger, QSystemTrayIcon.ActivationReason.DoubleClick):
             self.mostrar_ventana()
 
@@ -98,13 +86,35 @@ class GameTrackerTray:
     def notificar_primer_cierre(self):
         cfg = _obtener_config()
         if not cfg.get("aviso_bandeja_mostrado", False):
+            # Calcular cantidad de ofertas activas no reclamadas
+            cantidad_ofertas = 0
+            try:
+                juegos = getattr(self.ventana, "juegos_cache_global", []) or []
+                reclamados = getattr(self.ventana, "reclamados", []) or []
+                
+                # Descontar juegos ya reclamados si es posible
+                if hasattr(self.ventana, "es_reclamado"):
+                    disponibles = [j for j in juegos if not self.ventana.es_reclamado(j)]
+                    cantidad_ofertas = len(disponibles)
+                else:
+                    cantidad_ofertas = len(juegos)
+            except Exception:
+                cantidad_ofertas = 0
+
+            if cantidad_ofertas > 0:
+                texto_cuerpo = f"Tienes {cantidad_ofertas} ofertas disponibles sin reclamar. Te avisaremos cuando haya novedades."
+            else:
+                texto_cuerpo = "Seguimos rastreando ofertas. Te avisaremos automáticamente cuando aparezcan nuevos juegos gratis."
+
             if self.tray_icon and self.tray_icon.isVisible():
+                # MessageIcon.NoIcon evita el sonido brusco de alerta/error de Windows
                 self.tray_icon.showMessage(
-                    "K Game Tracker sigue activo",
-                    "La aplicación se minimizó aquí. Haz clic para abrirla de nuevo.",
-                    QSystemTrayIcon.MessageIcon.Information,
-                    4000
+                    "K Game Tracker sigue vigilando",
+                    texto_cuerpo,
+                    QSystemTrayIcon.MessageIcon.NoIcon,
+                    4500
                 )
+
             cfg["aviso_bandeja_mostrado"] = True
             _guardar_config(cfg)
 

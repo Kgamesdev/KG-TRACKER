@@ -4,6 +4,12 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 ## [En desarrollo]
 
+## [0.1.8] - 2026-09-11
+
+### Mejorado
+- Notificación de bandeja silenciosa (sin el sonido estridente de alerta de Windows).
+- La notificación ahora informa dinámicamente el número real de ofertas disponibles sin reclamar.
+
 ## [0.1.7] - 2026-09-11
 
 ### Añadido
@@ -110,6 +116,7 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 - Retirada progresiva de componentes heredados de Tkinter.
 - Limpieza de imÃ¡genes y paneles obsoletos.
+
 
 
 
