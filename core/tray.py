@@ -6,6 +6,7 @@ from PySide6.QtCore import Qt, QTimer
 from config import ICON_PATH, BASE_DIR
 
 CONFIG_TRAY_PATH = os.path.join(BASE_DIR, "data", "settings.json")
+RECLAMADOS_PATH = os.path.join(BASE_DIR, "data", "reclamados.json")
 
 
 def _obtener_icono_seguro():
@@ -34,6 +35,29 @@ def _obtener_config():
     return {}
 
 
+def _obtener_ids_titulos_reclamados():
+    """Lee el conjunto de identificadores ya reclamados de forma rapida y segura."""
+    conjunto = set()
+    if not os.path.exists(RECLAMADOS_PATH):
+        return conjunto
+
+    try:
+        with open(RECLAMADOS_PATH, "r", encoding="utf-8") as f:
+            datos = json.load(f)
+            if isinstance(datos, list):
+                for item in datos:
+                    if isinstance(item, dict):
+                        if "id" in item:
+                            conjunto.add(str(item["id"]))
+                        if "title" in item:
+                            conjunto.add(str(item["title"]).strip().lower())
+                    elif isinstance(item, (str, int)):
+                        conjunto.add(str(item).strip().lower())
+    except Exception:
+        pass
+    return conjunto
+
+
 class GameTrackerTray:
     def __init__(self, ventana_principal):
         self.ventana = ventana_principal
@@ -51,7 +75,6 @@ class GameTrackerTray:
         self.tray_icon = QSystemTrayIcon(self.icono_app, self.ventana)
         self.tray_icon.setToolTip("K Game Tracker — Ofertas activas")
 
-        # Conectar el clic en la propia notificación de Windows para abrir la app
         self.tray_icon.messageClicked.connect(self.mostrar_ventana)
 
         menu = QMenu()
@@ -103,13 +126,45 @@ class GameTrackerTray:
             print(f"⏰ [TRAY] Temporizador configurado a: {frecuencia}")
 
     def contar_ofertas_disponibles(self):
+        """Calcula de forma exacta las ofertas que el usuario aun NO ha reclamado."""
         try:
             juegos = getattr(self.ventana, "juegos_cache_global", []) or []
-            if hasattr(self.ventana, "es_reclamado"):
-                disponibles = [j for j in juegos if not self.ventana.es_reclamado(j)]
-                return len(disponibles)
-            return len(juegos)
-        except Exception:
+            if not juegos:
+                return 0
+
+            reclamados_set = _obtener_ids_titulos_reclamados()
+            
+            # Tambien incorporar lo que la ventana tenga en memoria si existe
+            reclamados_memoria = getattr(self.ventana, "reclamados", [])
+            if isinstance(reclamados_memoria, list):
+                for r in reclamados_memoria:
+                    if isinstance(r, dict):
+                        if "id" in r:
+                            reclamados_set.add(str(r["id"]))
+                        if "title" in r:
+                            reclamados_set.add(str(r["title"]).strip().lower())
+                    elif isinstance(r, (str, int)):
+                        reclamados_set.add(str(r).strip().lower())
+
+            contador_no_reclamados = 0
+            for j in juegos:
+                if not isinstance(j, dict):
+                    continue
+
+                # Validar con funcion de la ventana si responde True
+                if hasattr(self.ventana, "es_reclamado") and self.ventana.es_reclamado(j):
+                    continue
+
+                j_id = str(j.get("id", ""))
+                j_title = str(j.get("title", "")).strip().lower()
+
+                # Si no esta en el set de reclamados, cuenta como disponible
+                if j_id not in reclamados_set and j_title not in reclamados_set:
+                    contador_no_reclamados += 1
+
+            return contador_no_reclamados
+        except Exception as e:
+            print(f"⚠️ [TRAY] Error calculando disponibles: {e}")
             return 0
 
     def notificar_al_minimizar(self):
@@ -118,13 +173,15 @@ class GameTrackerTray:
             return
 
         cant = self.contar_ofertas_disponibles()
-        mensaje = f"Tienes {cant} ofertas disponibles en este momento." if cant > 0 else "Vigilando ofertas en segundo plano."
+        if cant > 0:
+            cuerpo = f"Tienes {cant} ofertas disponibles sin reclamar. Haz clic aquí para verlas."
+        else:
+            cuerpo = "¡Al día! No tienes ofertas pendientes por reclamar."
 
         if self.tray_icon and self.tray_icon.isVisible():
-            # Pasamos self.icono_app en lugar de un icono generico del sistema
             self.tray_icon.showMessage(
                 "K Game Tracker minimizado",
-                f"{mensaje} Haz clic aquí para volver a abrir.",
+                cuerpo,
                 self.icono_app,
                 4000
             )
@@ -155,7 +212,10 @@ class GameTrackerTray:
 
         cant = self.contar_ofertas_disponibles()
         titulo = "Barrido de ofertas completado" if manual else "Actualización de ofertas"
-        cuerpo = f"Se encontraron {cant} ofertas disponibles listas para reclamar." if cant > 0 else "No hay ofertas nuevas por el momento."
+        if cant > 0:
+            cuerpo = f"Se encontraron {cant} ofertas pendientes de reclamar."
+        else:
+            cuerpo = "Estás al día. No hay ofertas nuevas pendientes."
 
         if self.tray_icon and self.tray_icon.isVisible():
             self.tray_icon.showMessage(

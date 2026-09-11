@@ -4,6 +4,12 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 ## [En desarrollo]
 
+## [0.1.12] - 2026-09-11
+
+### Corregido
+- El conteo de notificaciones ahora descuenta con precisión los juegos marcados como reclamados en disco y memoria.
+- Mensaje adaptativo si el usuario ya ha reclamado todas las ofertas ('¡Al día! No tienes ofertas pendientes').
+
 ## [0.1.11] - 2026-09-11
 
 ### Mejorado
@@ -136,6 +142,7 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 - Retirada progresiva de componentes heredados de Tkinter.
 - Limpieza de imÃ¡genes y paneles obsoletos.
+
 
 
 
