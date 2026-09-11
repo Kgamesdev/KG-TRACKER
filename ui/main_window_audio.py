@@ -1,4 +1,4 @@
-"""Gestión de audio de la ventana principal."""
+"""GestiÃƒÂ³n de audio de la ventana principal."""
 
 import os
 import pygame
@@ -7,7 +7,7 @@ from config import AUDIO_PATH
 
 
 def _inicializar_audio(self):
-    """Conserva la música iniciada por main.py y evita reinicios/cortes."""
+    """Conserva la mÃƒÂºsica iniciada por main.py y evita reinicios/cortes."""
     try:
         if not os.path.exists(AUDIO_PATH):
             return
@@ -36,7 +36,7 @@ def _inicializar_audio(self):
         self.slider_volumen.blockSignals(False)
 
     except Exception as e:
-        print(f"⚠️ No se pudo inicializar el audio: {e}")
+        print(f"Ã¢Å¡Â Ã¯Â¸Â No se pudo inicializar el audio: {e}")
 
 
 
@@ -68,7 +68,7 @@ def cambiar_volumen(self, valor):
             self.audio_silenciado = True
             self.btn_mute.set_icon(self._icon_path("mute.png"))
     except Exception as e:
-        print(f"⚠️ Error cambiando volumen: {e}")
+        print(f"Ã¢Å¡Â Ã¯Â¸Â Error cambiando volumen: {e}")
 
 
 
@@ -87,7 +87,7 @@ def alternar_mute(self):
             self.audio_silenciado = False
             self.btn_mute.set_icon(self._icon_path("volume.png"))
     except Exception as e:
-        print(f"⚠️ Error alternando mute: {e}")
+        print(f"Ã¢Å¡Â Ã¯Â¸Â Error alternando mute: {e}")
 
 
 

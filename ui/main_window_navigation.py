@@ -1,4 +1,4 @@
-﻿"""Interacción y navegación de la ventana principal."""
+"""Interacción y navegación de la ventana principal."""
 
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QSize
 from PySide6.QtGui import QIcon, QPixmap, QColor, QPainter, QPen
@@ -156,7 +156,7 @@ def _toggle_tienda(self, store):
 
 def volver_atras(self):
     self.mostrando_reclamados = False
-    self.btn_reclamados.setText("★ RECLAMADOS")
+    self.btn_reclamados.setText("\u2605 RECLAMADOS")
     self.btn_reclamados.setProperty("role", "secondary")
     self.btn_reclamados.style().unpolish(self.btn_reclamados)
     self.btn_reclamados.style().polish(self.btn_reclamados)
@@ -173,7 +173,7 @@ def volver_atras(self):
     self.juegos_cache_global = []
     self._actualizar_visibilidad_atras()
     self._actualizar_vista_juegos()
-    self._set_status("● LISTO", "success")
+    self._set_status("\u25CF LISTO", "success")
 
 
 

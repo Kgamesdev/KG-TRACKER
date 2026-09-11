@@ -1,4 +1,4 @@
-﻿"""Histórico de juegos reclamados."""
+"""HistÃƒ·³rico de juegos reclamados."""
 
 import json
 import os
@@ -140,7 +140,7 @@ def _guardar_reclamados(self):
         with open(self._ruta_reclamados(), "w", encoding="utf-8") as f:
             json.dump(self.reclamados, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        QMessageBox.warning(self, "Aviso", f"No se pudo guardar el histórico de reclamados:\n{e}")
+        QMessageBox.warning(self, "Aviso", f"No se pudo guardar el histÃƒ·³rico de reclamados:\n{e}")
 
 
 
@@ -177,7 +177,7 @@ def _alternar_reclamado(self, juego):
         self.reclamados[clave] = {
             "key": clave,
             "id": juego.get("id"),
-            "title": str(juego.get("title") or "Elemento sin título"),
+            "title": str(juego.get("title") or "Elemento sin tÃƒ·­tulo"),
             "store": self._asignar_tienda(juego),
             "image": juego.get("image") or juego.get("thumbnail"),
             "description": juego.get("description") or "",
@@ -198,7 +198,7 @@ def _alternar_reclamado(self, juego):
             tienda = self._asignar_tienda(j)
             if tienda in conteos: conteos[tienda] += 1
         self.actualizar_insignias(conteos)
-        self._set_status(f"● {len(self.reclamados)} RECLAMADOS", "accent")
+        self._set_status(f"Ã¢·€”· {len(self.reclamados)} RECLAMADOS", "accent")
         return
     self._actualizar_vista_juegos()
 
@@ -211,23 +211,23 @@ def _alternar_reclamado(self, juego):
     self.actualizar_insignias(conteos)
 
     if self.mostrando_reclamados:
-        self._set_status(f"● {len(self.reclamados)} RECLAMADOS", "accent")
+        self._set_status(f"Ã¢·€”· {len(self.reclamados)} RECLAMADOS", "accent")
     else:
-        self._set_status(f"● {len(disponibles)} OFERTAS", "success")
+        self._set_status(f"Ã¢·€”· {len(disponibles)} OFERTAS", "success")
 
 
 
 def mostrar_reclamados(self):
     self.mostrando_reclamados = not self.mostrando_reclamados
     if self.mostrando_reclamados:
-        self.btn_reclamados.setText("★ VER RECLAMADOS")
+        self.btn_reclamados.setText("Ã¢Ëœ·€¦ VER RECLAMADOS")
         self.btn_reclamados.setProperty("role", "accent")
-        self._set_status("● LISTO", "success")
+        self._set_status("Ã¢·€”· LISTO", "success")
     else:
-        self.btn_reclamados.setText("★ RECLAMADOS")
+        self.btn_reclamados.setText("Ã¢Ëœ·€¦ RECLAMADOS")
         self.btn_reclamados.setProperty("role", "secondary")
         disponibles = [j for j in self.juegos_cache_global if not self._esta_reclamado(j)]
-        self._set_status(f"● {len(disponibles)} OFERTAS", "success")
+        self._set_status(f"Ã¢·€”· {len(disponibles)} OFERTAS", "success")
     self.btn_reclamados.style().unpolish(self.btn_reclamados)
     self.btn_reclamados.style().polish(self.btn_reclamados)
     self._actualizar_visibilidad_atras()
@@ -237,7 +237,7 @@ def mostrar_reclamados(self):
 
 def _mostrar_lista_reclamados(self):
     if not self.reclamados:
-        label = QLabel("AÚN NO TIENES JUEGOS RECLAMADOS")
+        label = QLabel("AÃƒÅ¡N NO TIENES JUEGOS RECLAMADOS")
         label.setObjectName("emptyLabel")
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label.setMinimumHeight(80)
@@ -249,7 +249,7 @@ def _mostrar_lista_reclamados(self):
     header.setObjectName("storeHeader")
     header_layout = QHBoxLayout(header)
     header_layout.setContentsMargins(0, 0, 0, 0)
-    title = QLabel(f"★  MIS RECLAMADOS  ·  {len(self.reclamados)}")
+    title = QLabel(f"Ã¢Ëœ·€¦  MIS RECLAMADOS  Ã‚··  {len(self.reclamados)}")
     title.setObjectName("gameTitle")
     title.setContentsMargins(14, 10, 14, 10)
     header_layout.addWidget(title)
@@ -262,7 +262,7 @@ def _mostrar_lista_reclamados(self):
     ):
         juego = {
             "id": registro.get("id"),
-            "title": registro.get("title", "Elemento sin título"),
+            "title": registro.get("title", "Elemento sin tÃƒ·­tulo"),
             "store": registro.get("store", ""),
             "image": registro.get("image"),
             "thumbnail": registro.get("image"),

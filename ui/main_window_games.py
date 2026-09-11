@@ -1,4 +1,11 @@
-﻿"""Búsqueda, filtrado y construcción de la vista de juegos."""
+def _limpiar_hilo_busqueda(self):
+    if hasattr(self, "_busqueda_thread") and self._busqueda_thread:
+        if self._busqueda_thread.isRunning():
+            self._busqueda_thread.quit()
+            self._busqueda_thread.wait(1000)
+        self._busqueda_thread = None
+    self._busqueda_worker = None
+"""Búsqueda, filtrado y construcción de la vista de juegos."""
 
 import time
 import requests
@@ -79,7 +86,7 @@ def _detener_animacion_busqueda(self):
     self._busqueda_neon_activo = False
     timer = getattr(self, "_busqueda_neon_timer", None)
     if timer is not None: timer.stop()
-    self.status_pill.set_colors(bg=COLOR_BG_CARD, border=COLOR_BORDER, fg=COLOR_SUCCESS); self.status_pill.setText("● LISTO")
+    self.status_pill.set_colors(bg=COLOR_BG_CARD, border=COLOR_BORDER, fg=COLOR_SUCCESS); self.status_pill.setText("\u25CF LISTO")
 
 
 def _finalizar_busqueda(self, giveaways, inicio):
@@ -142,7 +149,7 @@ def _finalizar_busqueda(self, giveaways, inicio):
 
         def finalizar_estado():
             self._detener_animacion_busqueda()
-            self._set_status(f"● {len(disponibles)} OFERTAS", "success")
+            self._set_status(f"\u25CF {len(disponibles)} OFERTAS", "success")
             self._busqueda_en_curso = False
             self._busqueda_thread = None
             self._busqueda_worker = None
@@ -166,7 +173,7 @@ def _recibir_resultados_busqueda(self, giveaways):
 def _buscar_juegos_error(self, mensaje):
     self._detener_animacion_busqueda()
     self._busqueda_en_curso = False
-    self._set_status("● ERROR", "error")
+    self._set_status("\u25CF ERROR", "error")
     QMessageBox.critical(self, "Error", f"No se pudieron cargar los juegos:\n{mensaje}")
 
 

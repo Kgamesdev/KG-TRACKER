@@ -1,4 +1,4 @@
-﻿"""Motor de internacionalizacion (i18n) para textos de KG Tracker."""
+"""Motor de internacionalizacion (i18n) para textos de KG Tracker."""
 
 import os
 import json
@@ -25,14 +25,14 @@ TRADUCCIONES = {
     "es": {
         "app.title": "K GAME TRACKER",
         "search.button": "BUSCAR JUEGOS GRATUITOS",
-        "status.ready": "● LISTO",
-        "status.offers": "● {count} OFERTAS",
-        "status.claimed": "● {count} RECLAMADOS",
-        "status.error": "● ERROR",
-        "status.searching": "● BUSCANDO...",
-        "claimed.btn": "★ RECLAMADOS",
-        "claimed.btn_active": "★ VER RECLAMADOS",
-        "claimed.title": "★  MIS RECLAMADOS  ·  {count}",
+        "status.ready": "\u25CF LISTO",
+        "status.offers": "\u25CF {count} OFERTAS",
+        "status.claimed": "\u25CF {count} RECLAMADOS",
+        "status.error": "\u25CF ERROR",
+        "status.searching": "\u25CF BUSCANDO...",
+        "claimed.btn": "\u2605 RECLAMADOS",
+        "claimed.btn_active": "\u2605 VER RECLAMADOS",
+        "claimed.title": "\u2605  MIS RECLAMADOS  ·  {count}",
         "claimed.empty": "AÚN NO TIENES JUEGOS RECLAMADOS",
         "saved.pill": "$ AHORRADO : {amount}",
         "card.claim": "RECLAMAR",
@@ -75,14 +75,14 @@ TRADUCCIONES = {
     "en": {
         "app.title": "K GAME TRACKER",
         "search.button": "SEARCH FREE GAMES",
-        "status.ready": "● READY",
-        "status.offers": "● {count} OFFERS",
-        "status.claimed": "● {count} CLAIMED",
-        "status.error": "● ERROR",
-        "status.searching": "● SEARCHING...",
-        "claimed.btn": "★ CLAIMED",
-        "claimed.btn_active": "★ VIEW CLAIMED",
-        "claimed.title": "★  MY CLAIMED  ·  {count}",
+        "status.ready": "\u25CF READY",
+        "status.offers": "\u25CF {count} OFFERS",
+        "status.claimed": "\u25CF {count} CLAIMED",
+        "status.error": "\u25CF ERROR",
+        "status.searching": "\u25CF SEARCHING...",
+        "claimed.btn": "\u2605 CLAIMED",
+        "claimed.btn_active": "\u2605 VIEW CLAIMED",
+        "claimed.title": "\u2605  MY CLAIMED  ·  {count}",
         "claimed.empty": "YOU DON'T HAVE ANY CLAIMED GAMES YET",
         "saved.pill": "$ SAVED : {amount}",
         "card.claim": "CLAIM",
