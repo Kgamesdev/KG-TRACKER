@@ -93,7 +93,7 @@ def closeEvent(self, event):
     self.pausar_musica_con_fade()
     self.hide()
     if hasattr(self, "_tray") and self._tray:
-        self._tray.notificar_primer_cierre()
+        self._tray.notificar_al_minimizar()
 
 
 def inicializar_tray(self):

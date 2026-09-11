@@ -8,6 +8,22 @@ from config import ICON_PATH, BASE_DIR
 CONFIG_TRAY_PATH = os.path.join(BASE_DIR, "data", "settings.json")
 
 
+def _obtener_icono_seguro():
+    if os.path.exists(ICON_PATH):
+        icono = QIcon(ICON_PATH)
+        if not icono.isNull():
+            return icono
+
+    pixmap = QPixmap(32, 32)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    painter.setBrush(QColor("#6366F1"))
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.drawRoundedRect(2, 2, 28, 28, 6, 6)
+    painter.end()
+    return QIcon(pixmap)
+
+
 def _obtener_config():
     if os.path.exists(CONFIG_TRAY_PATH):
         try:
@@ -16,15 +32,6 @@ def _obtener_config():
         except Exception:
             return {}
     return {}
-
-
-def _guardar_config(datos):
-    os.makedirs(os.path.dirname(CONFIG_TRAY_PATH), exist_ok=True)
-    try:
-        with open(CONFIG_TRAY_PATH, "w", encoding="utf-8") as f:
-            json.dump(datos, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
 
 
 class GameTrackerTray:
@@ -40,7 +47,7 @@ class GameTrackerTray:
         if not QSystemTrayIcon.isSystemTrayAvailable():
             return
 
-        icono = QIcon(ICON_PATH) if os.path.exists(ICON_PATH) else self.ventana.windowIcon()
+        icono = _obtener_icono_seguro()
         self.tray_icon = QSystemTrayIcon(icono, self.ventana)
         self.tray_icon.setToolTip("K Game Tracker — Ofertas activas")
 
@@ -50,7 +57,7 @@ class GameTrackerTray:
         menu.addAction(accion_abrir)
 
         accion_buscar = QAction("Comprobar ofertas ahora", self.ventana)
-        accion_buscar.triggered.connect(self._ejecutar_barrido_segundo_plano)
+        accion_buscar.triggered.connect(self.ejecutar_barrido_manual)
         menu.addAction(accion_buscar)
 
         menu.addSeparator()
@@ -90,50 +97,71 @@ class GameTrackerTray:
             ms = horas_map[frecuencia] * 3600 * 1000
             self.timer_busqueda.setInterval(ms)
             self.timer_busqueda.start()
-            print(f"⏰ [TRAY] Temporizador de ofertas configurado a: {frecuencia}")
-        else:
-            print("⏰ [TRAY] Temporizador en segundo plano desactivado.")
+            print(f"⏰ [TRAY] Temporizador configurado a: {frecuencia}")
+
+    def contar_ofertas_disponibles(self):
+        """Calcula ofertas reales cargadas que no han sido reclamadas aún."""
+        try:
+            juegos = getattr(self.ventana, "juegos_cache_global", []) or []
+            if hasattr(self.ventana, "es_reclamado"):
+                disponibles = [j for j in juegos if not self.ventana.es_reclamado(j)]
+                return len(disponibles)
+            return len(juegos)
+        except Exception:
+            return 0
+
+    def notificar_al_minimizar(self):
+        cfg = _obtener_config()
+        if not cfg.get("notificaciones_activas", True):
+            return
+
+        cant = self.contar_ofertas_disponibles()
+        mensaje = f"Tienes {cant} ofertas disponibles en este momento." if cant > 0 else "Vigilando en segundo plano."
+
+        if self.tray_icon and self.tray_icon.isVisible():
+            self.tray_icon.showMessage(
+                "K Game Tracker minimizado",
+                f"{mensaje} Haz clic aquí para volver a abrir.",
+                QSystemTrayIcon.MessageIcon.NoIcon,
+                3500
+            )
+
+    def ejecutar_barrido_manual(self):
+        print("🔍 [TRAY] Barrido manual solicitado por el usuario...")
+        self._lanzar_busqueda(manual=True)
 
     def _ejecutar_barrido_segundo_plano(self):
-        """Consulta la API en segundo plano y avisa si hay nuevas ofertas no reclamadas."""
-        cfg = _obtener_config()
-        if not cfg.get("notificaciones_activas", True):
-            return
+        print("⏰ [TRAY] Ejecutando barrido automático programado...")
+        self._lanzar_busqueda(manual=False)
 
-        print("🔍 [TRAY] Ejecutando barrido automático de ofertas...")
+    def _lanzar_busqueda(self, manual=False):
         try:
-            # Invocar la búsqueda existente de la app sin bloquear
+            # Si la ventana tiene su hilo de búsqueda habitual
             if hasattr(self.ventana, "cargar_juegos_thread"):
-                self.ventana.cargar_juegos_thread(silencioso=True)
+                self.ventana.cargar_juegos_thread()
             elif hasattr(self.ventana, "actualizar_ofertas"):
                 self.ventana.actualizar_ofertas()
+
+            # Esperar brevemente a que el hilo de red responda y notificar
+            QTimer.singleShot(2500, lambda: self._reportar_resultado_barrido(manual))
         except Exception as e:
-            print(f"⚠️ [TRAY] Error en barrido: {e}")
+            print(f"⚠️ [TRAY] Error lanzando barrido: {e}")
 
-    def notificar_primer_cierre(self):
-        cfg = _obtener_config()
-        if not cfg.get("aviso_bandeja_mostrado", False):
-            if self.tray_icon and self.tray_icon.isVisible():
-                self.tray_icon.showMessage(
-                    "K Game Tracker sigue vigilando",
-                    "Seguimos rastreando ofertas en segundo plano según tu frecuencia elegida.",
-                    QSystemTrayIcon.MessageIcon.NoIcon,
-                    4500
-                )
-            cfg["aviso_bandeja_mostrado"] = True
-            _guardar_config(cfg)
-
-    def notificar_nuevos_juegos(self, cantidad):
+    def _reportar_resultado_barrido(self, manual=False):
         cfg = _obtener_config()
         if not cfg.get("notificaciones_activas", True):
             return
 
-        if self.tray_icon and self.tray_icon.isVisible() and cantidad > 0:
+        cant = self.contar_ofertas_disponibles()
+        titulo = "Barrido de ofertas completado" if manual else "Actualización de ofertas"
+        cuerpo = f"Se encontraron {cant} ofertas disponibles listas para reclamar." if cant > 0 else "No hay ofertas nuevas por el momento."
+
+        if self.tray_icon and self.tray_icon.isVisible():
             self.tray_icon.showMessage(
-                "¡Nuevos juegos gratis detectados!",
-                f"Hay {cantidad} ofertas nuevas listas para reclamar.",
+                titulo,
+                cuerpo,
                 QSystemTrayIcon.MessageIcon.NoIcon,
-                5000
+                4000
             )
 
     def salir_definitivo(self):

@@ -4,6 +4,12 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 ## [En desarrollo]
 
+## [0.1.10] - 2026-09-11
+
+### Añadido
+- Notificación al minimizar que informa en tiempo real las ofertas sin reclamar disponibles.
+- Notificación al finalizar el barrido de ofertas (tanto periódico como manual desde el System Tray).
+
 ## [0.1.9] - 2026-09-11
 
 ### Añadido
@@ -124,6 +130,7 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 - Retirada progresiva de componentes heredados de Tkinter.
 - Limpieza de imÃ¡genes y paneles obsoletos.
+
 
 
 
