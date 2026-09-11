@@ -1,17 +1,22 @@
-﻿# Entorno virtual y Python
+﻿# Entornos virtuales y Python
 .venv/
 venv/
+env/
 __pycache__/
 *.pyc
+*.pyo
 
-# Cachés locales de la app (no deben ir al repositorio)
+# Caches locales (no deben subir a GitHub)
 cache/
 data/translations_cache.json*
 data/steam_cache.json*
 data/*.tmp
 data/*.bak
 
-# Backups y temporales
+# Archivos temporales y accidentales
 *.tmp
 *.bak
+*.log
 q
+BACKUP_*
+iconografía

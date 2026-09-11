@@ -1,4 +1,4 @@
-﻿import os
+import os
 import config
 
 from PySide6.QtCore import Qt, QSize
