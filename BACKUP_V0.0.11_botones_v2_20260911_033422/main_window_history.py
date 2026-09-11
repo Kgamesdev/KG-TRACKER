@@ -160,8 +160,7 @@ def _abrir_reclamacion(self, url):
 
 def _alternar_reclamado(self, juego):
     clave = self._clave_juego(juego)
-    estaba_reclamado = clave in self.reclamados
-    if estaba_reclamado:
+    if clave in self.reclamados:
         del self.reclamados[clave]
     else:
         self.reclamados[clave] = {
@@ -180,13 +179,6 @@ def _alternar_reclamado(self, juego):
 
     self._guardar_reclamados()
     self._actualizar_contador_ahorrado()
-    if estaba_reclamado and self.mostrando_reclamados:
-        self.mostrando_reclamados = False
-        self.btn_reclamados.setText("★ RECLAMADOS")
-        self.btn_reclamados.setProperty("role", "secondary")
-        self.btn_reclamados.style().unpolish(self.btn_reclamados)
-        self.btn_reclamados.style().polish(self.btn_reclamados)
-        self._actualizar_visibilidad_atras()
     self._actualizar_vista_juegos()
 
     disponibles = [j for j in self.juegos_cache_global if not self._esta_reclamado(j)]

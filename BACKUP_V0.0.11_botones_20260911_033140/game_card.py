@@ -204,7 +204,7 @@ class GameCard(QFrame):
         if owner._esta_reclamado(juego):
             btn = RoundedButton(
                 self, text="✓ RECLAMADO",
-                command=lambda checked=False, j=juego: owner._alternar_reclamado(j),
+                command=lambda j=juego: owner._alternar_reclamado(j),
                 width=128, height=38,
                 bg=COLOR_ACCENT, hover_bg=COLOR_ACCENT_HOVER,
                 fg="white", border=COLOR_ACCENT, radius=11,
@@ -214,16 +214,18 @@ class GameCard(QFrame):
         else:
             btn_reclamar = RoundedButton(
                 self, text="RECLAMAR",
-                command=lambda checked=False, u=str(juego.get("open_giveaway_url") or ""): owner._abrir_reclamacion(u),
+                command=lambda u=str(juego.get("open_giveaway_url") or ""): owner._abrir_reclamacion(u),
                 width=128, height=36,
                 bg=COLOR_SUCCESS, hover_bg=COLOR_SUCCESS_HOVER,
                 fg="white", border=COLOR_SUCCESS, radius=11,
-                font=("Segoe UI", 8, "bold"), role="success",
+                font=("Segoe UI", 8, "bold"),
+                icon_path=owner._action_icon_path("open_link.png"),
+                icon_size=(18, 18), role="success",
             )
             actions.addWidget(btn_reclamar)
             btn_marcar = RoundedButton(
                 self, text="★ RECLAMADO",
-                command=lambda checked=False, j=juego: owner._alternar_reclamado(j),
+                command=lambda j=juego: owner._alternar_reclamado(j),
                 width=128, height=32,
                 bg=COLOR_BG_CARD, hover_bg=COLOR_HOVER,
                 fg=COLOR_ACCENT_LIGHT, border=COLOR_BORDER, radius=10,
@@ -247,3 +249,4 @@ class GameCard(QFrame):
             )
         else:
             self._image_label.setText("SIN\nMINIATURA")
+
