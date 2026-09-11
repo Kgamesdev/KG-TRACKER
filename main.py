@@ -1,3 +1,4 @@
+from core.tray import GameTrackerTray
 ﻿import sys
 import io
 import os
@@ -142,6 +143,7 @@ def main():
     try:
         splash, _ = _crear_splash(app)
         ventana = VentanaPrincipal(mostrar=False)
+        ventana._tray = GameTrackerTray(ventana)
 
         def mostrar_principal():
             ventana.show()
