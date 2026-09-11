@@ -15,6 +15,7 @@ from config import (
 )
 from core.i18n import t, obtener_idioma
 from core.translator import GameTranslator
+from core.steam_enricher import SteamEnricher
 
 
 class RoundedButton(QPushButton):
@@ -254,9 +255,22 @@ class GameCard(QFrame):
         self._desc_label.setWordWrap(True)
         info.addWidget(self._desc_label)
 
+        # Fila de metadatos: Tienda de origen + Badge de resenas de Steam
+        meta_row = QHBoxLayout()
+        meta_row.setSpacing(8)
+        meta_row.setContentsMargins(0, 0, 0, 0)
+
         store = QLabel(nombre_tienda.upper())
         store.setObjectName("gameStore")
-        info.addWidget(store)
+        meta_row.addWidget(store)
+
+        self._steam_badge = QLabel("")
+        self._steam_badge.setObjectName("steamBadge")
+        self._steam_badge.hide()
+        meta_row.addWidget(self._steam_badge)
+        meta_row.addStretch()
+
+        info.addLayout(meta_row)
 
         valor = owner._valor_juego(juego)
         if valor > 0:
@@ -323,11 +337,14 @@ class GameCard(QFrame):
 
         layout.addLayout(actions)
 
-        # Cargar miniatura de forma asíncrona
+        # 1. Cargar miniatura de forma asincrona
         self._load_image(juego.get("image") or juego.get("thumbnail"))
 
-        # Traducir descripción si el idioma activo es distinto a inglés
+        # 2. Traducir descripcion si procede
         self._traducir_descripcion()
+
+        # 3. Enriquecer con resenas de Steam
+        self._consultar_steam()
 
     def _load_image(self, url_img):
         if not url_img:
@@ -371,3 +388,45 @@ class GameCard(QFrame):
         if len(desc) > 170:
             desc = desc[:167] + "..."
         self._desc_label.setText(desc)
+
+    def _consultar_steam(self):
+        titulo = str(self.juego.get("title") or "")
+        if not titulo:
+            return
+
+        SteamEnricher.get_instance().obtener_resenas_async(
+            titulo,
+            self._al_recibir_datos_steam,
+        )
+
+    def _al_recibir_datos_steam(self, datos):
+        if not datos or not datos.get("found"):
+            return
+
+        percent = datos.get("percent", 0)
+        idioma = obtener_idioma()
+        desc = datos.get("desc_es") if idioma == "es" else datos.get("desc_en")
+
+        # Color segun la puntuacion de la comunidad
+        if percent >= 80:
+            color_accent = "#10B981"  # Verde esmeralda
+            bg_color = "rgba(16, 185, 129, 0.15)"
+        elif percent >= 70:
+            color_accent = "#38BDF8"  # Azul cian
+            bg_color = "rgba(56, 189, 248, 0.15)"
+        else:
+            color_accent = "#F59E0B"  # Ambar / Variadas
+            bg_color = "rgba(245, 158, 11, 0.15)"
+
+        self._steam_badge.setText(f"★ Steam: {percent}% ({desc})")
+        self._steam_badge.setStyleSheet(f"""
+            QLabel#steamBadge {{
+                background-color: {bg_color};
+                color: {color_accent};
+                border: 1px solid {color_accent};
+                border-radius: 4px;
+                padding: 1px 6px;
+                font: bold 7pt "Segoe UI";
+            }}
+        """)
+        self._steam_badge.show()

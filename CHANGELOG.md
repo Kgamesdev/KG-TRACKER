@@ -1,5 +1,14 @@
 ﻿# Changelog
 
+## [v0.1.20] - 2026-09-11 (Stable)
+
+### Enriquecimiento de Datos (Steam API)
+* **Cruce multiplataforma de ofertas (core/steam_enricher.py):** Búsqueda inteligente de títulos en la base de datos de Steam para asociar ofertas de Epic Games, GOG, Amazon Prime y otras tiendas a su homólogo en PC.
+* **Valoraciones comunitarias en vivo:** Cálculo de porcentaje de aprobación y balance de críticas oficiales de Valve (ej. ★ Steam: 95% (Muy positivas)).
+* **Insignias dinámicas en tarjetas (ui/game_card.py):** Código de colores reactivo según el porcentaje de críticas positivas (verde $\ge 80\%$, azul $\ge 70\%$, ámbar $< 70\%$).
+* **Caché en disco (data/steam_cache.json):** Almacenamiento local persistente para despliegue instantáneo de juegos ya consultados.
+
+
 ## [v0.1.19] - 2026-09-11 (Stable)
 
 ### Internacionalización (i18n) e Idiomas
