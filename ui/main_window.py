@@ -107,18 +107,14 @@ if __name__ == "__main__":
     sys.exit(app.exec())
 
 
-    def closeEvent(self, event):
+        def closeEvent(self, event):
         if getattr(self, "_salida_forzada", False):
+            if hasattr(self, "_tray") and self._tray and self._tray.tray_icon:
+                self._tray.tray_icon.hide()
             event.accept()
             return
 
-        if self._tray is None:
-            try:
-                self._tray = GameTrackerTray(self)
-            except Exception:
-                pass
-
         event.ignore()
         self.hide()
-        if self._tray:
+        if hasattr(self, "_tray") and self._tray:
             self._tray.notificar_primer_cierre()

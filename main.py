@@ -136,6 +136,7 @@ def main():
     log_app_iniciada()
 
     app = QApplication.instance() or QApplication(sys.argv)
+    app.setQuitOnLastWindowClosed(False)
 
     splash = None
     try:
