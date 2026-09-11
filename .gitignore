@@ -34,7 +34,13 @@ Thumbs.db
 desktop.ini
 
 # Local backup copies
+BACKUP*/
 *.backup*
 *_backup*
 *BEFORE_*
 *.bak*
+
+# Copias locales entregadas para instalación manual
+README-ACTUALIZADO.md
+README_ACTUALIZADO.md
+CHANGELOG_ACTUALIZADO.md
