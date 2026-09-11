@@ -3,54 +3,14 @@ import io
 import os
 import traceback
 
-# Igualar el escalado físico de Qt al de la aplicación Tk original.
-# Evita que Windows (p. ej. 125%) agrande toda la interfaz Qt.
-os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
-os.environ["QT_SCALE_FACTOR"] = "1"
-
-# ============================================================
-# AUDIO DE ARRANQUE
-# Se inicia antes de cargar la interfaz.
-# ============================================================
-
-pygame = None
-_audio_iniciado = False
-
-try:
-    import pygame
-    from config import AUDIO_PATH
-
-    if os.path.exists(AUDIO_PATH):
-        pygame.mixer.init(
-            frequency=44100,
-            size=-16,
-            channels=2,
-            buffer=512
-        )
-
-        pygame.mixer.music.load(AUDIO_PATH)
-        pygame.mixer.music.set_volume(0.05)
-        pygame.mixer.music.play(-1)
-
-        _audio_iniciado = True
-        print("🎵 [STARTUP] Audio iniciado inmediatamente")
-    else:
-        print(f"⚠️ [STARTUP] Audio no encontrado: {AUDIO_PATH}")
-
-except Exception as e:
-    print(f"⚠️ [STARTUP] Error iniciando audio: {e}")
-
-
 from logger import log_app_iniciada, log_app_cerrada, log_info
-from core.autostart import habilitar_autostart, mostrar_notificacion, autostart_activo
 
-
+# Sanitizar salidas de texto estándar
 if sys.stdout is None:
     sys.stdout = open(os.devnull, "w", encoding="utf-8")
 
 if sys.stderr is None:
     sys.stderr = open(os.devnull, "w", encoding="utf-8")
-
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -60,22 +20,17 @@ if hasattr(sys.stdout, "reconfigure"):
 else:
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
-
 # ============================================================
 # SPLASH Qt — KGLogo
-# Splash independiente y nativo de Qt.
-# Usa exclusivamente assets/icons/KGLogo.png, conservando su
-# transparencia y su nitidez mediante SmoothTransformation.
 # ============================================================
 
-DURACION_ENTRADA_MS = 500
-DURACION_ESPERA_MS = 1500
-DURACION_SALIDA_MS = 500
+DURACION_ENTRADA_MS = 400
+DURACION_ESPERA_MS = 1000
+DURACION_SALIDA_MS = 400
 SPLASH_LOGO_SIZE = 460
 
 
 def _ruta_logo_splash():
-    """Devuelve la ruta del nuevo logo dedicado al splash."""
     return os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
         "assets",
@@ -85,7 +40,6 @@ def _ruta_logo_splash():
 
 
 def _crear_splash(app):
-    """Crea el splash Qt con KGLogo y una entrada/salida por alfa."""
     from PySide6.QtCore import QEasingCurve, QPropertyAnimation, QTimer, Qt
     from PySide6.QtGui import QPixmap
     from PySide6.QtWidgets import QLabel, QWidget
@@ -94,12 +48,9 @@ def _crear_splash(app):
     logo = QPixmap(ruta_logo)
 
     if logo.isNull():
-        print(f"⚠️ [SPLASH] Logo no encontrado: {ruta_logo}")
+        log_info(f"⚠️ [SPLASH] Logo no encontrado: {ruta_logo}")
         return None, None
 
-    # El original es grande; se reduce solo para presentación.
-    # Qt mantiene el canal alfa y usa interpolación suave para evitar
-    # bordes dentados o pérdida visible de nitidez.
     logo = logo.scaled(
         SPLASH_LOGO_SIZE,
         SPLASH_LOGO_SIZE,
@@ -158,7 +109,6 @@ def _crear_splash(app):
     def finalizar():
         if estado["finalizado"]:
             return
-
         estado["finalizado"] = True
         splash.close()
         splash.deleteLater()
@@ -174,39 +124,22 @@ def _crear_splash(app):
     )
 
     entrada.start()
-
     return splash, estado
 
 
 def main():
     """Punto de entrada de la aplicación."""
-
     from PySide6.QtCore import QTimer
     from PySide6.QtWidgets import QApplication
     from ui.main_window import VentanaPrincipal
 
     log_app_iniciada()
 
-    # ---- AUTOSTART ----
-    try:
-        if not autostart_activo():
-            habilitar_autostart()
-            mostrar_notificacion(
-                "K GAME TRACKER",
-                "App iniciada. Se ejecutará al encender el PC.",
-                duracion=3
-            )
-    except Exception as e:
-        log_info(f"⚠️ Autostart: {e}")
-
     app = QApplication.instance() or QApplication(sys.argv)
 
     splash = None
-
     try:
-        splash, _splash_estado = _crear_splash(app)
-
-        # La ventana principal se crea oculta durante el splash.
+        splash, _ = _crear_splash(app)
         ventana = VentanaPrincipal(mostrar=False)
 
         def mostrar_principal():
@@ -217,45 +150,17 @@ def main():
         if splash is None:
             mostrar_principal()
         else:
-            QTimer.singleShot(
-                DURACION_ENTRADA_MS
-                + DURACION_ESPERA_MS
-                + DURACION_SALIDA_MS,
-                mostrar_principal
-            )
+            tiempo_total = DURACION_ENTRADA_MS + DURACION_ESPERA_MS + DURACION_SALIDA_MS
+            QTimer.singleShot(tiempo_total, mostrar_principal)
 
-        codigo = app.exec()
-
-        # Al cerrar la app, detenemos completamente el audio.
-        try:
-            if _audio_iniciado and pygame is not None:
-                if pygame.mixer.get_init():
-                    pygame.mixer.music.stop()
-                    pygame.mixer.quit()
-                    globals()["_audio_iniciado"] = False
-        except Exception:
-            pass
-
-        return codigo
+        return app.exec()
 
     except KeyboardInterrupt:
         return 0
-
     except Exception as e:
-        log_info(f"❌ Error creando la aplicación: {e}")
+        log_info(f"❌ Error fatal en aplicación: {e}")
         traceback.print_exc()
-
-        try:
-            if _audio_iniciado and pygame is not None:
-                if pygame.mixer.get_init():
-                    pygame.mixer.music.stop()
-                    pygame.mixer.quit()
-                    globals()["_audio_iniciado"] = False
-        except Exception:
-            pass
-
         return 1
-
     finally:
         try:
             log_app_cerrada()

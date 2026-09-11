@@ -1,4 +1,4 @@
-"""Configuración y constantes globales de la aplicación."""
+﻿"""Configuración y constantes globales de la aplicación."""
 
 import os
 
@@ -60,17 +60,17 @@ THEMES = {
         "COLOR_BG_DESC": "#B5C9E2",
         "COLOR_SIDEBAR": "#243A5A",
         "COLOR_SIDEBAR_HOVER": "#304D75",
-        "COLOR_TEXT_PRIMARY": "#172A46",
-        "COLOR_TEXT_SECONDARY": "#405775",
-        "COLOR_TEXT_MUTED": "#607694",
-        "COLOR_ACCENT": "#5B6FE8",
-        "COLOR_ACCENT_HOVER": "#4B5DD1",
-        "COLOR_ACCENT_LIGHT": "#7183F0",
-        "COLOR_SUCCESS": "#159A7A",
-        "COLOR_SUCCESS_HOVER": "#0F8166",
-        "COLOR_WARNING": "#B97816",
-        "COLOR_ERROR": "#C94C4C",
-        "COLOR_BORDER": "#9CB2D0",
+        "COLOR_TEXT_PRIMARY": "#0F1E33",     # Oscurecido: contraste alto (> 10:1)
+        "COLOR_TEXT_SECONDARY": "#1E334D",   # Corregido: ratio > 6:1 (cumple WCAG AA)
+        "COLOR_TEXT_MUTED": "#2C405C",       # Corregido: ratio > 4.7:1 (cumple WCAG AA)
+        "COLOR_ACCENT": "#4356D6",           # Ajustado para lectura nítida sobre azul claro
+        "COLOR_ACCENT_HOVER": "#3545B3",
+        "COLOR_ACCENT_LIGHT": "#5E70E8",
+        "COLOR_SUCCESS": "#0E755D",          # Reforzado contraste
+        "COLOR_SUCCESS_HOVER": "#095442",
+        "COLOR_WARNING": "#8A5608",          # Reforzado contraste
+        "COLOR_ERROR": "#B91C1C",            # Reforzado contraste
+        "COLOR_BORDER": "#8EA7C7",
         "COLOR_HOVER": "#AEC2DD",
     }
 }
@@ -105,14 +105,10 @@ SPLASH_MAX_WIDTH = 400
 SPLASH_CORNER_RADIUS = 40
 
 # --- AUDIO ---
-# Ruta absoluta: si se deja relativa, al lanzar la app desde el Registro
-# (autostart) el directorio de trabajo puede no ser el de la app y el
-# audio no se encontraría nunca (fallo silencioso, capturado por el
-# try/except de _inicializar_audio).
 AUDIO_PATH = os.path.join(BASE_DIR, "chill.wav")
 AUDIO_ENABLED = True
-AUDIO_VOLUME_TARGET = 0.1  # 10%
-AUDIO_FADE_IN_DURATION = 3.0  # segundos
+AUDIO_VOLUME_TARGET = 0.05
+AUDIO_FADE_IN_DURATION = 3.0
 
 # --- AUTOSTART (Windows) ---
 AUTOSTART_REG_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
