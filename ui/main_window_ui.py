@@ -197,7 +197,7 @@ def _build_ui(self):
 
     self.bottom = QWidget()
     bottom_layout = QHBoxLayout(self.bottom)
-    bottom_layout.setContentsMargins(0, 0, 0, 0)
+    bottom_layout.setContentsMargins(28, 0, 28, 0)
     bottom_layout.setSpacing(10)
 
     self.status_pill = RoundedButton(
@@ -257,7 +257,7 @@ def _build_ui(self):
     # Su fila propia la mantiene anclada al borde inferior en ambos estados.
     self.bottom_host = QWidget()
     bottom_host_layout = QHBoxLayout(self.bottom_host)
-    bottom_host_layout.setContentsMargins(28, 0, 28, 14)
+    bottom_host_layout.setContentsMargins(0, 0, 0, 14)
     bottom_host_layout.setSpacing(0)
     bottom_host_layout.addWidget(self.bottom)
 

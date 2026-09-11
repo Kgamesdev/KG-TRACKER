@@ -46,6 +46,8 @@ def _ajustar_ventana_por_estado(self, expandida):
     """Mantiene la cabecera fija y expande solo la zona de juegos."""
     content_layout = self.content.layout()
 
+    posicion = self.pos()
+
     if expandida:
         self.setMinimumSize(980, 620)
         self.resize(max(self.width(), 1120), 720)
@@ -66,10 +68,13 @@ def _ajustar_ventana_por_estado(self, expandida):
         self.container.hide()
         self.content.setSizePolicy(
             QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Fixed,
+            QSizePolicy.Policy.Expanding,
         )
 
-    self._centrar()
+    if self.isVisible():
+        self.move(posicion)
+    else:
+        self._centrar()
 
 
 

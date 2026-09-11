@@ -1,8 +1,13 @@
 """Búsqueda, filtrado y construcción de la vista de juegos."""
 
+import time
 import requests
-from PySide6.QtWidgets import QApplication, QLabel, QFrame, QHBoxLayout, QPushButton
-from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QApplication, QLabel, QFrame, QHBoxLayout, QPushButton,
+    QMessageBox, QGraphicsDropShadowEffect,
+)
+from PySide6.QtCore import Qt, QTimer, QObject, Signal, QThread
+from PySide6.QtGui import QColor
 from config import (
     API_URL, API_HEADERS, EXCLUSIONES, STORES_MAPPING,
     COLOR_BG_CARD, COLOR_HOVER, COLOR_BORDER, COLOR_ACCENT_LIGHT,
@@ -10,6 +15,22 @@ from config import (
 )
 from core.images import limpiar_cache_imagenes
 from ui.game_card import GameCard
+
+
+class _BusquedaWorker(QObject):
+    terminado = Signal(object)
+    error = Signal(str)
+
+    def run(self):
+        try:
+            response = requests.get(API_URL, headers=API_HEADERS, timeout=10)
+            response.raise_for_status()
+            giveaways = response.json()
+            if not isinstance(giveaways, list):
+                raise ValueError("Formato de API no válido")
+            self.terminado.emit(giveaways)
+        except Exception as e:
+            self.error.emit(str(e))
 
 
 def _set_status(self, text, status="success"):
@@ -28,18 +49,61 @@ def _set_status(self, text, status="success"):
     )
 
 
+def _iniciar_animacion_busqueda(self):
+    """Activa un neon suave alrededor del botón LISTO durante la búsqueda."""
+    timer = getattr(self, "_busqueda_neon_timer", None)
+    if timer is None:
+        timer = QTimer(self)
+        timer.setInterval(35)
+        timer.timeout.connect(self._actualizar_animacion_busqueda)
+        self._busqueda_neon_timer = timer
 
-def buscar_juegos(self):
-    limpiar_cache_imagenes()
-    self._set_status("● BUSCANDO", "warning")
-    QApplication.processEvents()
+    effect = getattr(self, "_busqueda_neon_effect", None)
+    if effect is None:
+        effect = QGraphicsDropShadowEffect(self.status_pill)
+        effect.setOffset(0, 0)
+        self.status_pill.setGraphicsEffect(effect)
+        self._busqueda_neon_effect = effect
+
+    self._busqueda_neon_inicio = time.monotonic()
+    self._busqueda_neon_activo = True
+    self.status_pill.setText("● LISTO")
+    timer.start()
+    self._actualizar_animacion_busqueda()
+
+
+def _actualizar_animacion_busqueda(self):
+    if not getattr(self, "_busqueda_neon_activo", False):
+        return
+
+    effect = getattr(self, "_busqueda_neon_effect", None)
+    if effect is None:
+        return
+
+    fase = (time.monotonic() - getattr(self, "_busqueda_neon_inicio", time.monotonic())) * 2.2
+    pulso = (1.0 + __import__("math").sin(fase * 3.1415926535)) / 2.0
+    effect.setBlurRadius(5.0 + pulso * 12.0)
+    color = QColor(COLOR_ACCENT_LIGHT)
+    color.setAlphaF(0.55 + pulso * 0.45)
+    effect.setColor(color)
+
+
+def _detener_animacion_busqueda(self):
+    self._busqueda_neon_activo = False
+    timer = getattr(self, "_busqueda_neon_timer", None)
+    if timer is not None:
+        timer.stop()
+    effect = getattr(self, "_busqueda_neon_effect", None)
+    if effect is not None:
+        effect.setBlurRadius(0.0)
+        color = QColor(COLOR_ACCENT_LIGHT)
+        color.setAlphaF(0.0)
+        effect.setColor(color)
+    self.status_pill.setText("● LISTO")
+
+
+def _finalizar_busqueda(self, giveaways, inicio):
     try:
-        response = requests.get(API_URL, headers=API_HEADERS, timeout=10)
-        response.raise_for_status()
-        giveaways = response.json()
-        if not isinstance(giveaways, list):
-            raise ValueError("Formato de API no válido")
-
         juegos_validos = []
         exclusiones_totales = list(EXCLUSIONES) + [
             "dlc", "demo", "soundtrack", "ost", "expansion",
@@ -85,16 +149,70 @@ def buscar_juegos(self):
                 conteos[tienda] += 1
 
         self.actualizar_insignias(conteos)
-        self._set_status(f"● {len(disponibles)} OFERTAS", "success")
         self.btn_side_todas.show()
         self.mostrando_reclamados = False
-        self._actualizar_visibilidad_atras()
-        self._actualizar_vista_juegos()
+
+        transcurrido = int((time.monotonic() - inicio) * 1000)
+        espera = max(0, 2000 - transcurrido)
+        espera_juegos = max(0, 1500 - transcurrido)
+
+        def mostrar_juegos():
+            self._actualizar_visibilidad_atras()
+            self._actualizar_vista_juegos()
+
+        def finalizar_estado():
+            self._detener_animacion_busqueda()
+            self._set_status(f"● {len(disponibles)} OFERTAS", "success")
+            self._busqueda_en_curso = False
+            self._busqueda_thread = None
+            self._busqueda_worker = None
+
+        QTimer.singleShot(espera_juegos, mostrar_juegos)
+        QTimer.singleShot(espera, finalizar_estado)
 
     except Exception as e:
-        self._set_status("● ERROR", "error")
+        self._detener_animacion_busqueda()
+        self._busqueda_en_curso = False
         QMessageBox.critical(self, "Error", f"No se pudieron cargar los juegos:\n{e}")
 
+
+def _recibir_resultados_busqueda(self, giveaways):
+    self._finalizar_busqueda(
+        giveaways,
+        getattr(self, "_busqueda_inicio", time.monotonic())
+    )
+
+
+def _buscar_juegos_error(self, mensaje):
+    self._detener_animacion_busqueda()
+    self._busqueda_en_curso = False
+    self._set_status("● ERROR", "error")
+    QMessageBox.critical(self, "Error", f"No se pudieron cargar los juegos:\n{mensaje}")
+
+
+def buscar_juegos(self):
+    if getattr(self, "_busqueda_en_curso", False):
+        return
+
+    limpiar_cache_imagenes()
+    self._busqueda_en_curso = True
+    self._busqueda_inicio = time.monotonic()
+    self._iniciar_animacion_busqueda()
+    QApplication.processEvents()
+
+    thread = QThread(self)
+    worker = _BusquedaWorker()
+    worker.moveToThread(thread)
+    thread.started.connect(worker.run)
+    worker.terminado.connect(self._recibir_resultados_busqueda)
+    worker.error.connect(self._buscar_juegos_error)
+    worker.terminado.connect(thread.quit)
+    worker.error.connect(thread.quit)
+    thread.finished.connect(worker.deleteLater)
+    thread.finished.connect(thread.deleteLater)
+    self._busqueda_thread = thread
+    self._busqueda_worker = worker
+    thread.start()
 
 
 def _asignar_tienda(self, juego):
@@ -242,7 +360,13 @@ def instalar_metodos(cls):
 
     cls._set_status = _set_status
 
+    cls._recibir_resultados_busqueda = _recibir_resultados_busqueda
+    cls._buscar_juegos_error = _buscar_juegos_error
     cls.buscar_juegos = buscar_juegos
+    cls._actualizar_animacion_busqueda = _actualizar_animacion_busqueda
+    cls._iniciar_animacion_busqueda = _iniciar_animacion_busqueda
+    cls._detener_animacion_busqueda = _detener_animacion_busqueda
+    cls._finalizar_busqueda = _finalizar_busqueda
 
     cls._asignar_tienda = _asignar_tienda
 
@@ -255,3 +379,6 @@ def instalar_metodos(cls):
     cls._actualizar_vista_juegos = _actualizar_vista_juegos
 
     cls._toggle_acordeon = _toggle_acordeon
+
+
+
