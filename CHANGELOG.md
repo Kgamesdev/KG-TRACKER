@@ -4,6 +4,13 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 ## [En desarrollo]
 
+## [0.1.7] - 2026-09-11
+
+### Añadido
+- Módulo ui/main_window_tray.py para desacoplar el ciclo de vida del System Tray.
+- Transición suave de audio (Fade Out) al minimizar al área de notificación de Windows.
+- Transición suave de audio (Fade In) al restaurar la ventana desde el reloj.
+
 ## [0.1.6] - 2026-09-11
 
 ### Añadido
@@ -103,6 +110,7 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 - Retirada progresiva de componentes heredados de Tkinter.
 - Limpieza de imÃ¡genes y paneles obsoletos.
+
 
 
 

@@ -20,6 +20,7 @@ from ui.main_window_ui import instalar_metodos as instalar_metodos_ui
 from ui.main_window_audio import instalar_metodos as instalar_metodos_audio
 from ui.main_window_games import instalar_metodos as instalar_metodos_games
 from ui.main_window_history import instalar_metodos as instalar_metodos_history
+from ui.main_window_tray import instalar_metodos as instalar_metodos_tray
 from ui.main_window_navigation import instalar_metodos as instalar_metodos_navigation
 from ui.main_window_helpers import instalar_metodos as instalar_metodos_helpers
 
@@ -98,6 +99,7 @@ instalar_metodos_games(VentanaPrincipal)
 instalar_metodos_history(VentanaPrincipal)
 instalar_metodos_navigation(VentanaPrincipal)
 instalar_metodos_helpers(VentanaPrincipal)
+instalar_metodos_tray(VentanaPrincipal)
 
 
 if __name__ == "__main__":
@@ -107,14 +109,3 @@ if __name__ == "__main__":
     sys.exit(app.exec())
 
 
-        def closeEvent(self, event):
-        if getattr(self, "_salida_forzada", False):
-            if hasattr(self, "_tray") and self._tray and self._tray.tray_icon:
-                self._tray.tray_icon.hide()
-            event.accept()
-            return
-
-        event.ignore()
-        self.hide()
-        if hasattr(self, "_tray") and self._tray:
-            self._tray.notificar_primer_cierre()
