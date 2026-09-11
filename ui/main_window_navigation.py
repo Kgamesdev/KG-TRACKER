@@ -1,9 +1,8 @@
 """Interacción y navegación de la ventana principal."""
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QSize
 from PySide6.QtGui import QIcon, QPixmap, QColor, QPainter, QPen
 from PySide6.QtWidgets import QApplication, QSizePolicy
-from config import COLOR_ACCENT_LIGHT, COLOR_ERROR
 
 
 def _crear_icono_seleccion(self, seleccionar_todas):
@@ -15,10 +14,10 @@ def _crear_icono_seleccion(self, seleccionar_todas):
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
     if seleccionar_todas:
-        color = QColor(COLOR_ACCENT_LIGHT)
+        color = QColor("#00F3FF")  # COLOR_ACCENT_LIGHT nominal
         marcar = True
     else:
-        color = QColor(COLOR_ERROR)
+        color = QColor("#FF0055")  # COLOR_ERROR nominal
         marcar = False
 
     pen = QPen(color, 2)
@@ -43,38 +42,40 @@ def _crear_icono_seleccion(self, seleccionar_todas):
 
 
 def _ajustar_ventana_por_estado(self, expandida):
-    """Mantiene la cabecera fija y expande solo la zona de juegos."""
+    """Expande la zona de juegos al 80% (640px de alto máximo) manteniendo la ventana fija en su lugar."""
     content_layout = self.content.layout()
-
-    posicion = self.pos()
+    
+    pos_actual = self.pos()
+    ancho_actual = self.width()
+    
+    # Reducimos la altura máxima al 80% (640px) para esquivar limpiamente la barra de tareas de Windows
+    alto_objetivo = 640 if expandida else 360
+    ancho_objetivo = max(ancho_actual, 1120)
 
     if expandida:
-        self.setMinimumSize(980, 620)
-        self.resize(max(self.width(), 1120), 720)
+        self.setMinimumSize(980, 540)  # Ajustado proporcionalmente al nuevo tamaño compacto
         self.container.show()
-        self.content.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Expanding,
-        )
-        # El panel de juegos es el unico que recibe el espacio sobrante.
         content_layout.setStretch(4, 1)
+        self.content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
     else:
         self.setMinimumSize(980, 360)
-        self.resize(max(self.width(), 1120), 360)
-        # En modo compacto, el contenido tiene solo su altura natural:
-        # tiendas y boton quedan arriba y no se desplazan al cambiar la
-        # altura de la ventana.
         content_layout.setStretch(4, 0)
         self.container.hide()
-        self.content.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Expanding,
-        )
+        self.content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
+    # Animación exclusiva de tamaño: la ventana se queda clavada y solo se desliza el panel
     if self.isVisible():
-        self.move(posicion)
+        if hasattr(self, "_anim_ventana") and self._anim_ventana.state() == QPropertyAnimation.State.Running:
+            self._anim_ventana.stop()
+
+        self._anim_ventana = QPropertyAnimation(self, b"size")
+        self._anim_ventana.setDuration(260)  # Un poco más rápida para una respuesta limpia
+        self._anim_ventana.setStartValue(QSize(ancho_actual, self.height()))
+        self._anim_ventana.setEndValue(QSize(ancho_objetivo, alto_objetivo))
+        self._anim_ventana.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._anim_ventana.start()
     else:
-        self._centrar()
+        self.resize(ancho_objetivo, alto_objetivo)
 
 
 
@@ -85,9 +86,6 @@ def _actualizar_visibilidad_atras(self):
     hay_reclamados = bool(self.mostrando_reclamados)
     hay_estado = hay_filtros or hay_todas or hay_reclamados
 
-    # Cuando existe cualquier estado generado por la aplicación, las dos
-    # acciones contextuales forman un bloque único justo debajo del logo.
-    # Al arrancar, ambas permanecen ocultas.
     self.btn_side_todas.setVisible(hay_estado)
     self.btn_side_back.setVisible(hay_estado)
 
