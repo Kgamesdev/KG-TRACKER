@@ -1,63 +1,57 @@
-﻿# KG TRACKER 🎮
+# K GAME TRACKER
 
-A Windows desktop application for discovering and tracking free games and giveaways from multiple digital stores.
+Aplicación de escritorio para Windows que consulta ofertas gratuitas de juegos y las organiza por tienda.
 
-Built with Python and Tkinter.
+## Funciones
 
-> Nurse by profession. Developer by passion. 🩺💻
+- Consulta ofertas de juegos desde la API de GamerPower.
+- Clasifica los resultados por Epic Games, Steam, GOG, Amazon Prime, Itch.io, Humble Store, Fanatical, IndieGala y otras plataformas.
+- Filtra DLC, demos, bandas sonoras, expansiones y otros contenidos que no son juegos completos.
+- Permite abrir la página de cada oferta y marcarla como reclamada.
+- Guarda el historial de reclamados localmente en `data/reclamados.json`.
+- Permite retirar un juego de Reclamados mediante el botón `NO RECLAMADO`.
+- Incluye temas oscuro y claro, control de volumen, música de fondo y caché de imágenes.
+- Incluye splash de inicio nativo y opción de inicio automático en Windows.
 
-## Features
+## Tecnología
 
-- 🎮 Discover free games and giveaways
-- 🏪 Multiple game stores
-- 🔎 Search and filtering
-- ⭐ Mark games as claimed
-- 📋 Persistent claimed-games history
-- 🌙 Dark and light themes
-- 🔊 Background music and custom volume control
-- 🖼️ Image caching
-- ⚙️ Windows startup support
-- 💾 Persistent local data
+- Python 3.14
+- PySide6
+- requests
+- pygame-ce
+- Pillow
+- NumPy
+- plyer
 
-## Requirements
+## Requisitos
 
 - Windows
-- Python 3.8+
-- Internet connection
+- Python 3.14
+- Conexión a Internet
 
-## Installation
+## Instalación y ejecución
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+pip install PySide6
 python main.py
-Technology
-Python
-Tkinter
-Pillow
-Requests
-pygame-ce
-NumPy
-Plyer
-AI-assisted development
+```
 
-AI is part of my development workflow.
+## Estructura principal
 
-I use AI as a development assistant for learning, debugging, exploring ideas, refactoring and documentation.
+- `main.py`: inicio de la aplicación, audio inicial y splash Qt.
+- `ui/`: ventana principal, tarjetas de juegos, navegación, historial, tema y modales.
+- `core/`: API, audio, imágenes e inicio automático.
+- `assets/`: iconos, logotipo y recursos visuales.
+- `data/`: datos persistentes, incluido el historial de reclamados.
+- `logs/`: registros de ejecución.
 
-The goal is to learn by building real software and understanding how it works.
+## Desarrollo
 
-About the developer
+KG Game Tracker es un proyecto personal de aprendizaje y desarrollo práctico.
 
-I'm a nurse who became increasingly interested in programming and technology.
+## Licencia
 
-KG TRACKER is a personal project and a practical way to learn software development by building something I actually use.
-
-Nurse by profession. Developer by passion.
-
-License
-
-MIT License
-
-⭐ If you find KG TRACKER useful, consider giving the project a star.
+MIT License.
