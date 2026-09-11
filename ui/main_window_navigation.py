@@ -14,10 +14,10 @@ def _crear_icono_seleccion(self, seleccionar_todas):
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
     if seleccionar_todas:
-        color = QColor("#00F3FF")  # COLOR_ACCENT_LIGHT nominal
+        color = QColor("#00F3FF")
         marcar = True
     else:
-        color = QColor("#FF0055")  # COLOR_ERROR nominal
+        color = QColor("#FF0055")
         marcar = False
 
     pen = QPen(color, 2)
@@ -45,15 +45,12 @@ def _ajustar_ventana_por_estado(self, expandida):
     """Expande la zona de juegos al 80% (640px de alto máximo) manteniendo la ventana fija en su lugar."""
     content_layout = self.content.layout()
     
-    pos_actual = self.pos()
     ancho_actual = self.width()
-    
-    # Reducimos la altura máxima al 80% (640px) para esquivar limpiamente la barra de tareas de Windows
     alto_objetivo = 640 if expandida else 360
     ancho_objetivo = max(ancho_actual, 1120)
 
     if expandida:
-        self.setMinimumSize(980, 540)  # Ajustado proporcionalmente al nuevo tamaño compacto
+        self.setMinimumSize(980, 540)
         self.container.show()
         content_layout.setStretch(4, 1)
         self.content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -63,13 +60,12 @@ def _ajustar_ventana_por_estado(self, expandida):
         self.container.hide()
         self.content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-    # Animación exclusiva de tamaño: la ventana se queda clavada y solo se desliza el panel
     if self.isVisible():
         if hasattr(self, "_anim_ventana") and self._anim_ventana.state() == QPropertyAnimation.State.Running:
             self._anim_ventana.stop()
 
         self._anim_ventana = QPropertyAnimation(self, b"size")
-        self._anim_ventana.setDuration(260)  # Un poco más rápida para una respuesta limpia
+        self._anim_ventana.setDuration(260)
         self._anim_ventana.setStartValue(QSize(ancho_actual, self.height()))
         self._anim_ventana.setEndValue(QSize(ancho_objetivo, alto_objetivo))
         self._anim_ventana.setEasingCurve(QEasingCurve.Type.OutCubic)

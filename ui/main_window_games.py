@@ -1,4 +1,4 @@
-"""Búsqueda, filtrado y construcción de la vista de juegos."""
+"""BÃƒÂºsqueda, filtrado y construcciÃƒÂ³n de la vista de juegos."""
 
 import time
 import requests
@@ -27,7 +27,7 @@ class _BusquedaWorker(QObject):
             response.raise_for_status()
             giveaways = response.json()
             if not isinstance(giveaways, list):
-                raise ValueError("Formato de API no válido")
+                raise ValueError("Formato de API no vÃƒÂ¡lido")
             self.terminado.emit(giveaways)
         except Exception as e:
             self.error.emit(str(e))
@@ -50,7 +50,7 @@ def _set_status(self, text, status="success"):
 
 
 def _iniciar_animacion_busqueda(self):
-    """Activa un neon suave alrededor del botón LISTO durante la búsqueda."""
+    """Activa un neon suave alrededor del botÃƒÂ³n LISTO durante la bÃƒÂºsqueda."""
     timer = getattr(self, "_busqueda_neon_timer", None)
     if timer is None:
         timer = QTimer(self)
@@ -67,7 +67,7 @@ def _iniciar_animacion_busqueda(self):
 
     self._busqueda_neon_inicio = time.monotonic()
     self._busqueda_neon_activo = True
-    self.status_pill.setText("● LISTO")
+    self.status_pill.setText("Ã¢●Â LISTO")
     timer.start()
     self._actualizar_animacion_busqueda()
 
@@ -99,7 +99,7 @@ def _detener_animacion_busqueda(self):
         color = QColor(COLOR_ACCENT_LIGHT)
         color.setAlphaF(0.0)
         effect.setColor(color)
-    self.status_pill.setText("● LISTO")
+    self.status_pill.setText("Ã¢●Â LISTO")
 
 
 def _finalizar_busqueda(self, giveaways, inicio):
@@ -162,7 +162,7 @@ def _finalizar_busqueda(self, giveaways, inicio):
 
         def finalizar_estado():
             self._detener_animacion_busqueda()
-            self._set_status(f"● {len(disponibles)} OFERTAS", "success")
+            self._set_status(f"Ã¢●Â {len(disponibles)} OFERTAS", "success")
             self._busqueda_en_curso = False
             self._busqueda_thread = None
             self._busqueda_worker = None
@@ -186,7 +186,7 @@ def _recibir_resultados_busqueda(self, giveaways):
 def _buscar_juegos_error(self, mensaje):
     self._detener_animacion_busqueda()
     self._busqueda_en_curso = False
-    self._set_status("● ERROR", "error")
+    self._set_status("Ã¢●Â ERROR", "error")
     QMessageBox.critical(self, "Error", f"No se pudieron cargar los juegos:\n{mensaje}")
 
 
@@ -255,7 +255,7 @@ def actualizar_insignias(self, conteos):
 
 
 def _clear_layout(self, layout):
-    """Retira widgets de un layout sin reconstruir el árbol principal ni reconstruir la ventana."""
+    """Retira widgets de un layout sin reconstruir el ÃƒÂ¡rbol principal ni reconstruir la ventana."""
     while layout.count():
         item = layout.takeAt(0)
         widget = item.widget()
@@ -269,7 +269,7 @@ def _clear_layout(self, layout):
 
 
 def _actualizar_visibilidad_contenedor_juegos(self):
-    """Contrae la zona de juegos vacía y la muestra solo cuando hay contenido."""
+    """Contrae la zona de juegos vacÃƒÂ­a y la muestra solo cuando hay contenido."""
     hay_tiendas_activas = any(self.active_filters.values())
     hay_contenido = bool(
         self.mostrando_reclamados
@@ -309,7 +309,7 @@ def _actualizar_vista_juegos(self):
             header_layout.setContentsMargins(0, 0, 0, 0)
             header_layout.setSpacing(0)
 
-            arrow = "▼" if open_ else "▶"
+            arrow = "â–¼" if open_ else "Ã¢â€“Â¶"
             header_button = QPushButton(f"{arrow}   {store.upper()}")
             header_button.setObjectName("storeHeaderButton")
             header_button.clicked.connect(lambda checked=False, s=store: self._toggle_acordeon(s))
@@ -379,6 +379,10 @@ def instalar_metodos(cls):
     cls._actualizar_vista_juegos = _actualizar_vista_juegos
 
     cls._toggle_acordeon = _toggle_acordeon
+
+
+
+
 
 
 

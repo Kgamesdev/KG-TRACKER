@@ -16,30 +16,81 @@ from config import (
 
 class RoundedButton(QPushButton):
     def __init__(self, parent=None, text='', command=None, width=120, height=42, bg=COLOR_BG_CARD, hover_bg=COLOR_HOVER, fg='white', radius=12, font=None, border=COLOR_BORDER, border_width=1, icon_path=None, icon_size=(20,20), role='default'):
-        super().__init__(text, parent); self._bg=bg; self._hover=hover_bg; self._fg=fg; self._border=border; self._border_width=border_width; self._radius=radius; self._icon_size=icon_size; self._is_hover=False; self._ang=0.0
-        
+        super().__init__('', parent); self._bg=bg; self._hover=hover_bg; self._fg=fg; self._border=border; self._border_width=1; self._radius=radius; self._icon_size=icon_size; self._is_hover=False; self._ang=0.0; self._role=role
+        self._flicker_count = 0; self._flicker_state = False; self._target_val = 0.0; self._current_val = 0.0; self._shine_pos = -60.0; self._bloqueo_recursivo = False
+        if 'AHORRADO' in text.upper():
+            try: import re; self._current_val = float(re.sub(r'[^0-9.-]', '', text.replace(',', '')))
+            except: self._current_val = 0.0
+            self._target_val = self._current_val
         self.setText(text); self.setFixedSize(int(width), int(height)); self.setCursor(Qt.CursorShape.PointingHandCursor); self.setFlat(True); self.setProperty('role', role)
         from PySide6.QtGui import QFont; self.setFont(QFont('Segoe UI', 8, QFont.Weight.Bold) if role!='secondary' else QFont('Segoe UI', 7, QFont.Weight.Bold))
-        from PySide6.QtCore import QVariantAnimation; self._anim=QVariantAnimation(self); self._anim.setStartValue(0.0); self._anim.setEndValue(360.0); self._anim.setDuration(2200); self._anim.setLoopCount(-1); self._anim.valueChanged.connect(lambda v: (setattr(self, '_ang', v), self.update()))
-        self.setStyleSheet(f'QPushButton {{ background: {self._bg}; color: {self._fg}; border: none; border-radius: {self._radius}px; padding: 0 8px; }}')
+        from PySide6.QtCore import QVariantAnimation, QTimer; self._anim=QVariantAnimation(self); self._anim.setStartValue(0.0); self._anim.setEndValue(360.0); self._anim.setDuration(2000); self._anim.setLoopCount(-1); self._anim.valueChanged.connect(lambda v: (setattr(self, '_ang', v), setattr(self, '_shine_pos', -60.0 + (v / 360.0) * 240.0), self.update()))
+        self._flicker_timer = QTimer(self); self._flicker_timer.setInterval(180); self._flicker_timer.timeout.connect(self._do_flicker)
+        self._count_timer = QTimer(self); self._count_timer.setInterval(16); self._count_timer.timeout.connect(self._do_count)
         self.set_icon(icon_path); self.clicked.connect(command) if callable(command) else None
+        if 'AHORRADO' in text.upper(): self._anim.start()
+    def setText(self, texto):
+        if 'AHORRADO' in str(texto).upper() and not getattr(self, '_bloqueo_recursivo', False):
+            try: import re; nuevo_valor = float(re.sub(r'[^0-9.-]', '', str(texto).replace(',', '')))
+            except: nuevo_valor = 0.0
+            if abs(nuevo_valor - self._target_val) > 0.01:
+                self._target_val = nuevo_valor; self._flicker_count = 0; self._flicker_state = True
+                if not self._flicker_timer.isActive(): self._flicker_timer.start()
+                if not self._count_timer.isActive(): self._count_timer.start()
+                return
+        super().setText(str(texto))
+    def animar_recompensa(self, inc): pass
+    def _do_flicker(self):
+        self._flicker_state = not self._flicker_state; self._flicker_count += 1; self.update()
+        if self._flicker_count >= 6: self._flicker_timer.stop(); self._flicker_state = False; self.update()
+    def _do_count(self):
+        d = self._target_val - self._current_val
+        if abs(d) < 0.05:
+            self._current_val = self._target_val; self._count_timer.stop()
+        else:
+            self._current_val += d * 0.12
+        self._bloqueo_recursivo = True
+        self.setText(f'$ AHORRADO : {self._current_val:,.2f}')
+        self._bloqueo_recursivo = False
     def set_icon(self, p): self._icon_path=p; (self.setIcon(__import__('PySide6.QtGui', fromlist=['QIcon']).QIcon(p)), self.setIconSize(QSize(*self._icon_size))) if p and os.path.exists(p) else self.setIcon(__import__('PySide6.QtGui', fromlist=['QIcon']).QIcon())
-    def set_colors(self, bg=None, hover=None, fg=None, border=None): self._bg=bg if bg else self._bg; self._hover=hover if hover else self._hover; self._fg=fg if fg else self._fg; self._border=border if border else self._border; self.setStyleSheet(f'QPushButton {{ background: {self._bg}; color: {self._fg}; border: none; border-radius: {self._radius}px; padding: 0 8px; }}')
-    def enterEvent(self, e): self._is_hover=True; self._anim.start(); super().enterEvent(e)
-    def leaveEvent(self, e): self._is_hover=False; self._anim.stop(); self.update(); super().leaveEvent(e)
+    def set_colors(self, bg=None, hover=None, fg=None, border=None):
+        if bg: self._bg=bg
+        if hover: self._hover=hover
+        if fg: self._fg=fg
+        if border: self._border=border
+        self.update()
+    def enterEvent(self, e): self._is_hover=True; self._anim.start() if 'AHORRADO' not in self.text().upper() else None; super().enterEvent(e)
+    def leaveEvent(self, e): self._is_hover=False; self._anim.stop() if 'AHORRADO' not in self.text().upper() else None; self.update(); super().leaveEvent(e)
     def paintEvent(self, e):
-        super().paintEvent(e); p=__import__('PySide6.QtGui', fromlist=['QPainter']).QPainter(self); p.setRenderHint(p.RenderHint.Antialiasing)
-        r=self.rect().toRectF(); import math; pulso=(math.sin(math.radians(self._ang*2))+1.0)/2.0; ab=(2.0+(pulso*1.5)) if self._is_hover else float(self._border_width)
-        r.adjust(ab/2.0, ab/2.0, -ab/2.0, -ab/2.0)
-        if self._is_hover:
-            g=__import__('PySide6.QtGui', fromlist=['QConicalGradient']).QConicalGradient(r.center(), self._ang)
-            g.setColorAt(0.0, __import__('PySide6.QtGui', fromlist=['QColor']).QColor(self._hover)); g.setColorAt(0.5, __import__('PySide6.QtGui', fromlist=['QColor']).QColor(COLOR_ACCENT_LIGHT)); g.setColorAt(1.0, __import__('PySide6.QtGui', fromlist=['QColor']).QColor(self._hover))
-            pen=__import__('PySide6.QtGui', fromlist=['QPen']).QPen(g, ab)
-        else: pen=__import__('PySide6.QtGui', fromlist=['QPen']).QPen(__import__('PySide6.QtGui', fromlist=['QColor']).QColor(self._border), ab)
-        p.setPen(pen); p.setBrush(__import__('PySide6.QtCore', fromlist=['Qt']).Qt.BrushStyle.NoBrush); p.drawRoundedRect(r, float(self._radius), float(self._radius)); p.end()
+        p=__import__('PySide6.QtGui', fromlist=['QPainter']).QPainter(self); p.setRenderHint(p.RenderHint.Antialiasing)
+        r=self.rect().toRectF(); import math; pulso=(math.sin(math.radians(self._ang*2.5))+1.0)/2.0; ab=(2.0+(pulso*1.5)) if self._is_hover else 1.0
+        r.adjust(ab/2.0, ab/2.0, -ab/2.0, -ab/2.0); p_w = self.window(); es_claro = hasattr(p_w, 'es_modo_oscuro') and not p_w.es_modo_oscuro
+        es_ahorrado = 'AHORRADO' in self.text().upper()
+        if es_ahorrado:
+            c_bg = __import__('PySide6.QtGui', fromlist=['QColor']).QColor(255, 215, 0, 45 if not es_claro else 75)
+            c_fg = '#FFD700' if not es_claro else '#111625'; c_bd = '#FFD700' if not (self._is_hover or self._flicker_state) else '#FFFF80'
+            ab = 2.5 if (self._is_hover or self._flicker_state) else 1.2
+        elif es_claro:
+            if 'BUSCAR' in self.text().upper(): c_bg = '#5865F2'; c_fg = '#FFFFFF'; c_bd = '#4752C4' if not self._is_hover else self._hover
+            elif self._role == 'success': c_bg = '#00C853'; c_fg = '#FFFFFF'; c_bd = '#00C853' if not self._is_hover else self._hover
+            else: c_bg = '#D1DCED'; c_fg = '#111625'; c_bd = '#B4C5E4' if not self._is_hover else self._hover
+            c_bg = __import__('PySide6.QtGui', fromlist=['QColor']).QColor(c_bg)
+        else:
+            c_bg = __import__('PySide6.QtGui', fromlist=['QColor']).QColor(self._bg if self._bg != COLOR_BG_CARD else '#1A1A2E'); c_fg = self._fg; c_bd = self._border if not self._is_hover else self._hover
+        p.setPen(__import__('PySide6.QtGui', fromlist=['QPen']).QPen(__import__('PySide6.QtGui', fromlist=['QColor']).QColor(c_bd), ab))
+        p.setBrush(__import__('PySide6.QtGui', fromlist=['QBrush']).QBrush(c_bg))
+        p.drawRoundedRect(r, float(self._radius), float(self._radius))
+        if es_ahorrado:
+            lg = __import__('PySide6.QtGui', fromlist=['QLinearGradient']).QLinearGradient(self._shine_pos, 0, self._shine_pos + 35, self.height())
+            lg.setColorAt(0.0, __import__('PySide6.QtGui', fromlist=['QColor']).QColor(255,255,255,0))
+            lg.setColorAt(0.5, __import__('PySide6.QtGui', fromlist=['QColor']).QColor(255,255,255,190))
+            lg.setColorAt(1.0, __import__('PySide6.QtGui', fromlist=['QColor']).QColor(255,255,255,0))
+            p.setPen(__import__('PySide6.QtCore', fromlist=['Qt']).Qt.PenStyle.NoPen); p.setBrush(lg); p.drawRoundedRect(r, float(self._radius), float(self._radius))
+        p.end(); super().paintEvent(e)
+        self.setStyleSheet(f'QPushButton {{ color: {c_fg}; background: transparent; border: none; }}')
     def config(self, **k):
-        self.setText(k.pop('text')) if 'text' in k else None; self._bg=k.pop('bg') if 'bg' in k else self._bg; self._fg=k.pop('fg') if 'fg' in k else self._fg; self._hover=k.pop('activebackground') if 'activebackground' in k else self._hover
-        self.setStyleSheet(f'QPushButton {{ background: {self._bg}; color: {self._fg}; border: none; border-radius: {self._radius}px; padding: 0 8px; }}')
+        if 'text' in k: self.setText(k.pop('text'))
+        self._bg=k.pop('bg') if 'bg' in k else self._bg; self._fg=k.pop('fg') if 'fg' in k else self._fg; self._hover=k.pop('activebackground') if 'activebackground' in k else self._hover
         self.setEnabled(k.pop('enabled')) if k.get('enabled') is not None else None
         for key, v in k.items(): setattr(self, key, v) if hasattr(self, key) else None
 
@@ -174,6 +225,13 @@ class GameCard(QFrame):
             )
         else:
             self._image_label.setText("SIN\nMINIATURA")
+
+
+
+
+
+
+
 
 
 
