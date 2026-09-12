@@ -1,1 +1,28 @@
-{}
+{
+  "game:epic games|astral ascent (epic games)": {
+    "key": "game:epic games|astral ascent (epic games)",
+    "id": 3774,
+    "title": "Astral Ascent (Epic Games) Giveaway",
+    "store": "Epic Games",
+    "image": "https://www.gamerpower.com/offers/1b/6aa2c8331c791.jpg",
+    "description": "Claim Astral Ascent for free via Epic Games Store! Astral Ascent is a fun 2D platformer roguelite game with addicting gameplay and great combat.",
+    "open_giveaway_url": "https://www.gamerpower.com/open/astral-ascent-epic-games-giveaway",
+    "worth": "$24.99",
+    "worth_value": 24.99,
+    "worth_currency": "USD",
+    "claimed_at": "2026-09-12 03:48:32"
+  },
+  "game:epic games|luftrausers (epic games)": {
+    "key": "game:epic games|luftrausers (epic games)",
+    "id": 3773,
+    "title": "Luftrausers (Epic Games) Giveaway",
+    "store": "Epic Games",
+    "image": "https://www.gamerpower.com/offers/1b/6aa2c633c21e7.jpg",
+    "description": "Score Luftrausers for free via Epic Games Store! Luftrausers is a stylish arcade shooter with unique weapons, ridiculous combos, and challenging missions. Don´t miss it!",
+    "open_giveaway_url": "https://www.gamerpower.com/open/luftrausers-epic-games-giveaway",
+    "worth": "$9.99",
+    "worth_value": 9.99,
+    "worth_currency": "USD",
+    "claimed_at": "2026-09-12 03:48:36"
+  }
+}
