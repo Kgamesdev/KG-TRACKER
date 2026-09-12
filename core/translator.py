@@ -82,19 +82,27 @@ class _TranslationWorkerThread(QThread):
         self.cola = cola
         self._activo = True
 
+    def stop(self):
+        self._activo = False
+
     def run(self):
         session = requests.Session()
         while self._activo:
             try:
-                item = self.cola.get(timeout=1.0)
+                item = self.cola.get(timeout=0.2)
             except queue.Empty:
                 continue
 
+            if not self._activo or item is None:
+                self.cola.task_done()
+                break
+
             clave, texto, target_lang = item
             traducido = _consultar_traduccion_red(session, texto, target_lang)
-            self.traducido_signal.emit(clave, texto, traducido)
+            if self._activo:
+                self.traducido_signal.emit(clave, texto, traducido)
             self.cola.task_done()
-            time.sleep(0.08)  # Pausa minima optimizada para concurrencia
+            time.sleep(0.08)
 
 
 class GameTranslator(QObject):
@@ -162,3 +170,14 @@ class GameTranslator(QObject):
                 cb(traducido)
             except Exception:
                 pass
+
+    def detener(self):
+        """Detiene de forma limpia los hilos de traduccion al cerrar la app."""
+        for w in self._workers:
+            w.stop()
+        for _ in self._workers:
+            self._cola.put(None)
+        for w in self._workers:
+            w.quit()
+            w.wait(250)
+        self._workers.clear()

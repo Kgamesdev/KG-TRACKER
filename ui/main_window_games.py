@@ -5,6 +5,9 @@ import json
 import time
 import datetime
 import requests
+import re
+import html
+import concurrent.futures
 from PySide6.QtWidgets import (
     QApplication, QLabel, QFrame, QHBoxLayout, QPushButton,
     QGraphicsDropShadowEffect,
@@ -41,11 +44,11 @@ def _guardar_en_cache_disco(giveaways):
         print(f"⚠️ Error guardando caché local: {err}")
 
 
-def _cargar_cache_otras_tiendas(excluir_tiendas=("Epic Games",)):
+def _cargar_cache_otras_tiendas(excluir_tiendas=("Epic Games", "Itch.io", "GOG", "Steam")):
     juegos = []
     if os.path.exists(CACHE_GIVEAWAYS_FILE):
         try:
-            with open(CACHE_GIVEAWAYS_FILE, "r", encoding="utf-8") as f:
+            with open(CACHE_GIVEAWAYS_FILE, "r", encoding="utf-8-sig") as f:
                 datos = json.load(f)
                 if isinstance(datos, list):
                     for j in datos:
@@ -181,14 +184,115 @@ def _obtener_steam_directo():
     return juegos
 
 
+
+
+def _obtener_itch_directo():
+    """Consulta oficial a Itch.io filtrando ofertas activas al 100% de descuento."""
+    juegos = []
+    try:
+        url = "https://itch.io/games/on-sale?format=json"
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        res = requests.get(url, headers=headers, timeout=6)
+        if res.status_code != 200:
+            return []
+        data = res.json()
+        content_html = data.get("content", "")
+        chunks = content_html.split('data-game_id="')[1:]
+
+        for chunk in chunks:
+            if "-100%" not in chunk and 'class="price_value">$0</div>' not in chunk:
+                continue
+
+            game_id = chunk.split('"')[0]
+
+            title_m = re.search(r'<div class="game_title">\s*<a[^>]+href="([^"]+)"[^>]*>([^<]+)</a>', chunk)
+            if not title_m:
+                continue
+            url_juego = title_m.group(1)
+            titulo = html.unescape(title_m.group(2).strip())
+
+            img_m = re.search(r'data-lazy_src="([^"]+)"', chunk) or re.search(r'src="([^"]+)"', chunk)
+            imagen = img_m.group(1) if img_m else None
+
+            desc_m = re.search(r'class="game_text"[^>]*title="([^"]+)"', chunk) or re.search(r'class="game_text"[^>]*>([^<]+)<', chunk)
+            desc = html.unescape(desc_m.group(1).strip()) if desc_m else f"Oferta 100% gratuita en Itch.io: {titulo}"
+
+            juegos.append({
+                "id": f"itch_{game_id}",
+                "title": titulo,
+                "worth": "100% OFF",
+                "worth_value": 0.0,
+                "thumbnail": imagen,
+                "image": imagen,
+                "description": desc,
+                "instructions": "Reclama o descarga gratis en Itch.io.",
+                "open_giveaway_url": url_juego,
+                "published_date": "",
+                "type": "Game",
+                "platforms": "PC",
+                "store": "Itch.io",
+            })
+    except Exception as err:
+        print(f"⚠️ Error consultando Itch.io directo: {err}")
+    return juegos
+
+
+def _obtener_gog_directo():
+    """Consulta oficial a GOG catalogando ofertas activas con 100% de descuento."""
+    juegos = []
+    try:
+        url = "https://catalog.gog.com/v1/catalog?limit=48&order=desc:bestselling&discounted=eq:true"
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        res = requests.get(url, headers=headers, timeout=6)
+        if res.status_code != 200:
+            return []
+        data = res.json()
+        products = data.get("products", [])
+
+        for p in products:
+            price_info = p.get("price") or {}
+            final_money = price_info.get("finalMoney") or {}
+            base_money = price_info.get("baseMoney") or {}
+
+            try:
+                final_val = float(final_money.get("amount", -1))
+                base_val = float(base_money.get("amount", 0))
+            except (ValueError, TypeError):
+                continue
+
+            if final_val == 0.0 and base_val > 0.0:
+                titulo = p.get("title", "").strip()
+                slug = p.get("slug", "")
+                link = p.get("storeLink") or f"https://www.gog.com/game/{slug}"
+                img = p.get("coverHorizontal") or p.get("coverVertical")
+
+                juegos.append({
+                    "id": f"gog_{p.get('id', slug)}",
+                    "title": titulo,
+                    "worth": f"${base_val:.2f}",
+                    "worth_value": base_val,
+                    "thumbnail": img,
+                    "image": img,
+                    "description": f"Juego gratuito con 100% de descuento en GOG: {titulo}.",
+                    "instructions": "Reclama el juego gratis para siempre en GOG.",
+                    "open_giveaway_url": link,
+                    "published_date": "",
+                    "type": "Game",
+                    "platforms": "PC, DRM-Free",
+                    "store": "GOG",
+                })
+    except Exception as err:
+        print(f"⚠️ Error consultando GOG directo: {err}")
+    return juegos
+
 class _BusquedaWorker(QObject):
     terminado = Signal(object, str)
     error = Signal(str)
 
     def run(self):
-        # 1. Proveedor principal (GamerPower) con timeout ágil (3.5s)
+        # 1. Proveedor principal (GamerPower) con timeout ultra-ágil (1.2s)
         try:
-            response = requests.get(API_URL, headers=API_HEADERS, timeout=(3.5, 6.0))
+            response = requests.get(API_URL, headers=API_HEADERS, timeout=(1.2, 2.5))
             response.raise_for_status()
             giveaways = response.json()
             if isinstance(giveaways, list) and len(giveaways) > 0:
@@ -199,19 +303,26 @@ class _BusquedaWorker(QObject):
             print(f"⚠️ GamerPower inaccesible ({e}).")
             print("🔄 Activando motor oficial de tiendas directas...")
 
-        # 2. Motor Oficial: Epic Games en vivo estricto + Steam + Caché legítima
+        # 2. Motor Oficial: Concurrencia multitienda (Epic, Itch.io, GOG, Steam) + Caché legítima
         try:
             juegos_hibridos = []
 
-            juegos_epic = _obtener_epic_directo()
-            if juegos_epic:
-                juegos_hibridos.extend(juegos_epic)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                f_epic = executor.submit(_obtener_epic_directo)
+                f_itch = executor.submit(_obtener_itch_directo)
+                f_gog = executor.submit(_obtener_gog_directo)
+                f_steam = executor.submit(_obtener_steam_directo)
 
-            juegos_steam = _obtener_steam_directo()
-            if juegos_steam:
-                juegos_hibridos.extend(juegos_steam)
+                for f in (f_epic, f_itch, f_gog, f_steam):
+                    try:
+                        res = f.result(timeout=6.0)
+                        if res:
+                            juegos_hibridos.extend(res)
+                    except Exception as err_f:
+                        print(f"⚠️ Error en subfuente directa: {err_f}")
 
-            juegos_otras_tiendas = _cargar_cache_otras_tiendas(excluir_tiendas=("Epic Games",))
+            tiendas_vivas = ("Epic Games", "Itch.io", "GOG", "Steam")
+            juegos_otras_tiendas = _cargar_cache_otras_tiendas(excluir_tiendas=tiendas_vivas)
             if juegos_otras_tiendas:
                 juegos_hibridos.extend(juegos_otras_tiendas)
 
