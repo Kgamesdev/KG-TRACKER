@@ -123,14 +123,12 @@ class RoundedButton(QPushButton):
 
     t_up = self.text().upper()
     if 'AHORRADO' in t_up or 'SAVED' in t_up:
-      # Renderizado 100% autonomo del boton de ahorro: Fondo dorado fijo y texto blanco permanente
       p = QPainter(self)
       p.setRenderHint(QPainter.RenderHint.Antialiasing)
       r = self.rect().toRectF()
       ab = 1.5
       r.adjust(ab / 2.0, ab / 2.0, -ab / 2.0, -ab / 2.0)
 
-      # 1. Fondo dorado degradado calido inmutable
       bg_grad = QLinearGradient(0, 0, 0, self.height())
       if self._is_hover:
         bg_grad.setColorAt(0.0, QColor('#F0B74E'))
@@ -143,13 +141,11 @@ class RoundedButton(QPushButton):
       p.setBrush(bg_grad)
       p.drawRoundedRect(r, float(self._radius), float(self._radius))
 
-      # 2. Borde perimetral dorado
       c_bd = '#FFD700' if not (self._is_hover or self._flicker_state) else '#FFFF80'
       p.setPen(QPen(QColor(c_bd), ab))
       p.setBrush(Qt.BrushStyle.NoBrush)
       p.drawRoundedRect(r, float(self._radius), float(self._radius))
 
-      # 3. Destello metalico (shine) animado
       lg = QLinearGradient(self._shine_pos, 0, self._shine_pos + 35, self.height())
       lg.setColorAt(0.0, QColor(255, 255, 255, 0))
       lg.setColorAt(0.5, QColor(255, 255, 255, 120))
@@ -158,7 +154,6 @@ class RoundedButton(QPushButton):
       p.setBrush(lg)
       p.drawRoundedRect(r, float(self._radius), float(self._radius))
 
-      # 4. Texto blanco puro en negrita
       p.setPen(QPen(QColor('#FFFFFF')))
       p.setFont(self.font())
       p.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self.text())
@@ -166,7 +161,6 @@ class RoundedButton(QPushButton):
       p.end()
       return
 
-    # Botones convencionales: pintado nativo de Qt
     super().paintEvent(e)
     p = QPainter(self)
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -251,6 +245,7 @@ class GameCard(QFrame):
     self.owner = owner
     self.juego = juego
     self.nombre_tienda = nombre_tienda
+    self._imagen_cargada_con_exito = False
     self.setObjectName("gameCard")
 
     self.setFrameShape(QFrame.Shape.StyledPanel)
@@ -270,7 +265,7 @@ class GameCard(QFrame):
     info = QVBoxLayout()
     info.setSpacing(4)
 
-    title = QLabel(str(juego.get("title", "Elemento sin tÃ­tulo")))
+    title = QLabel(str(juego.get("title", "Elemento sin título")))
     title.setObjectName("gameTitle")
     title.setWordWrap(True)
     info.addWidget(title)
@@ -283,7 +278,6 @@ class GameCard(QFrame):
     self._desc_label.setWordWrap(True)
     info.addWidget(self._desc_label)
 
-    # Fila de metadatos: Tienda de origen + Badge de resenas de Steam
     meta_row = QHBoxLayout()
     meta_row.setSpacing(8)
     meta_row.setContentsMargins(0, 0, 0, 0)
@@ -365,22 +359,22 @@ class GameCard(QFrame):
 
     layout.addLayout(actions)
 
-    # 1. Cargar miniatura de forma asincrona
     self._load_image(juego.get("image") or juego.get("thumbnail"))
-
-    # 2. Traducir descripcion si procede
     self._traducir_descripcion()
-
-    # 3. Enriquecer con resenas de Steam
     self._consultar_steam()
+
+  def _mostrar_placeholder_tienda(self):
+    """Muestra el nombre de la tienda en texto tipográfico limpio sin logotipos comerciales."""
+    self._image_label.setPixmap(QPixmap())
+    self._image_label.setText(str(self.nombre_tienda).upper())
 
   def _load_image(self, url_img):
     if not url_img:
-      self._image_label.setText(t("card.no_thumbnail"))
+      self._mostrar_placeholder_tienda()
       return
 
     self._current_url = url_img
-    self._image_label.setText("â³ Cargando...")
+    self._mostrar_placeholder_tienda()
 
     from core.image_loader import ImageLoader
     ImageLoader.get_instance().cargar(
@@ -393,10 +387,12 @@ class GameCard(QFrame):
     if getattr(self, "_current_url", None) != url:
       return
     if pixmap is not None and not pixmap.isNull():
+      self._imagen_cargada_con_exito = True
       self._image_label.setText("")
       self._image_label.setPixmap(pixmap)
     else:
-      self._image_label.setText(t("card.no_thumbnail"))
+      self._imagen_cargada_con_exito = False
+      self._mostrar_placeholder_tienda()
 
   def _traducir_descripcion(self):
     idioma = obtener_idioma()
@@ -428,22 +424,29 @@ class GameCard(QFrame):
     )
 
   def _al_recibir_datos_steam(self, datos):
-    if not datos or not datos.get("found"):
+    if not datos:
+      return
+
+    # Si la foto original de la tienda falló y Steam tiene carátula oficial de respaldo:
+    banner = datos.get("banner_url")
+    if banner and not getattr(self, "_imagen_cargada_con_exito", False):
+      self._load_image(banner)
+
+    if not datos.get("found") or not datos.get("percent"):
       return
 
     percent = datos.get("percent", 0)
     idioma = obtener_idioma()
     desc = datos.get("desc_es") if idioma == "es" else datos.get("desc_en")
 
-    # Color segun la puntuacion de la comunidad
     if percent >= 80:
-      color_accent = "#10B981" # Verde esmeralda
+      color_accent = "#10B981"
       bg_color = "rgba(16, 185, 129, 0.15)"
     elif percent >= 70:
-      color_accent = "#38BDF8" # Azul cian
+      color_accent = "#38BDF8"
       bg_color = "rgba(56, 189, 248, 0.15)"
     else:
-      color_accent = "#F59E0B" # Ambar / Variadas
+      color_accent = "#F59E0B"
       bg_color = "rgba(245, 158, 11, 0.15)"
 
     self._steam_badge.setText(f" Steam: {percent}% ({desc})")

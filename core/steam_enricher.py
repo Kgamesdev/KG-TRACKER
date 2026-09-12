@@ -1,13 +1,11 @@
-﻿"""Motor asincrono de Steam con concurrencia x3 y precarga de fondo."""
+"""Modulo para enriquecer ofertas con resenas de la comunidad de Steam."""
 
+import json
 import os
 import re
-import json
-import time
-import queue
 import urllib.parse
+from PySide6.QtCore import QObject, Signal, QThreadPool, QRunnable
 import requests
-from PySide6.QtCore import QObject, Signal, QThread
 from config import BASE_DIR
 
 CACHE_FILE = os.path.join(BASE_DIR, "data", "steam_cache.json")
@@ -80,10 +78,12 @@ def _consultar_steam_red(session: requests.Session, titulo_limpio: str) -> dict:
         if not appid:
             return {"found": False}
 
+        banner_url = f"https://cdn.akamai.steamstatic.com/steam/apps/{appid}/header.jpg"
+
         url_reviews = f"https://store.steampowered.com/appreviews/{appid}?json=1&language=all&purchase_type=all"
         resp_rev = session.get(url_reviews, headers=headers, timeout=5)
         if resp_rev.status_code != 200:
-            return {"found": False}
+            return {"found": True, "appid": appid, "banner_url": banner_url, "percent": 0}
 
         data_rev = resp_rev.json()
         summary = data_rev.get("query_summary", {})
@@ -92,7 +92,7 @@ def _consultar_steam_red(session: requests.Session, titulo_limpio: str) -> dict:
         review_desc = summary.get("review_score_desc", "")
 
         if total_reviews <= 0:
-            return {"found": False}
+            return {"found": True, "appid": appid, "banner_url": banner_url, "percent": 0}
 
         percent = int(round((total_positive / total_reviews) * 100))
         return {
@@ -102,87 +102,67 @@ def _consultar_steam_red(session: requests.Session, titulo_limpio: str) -> dict:
             "desc_en": review_desc,
             "desc_es": RESENAS_ES.get(review_desc.lower(), review_desc),
             "total_reviews": total_reviews,
+            "banner_url": banner_url,
         }
     except Exception:
         return {"found": False}
 
 
-class _SteamWorkerThread(QThread):
-    resultado_signal = Signal(str, dict)
-
-    def __init__(self, cola: queue.Queue):
+class _SteamWorker(QRunnable):
+    def __init__(self, titulo, callback, enricher):
         super().__init__()
-        self.cola = cola
-        self._activo = True
+        self.titulo = titulo
+        self.callback = callback
+        self.enricher = enricher
 
     def run(self):
-        session = requests.Session()
-        while self._activo:
-            try:
-                item = self.cola.get(timeout=1.0)
-            except queue.Empty:
-                continue
-
-            titulo_limpio = item
-            datos = _consultar_steam_red(session, titulo_limpio)
-            self.resultado_signal.emit(titulo_limpio, datos)
-            self.cola.task_done()
-            time.sleep(0.10)  # Pausa minima optimizada para concurrencia
+        datos = self.enricher._obtener_resenas_sincrono(self.titulo)
+        self.enricher.signals.resultado.emit(self.titulo, datos, self.callback)
 
 
-class SteamEnricher(QObject):
-    _instancia = None
+class _SteamSignals(QObject):
+    resultado = Signal(str, dict, object)
+
+
+class SteamEnricher:
+    _instance = None
+
+    def __init__(self):
+        self.cache = _cargar_cache()
+        self.session = requests.Session()
+        self.signals = _SteamSignals()
+        self.signals.resultado.connect(self._al_emitir_resultado)
 
     @classmethod
     def get_instance(cls):
-        if cls._instancia is None:
-            cls._instancia = cls()
-        return cls._instancia
+        if cls._instance is None:
+            cls._instance = SteamEnricher()
+        return cls._instance
 
-    def __init__(self):
-        super().__init__()
-        self._cache = _cargar_cache()
-        self._pendientes = {}
-        self._cola = queue.Queue()
+    def _obtener_resenas_sincrono(self, titulo: str) -> dict:
+        t_limpio = limpiar_titulo(titulo)
+        if not t_limpio:
+            return {"found": False}
 
-        # Pool de 3 hilos paralelos para acelerar las consultas a Steam
-        self._workers = []
-        for _ in range(3):
-            w = _SteamWorkerThread(self._cola)
-            w.resultado_signal.connect(self._al_recibir_resultado)
-            w.start()
-            self._workers.append(w)
+        cached = self.cache.get(t_limpio.lower())
+        if cached:
+            if cached.get("appid") and "banner_url" not in cached:
+                cached["banner_url"] = f"https://cdn.akamai.steamstatic.com/steam/apps/{cached['appid']}/header.jpg"
+            return cached
 
-    def obtener_resenas_async(self, titulo_original: str, callback):
-        titulo_limpio = limpiar_titulo(titulo_original).lower()
-        if not titulo_limpio:
-            callback(None)
-            return
+        res = _consultar_steam_red(self.session, t_limpio)
+        if res.get("found"):
+            self.cache[t_limpio.lower()] = res
+            _guardar_cache(self.cache)
+        return res
 
-        if titulo_limpio in self._cache:
-            callback(self._cache[titulo_limpio])
-            return
+    def obtener_resenas_async(self, titulo: str, callback):
+        worker = _SteamWorker(titulo, callback, self)
+        QThreadPool.globalInstance().start(worker)
 
-        if titulo_limpio in self._pendientes:
-            self._pendientes[titulo_limpio].append(callback)
-            return
-
-        self._pendientes[titulo_limpio] = [callback]
-        self._cola.put(titulo_limpio)
-
-    def precargar_async(self, lista_titulos: list):
-        """Precarga en background todos los titulos de las ofertas obtenidas."""
-        for tit in lista_titulos:
-            if tit:
-                self.obtener_resenas_async(tit, lambda _: None)
-
-    def _al_recibir_resultado(self, titulo_limpio: str, datos: dict):
-        self._cache[titulo_limpio] = datos
-        _guardar_cache(self._cache)
-
-        callbacks = self._pendientes.pop(titulo_limpio, [])
-        for cb in callbacks:
+    def _al_emitir_resultado(self, titulo, datos, callback):
+        if callable(callback):
             try:
-                cb(datos)
+                callback(datos)
             except Exception:
                 pass

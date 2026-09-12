@@ -5,18 +5,17 @@ env/
 __pycache__/
 *.pyc
 *.pyo
-
 # Caches locales (no deben subir a GitHub)
 cache/
 data/translations_cache.json*
 data/steam_cache.json*
 data/*.tmp
 data/*.bak
-
 # Archivos temporales y accidentales
 *.tmp
 *.bak
 *.log
 q
 BACKUP_*
-iconografía
+iconografíadata/giveaways_cache.json*
+data/giveaways_cache.json*
