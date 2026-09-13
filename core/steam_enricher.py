@@ -1,3 +1,4 @@
+import threading
 """Modulo para enriquecer ofertas con resenas de la comunidad de Steam."""
 
 import json
@@ -128,6 +129,7 @@ class SteamEnricher:
     _instance = None
 
     def __init__(self):
+        self._lock = threading.Lock()
         self.cache = _cargar_cache()
         self.session = requests.Session()
         self.signals = _SteamSignals()
@@ -144,16 +146,19 @@ class SteamEnricher:
         if not t_limpio:
             return {"found": False}
 
-        cached = self.cache.get(t_limpio.lower())
-        if cached:
-            if cached.get("appid") and "banner_url" not in cached:
-                cached["banner_url"] = f"https://cdn.akamai.steamstatic.com/steam/apps/{cached['appid']}/header.jpg"
-            return cached
+        clave = t_limpio.lower()
+        with self._lock:
+            cached = self.cache.get(clave)
+            if cached:
+                if cached.get("appid") and "banner_url" not in cached:
+                    cached["banner_url"] = f"https://cdn.akamai.steamstatic.com/steam/apps/{cached['appid']}/header.jpg"
+                return cached
 
         res = _consultar_steam_red(self.session, t_limpio)
         if res.get("found"):
-            self.cache[t_limpio.lower()] = res
-            _guardar_cache(self.cache)
+            with self._lock:
+                self.cache[clave] = res
+                _guardar_cache(self.cache)
         return res
 
     def obtener_resenas_async(self, titulo: str, callback):

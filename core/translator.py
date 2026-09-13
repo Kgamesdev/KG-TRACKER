@@ -1,4 +1,5 @@
-﻿"""Motor de traduccion asincrono para KG Tracker con concurrencia controlada y precarga."""
+import threading
+"""Motor de traduccion asincrono para KG Tracker con concurrencia controlada y precarga."""
 
 import os
 import json
@@ -116,6 +117,7 @@ class GameTranslator(QObject):
 
     def __init__(self):
         super().__init__()
+        self._lock = threading.Lock()
         self._cache = _cargar_cache()
         self._pendientes = {}
         self._cola = queue.Queue()
@@ -140,15 +142,16 @@ class GameTranslator(QObject):
 
         clave = self._generar_clave(texto_limpio, target_lang)
 
-        if clave in self._cache and self._cache[clave].lower() != texto_limpio.lower():
-            callback(self._cache[clave])
-            return
+        with self._lock:
+            if clave in self._cache and self._cache[clave].lower() != texto_limpio.lower():
+                callback(self._cache[clave])
+                return
 
-        if clave in self._pendientes:
-            self._pendientes[clave].append(callback)
-            return
+            if clave in self._pendientes:
+                self._pendientes[clave].append(callback)
+                return
 
-        self._pendientes[clave] = [callback]
+            self._pendientes[clave] = [callback]
         self._cola.put((clave, texto_limpio, target_lang))
 
     def precargar_async(self, lista_textos: list, target_lang: str):
@@ -160,11 +163,14 @@ class GameTranslator(QObject):
                 self.traducir_async(t, target_lang, lambda _: None)
 
     def _al_terminar_traduccion(self, clave: str, texto_orig: str, traducido: str):
-        if traducido and traducido.lower() != texto_orig.lower():
-            self._cache[clave] = traducido
-            _guardar_cache(self._cache)
+        callbacks = []
+        with self._lock:
+            if traducido and traducido.lower() != texto_orig.lower():
+                self._cache[clave] = traducido
+                _guardar_cache(self._cache)
 
-        callbacks = self._pendientes.pop(clave, [])
+            callbacks = self._pendientes.pop(clave, [])
+
         for cb in callbacks:
             try:
                 cb(traducido)
