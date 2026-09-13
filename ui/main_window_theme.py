@@ -18,6 +18,17 @@ def _apply_theme_qss(self):
     return tema[name]
 
   qss = f"""
+  
+  QToolTip {{
+    background: {c("COLOR_BG_CARD")};
+    color: {c("COLOR_TEXT_PRIMARY")};
+    border: 1px solid {c("COLOR_ACCENT")};
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 8pt;
+    font-family: "Segoe UI";
+  }}
+
   QMainWindow, QWidget#rootFrame {{
     background: {c("COLOR_BG")};
     color: {c("COLOR_TEXT_PRIMARY")};
@@ -128,43 +139,86 @@ def _apply_theme_qss(self):
     font-family: "Segoe UI";
   }}
 
+  /* BOTONES DE LA BARRA LATERAL (Con relieve y pulsado) */
   QPushButton[role="sidebar"] {{
-    background: {c("COLOR_SIDEBAR")};
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {c("COLOR_SIDEBAR_HOVER")}, stop:1 {c("COLOR_SIDEBAR")});
     color: {c("COLOR_TEXT_PRIMARY")};
     border: 1px solid {c("COLOR_BORDER")};
+    border: 1px solid {c('COLOR_BORDER')};
+    border-radius: 12px;
   }}
   QPushButton[role="sidebar"]:hover {{
-    background: {c("COLOR_ACCENT")};
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {c("COLOR_ACCENT_LIGHT")}, stop:1 {c("COLOR_ACCENT")});
+    border: 1px solid {c("COLOR_ACCENT_LIGHT")};
+    border-bottom: 2px solid {c("COLOR_ACCENT_HOVER")};
+  }}
+  QPushButton[role="sidebar"]:pressed {{
+    background: {c("COLOR_ACCENT_HOVER")};
+    border: 1px solid {c("COLOR_ACCENT")};
+    border-top: 2px solid rgba(0, 0, 0, 0.5);
+    padding-top: 3px;
   }}
 
+  /* BOTÓN PRINCIPAL / ACENTO (Buscar Juegos, etc.) */
   QPushButton[role="accent"] {{
-    background: {c("COLOR_ACCENT")};
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {c("COLOR_ACCENT_LIGHT")}, stop:1 {c("COLOR_ACCENT")});
     color: white;
-    border: 1px solid {c("COLOR_ACCENT")};
+    border: 1px solid {c("COLOR_ACCENT_LIGHT")};
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    font-weight: bold;
   }}
   QPushButton[role="accent"]:hover {{
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {c("COLOR_ACCENT")}, stop:1 {c("COLOR_ACCENT_HOVER")});
+    border: 1px solid {c("COLOR_ACCENT")};
+    border: 1px solid rgba(255, 255, 255, 0.35);
+  }}
+  QPushButton[role="accent"]:pressed {{
     background: {c("COLOR_ACCENT_HOVER")};
+    border-top: 2px solid rgba(0, 0, 0, 0.4);
+    border-bottom: 1px solid transparent;
+    padding-top: 3px;
   }}
 
+    /* BOTÓN RECLAMAR: Relleno verde sólido con volumen y luz */
   QPushButton[role="success"] {{
-    background: {c("COLOR_SUCCESS")};
-    color: white;
-    border: 1px solid {c("COLOR_SUCCESS")};
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #10B981, stop:1 #059669);
+    color: #FFFFFF;
+    border: 1px solid #34D399;
+    border-radius: 11px;
+    font-weight: bold;
+    font-size: 8pt;
   }}
   QPushButton[role="success"]:hover {{
-    background: {c("COLOR_SUCCESS_HOVER")};
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #34D399, stop:1 #10B981);
+    border: 1px solid #6EE7B7;
+  }}
+  QPushButton[role="success"]:pressed {{
+    background: #047857;
+    border: 1px solid #065F46;
+    padding-top: 2px;
   }}
 
+  /* BOTONES SECUNDARIOS [ ✔ ] y [ 🔗 ]: Relleno sólido pizarra con brillo */
   QPushButton[role="secondary"] {{
-    background: {c("COLOR_BG_CARD")};
-    color: {c("COLOR_ACCENT_LIGHT")};
-    border: 1px solid {c("COLOR_BORDER")};
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3A3B52, stop:1 #262738);
+    color: #FFFFFF;
+    border: 1px solid #4E506B;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 8pt;
   }}
   QPushButton[role="secondary"]:hover {{
-    background: {c("COLOR_HOVER")};
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E506B, stop:1 #3A3B52);
+    border: 1px solid #818CF8;
+    color: #818CF8;
+  }}
+  QPushButton[role="secondary"]:pressed {{
+    background: #1E1F2E;
+    border: 1px solid #3A3B52;
+    padding-top: 2px;
   }}
 
-  QScrollArea {{
+QScrollArea {{
     background: transparent;
     border: none;
   }}

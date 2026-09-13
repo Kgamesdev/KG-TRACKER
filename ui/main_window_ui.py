@@ -50,6 +50,7 @@ def _build_ui(self):
   else:
     logo.setText("K\nG")
   logo.mousePressEvent = lambda event: self.resetear_app()
+  logo.setToolTip(t("tooltip.home"))
   self.logo_btn = logo
   sidebar_layout.addWidget(logo, 0, Qt.AlignmentFlag.AlignHCenter)
   sidebar_layout.addSpacing(12)
@@ -77,6 +78,7 @@ def _build_ui(self):
     icon_path=self._icon_path("back.png"), icon_size=(28, 28),
     role="sidebar",
   )
+  self.btn_side_back.setToolTip(t("tooltip.back"))
   self.btn_side_back.hide()
   sidebar_layout.addWidget(
     self.btn_side_back, 0, Qt.AlignmentFlag.AlignHCenter
@@ -98,6 +100,7 @@ def _build_ui(self):
     icon_path=self._icon_path("cafe.png"), icon_size=(28, 28),
     role="sidebar",
   )
+  self.btn_side_kofi.setToolTip(t("tooltip.kofi"))
   bottom_sidebar_layout.addWidget(self.btn_side_kofi, 0, Qt.AlignmentFlag.AlignHCenter)
 
   self.btn_side_settings = RoundedButton(
@@ -108,6 +111,7 @@ def _build_ui(self):
     icon_path=self._icon_path("settings.png"), icon_size=(28, 28),
     role="sidebar",
   )
+  self.btn_side_settings.setToolTip(t("tooltip.settings"))
   bottom_sidebar_layout.addWidget(self.btn_side_settings, 0, Qt.AlignmentFlag.AlignHCenter)
 
   self.btn_side_theme = RoundedButton(
@@ -120,6 +124,7 @@ def _build_ui(self):
     ),
     icon_size=(28, 28), role="sidebar",
   )
+  self.btn_side_theme.setToolTip(t("tooltip.theme"))
   bottom_sidebar_layout.addWidget(self.btn_side_theme, 0, Qt.AlignmentFlag.AlignHCenter)
 
   self.content = QWidget()
@@ -192,11 +197,12 @@ def _build_ui(self):
 
   self.status_pill = RoundedButton(
     self.bottom, text=t("status.ready"),
-    width=88, height=34, bg=COLOR_BG_CARD,
+    width=130, height=34, bg=COLOR_BG_CARD,
     hover_bg=COLOR_HOVER, fg=COLOR_SUCCESS,
     border=COLOR_BORDER, radius=10,
     font=("Segoe UI", 8, "bold"), role="secondary",
   )
+  self.status_pill.setToolTip(t("tooltip.status"))
   bottom_layout.addWidget(self.status_pill)
 
   self.btn_reclamados = RoundedButton(
@@ -217,6 +223,7 @@ def _build_ui(self):
     border=COLOR_BORDER, radius=10,
     font=("Segoe UI", 8, "bold"), role="saving",
   )
+  self.ahorro_pill.setToolTip(t("tooltip.saved"))
   bottom_layout.addWidget(self.ahorro_pill)
   self._actualizar_contador_ahorrado()
 
@@ -242,6 +249,7 @@ def _build_ui(self):
     icon_path=self._icon_path("volume.png"), icon_size=(21, 21),
     role="secondary",
   )
+  self.btn_mute.setToolTip(t("tooltip.mute"))
   bottom_layout.addWidget(self.btn_mute)
 
   self.bottom_host = QWidget()

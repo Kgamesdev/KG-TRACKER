@@ -49,6 +49,7 @@ class RoundedButton(QPushButton):
     self.setFixedSize(int(width), int(height))
     self.setCursor(Qt.CursorShape.PointingHandCursor)
     self.setFlat(True)
+    self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
     self.setProperty('role', role)
 
     from PySide6.QtGui import QFont
@@ -72,11 +73,13 @@ class RoundedButton(QPushButton):
 
     if 'AHORRADO' in text.upper() or 'SAVED' in text.upper():
       self._anim.start()
-
-    if role in (None, '', 'default'):
-      self.setStyleSheet(f'QPushButton {{ background: {self._bg}; color: {self._fg}; border: none; border-radius: {self._radius}px; padding: 0 8px; }}')
+    if role == 'success':
+        self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {self._bg}, stop:1 {self._hover}); color: {self._fg}; border: 1px solid #34D399; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #34D399, stop:1 {self._bg}); }} QPushButton:pressed {{ background: #047857; padding-top: 2px; }}')
+    elif role == 'secondary':
+        self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3A3B52, stop:1 #262738); color: {self._fg}; border: 1px solid #4E506B; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E506B, stop:1 #3A3B52); border: 1px solid #818CF8; color: #818CF8; }} QPushButton:pressed {{ background: #1E1F2E; padding-top: 2px; }}')
     else:
-      self.setStyleSheet(f'QPushButton {{ border: none; border-radius: {self._radius}px; padding: 0 8px; }}')
+        self.setStyleSheet(f'QPushButton {{ background: {self._bg}; color: {self._fg}; border: 1px solid {self._border}; border-radius: {self._radius}px; padding: 0 8px; }}')
+
 
     self.set_icon(icon_path)
     if callable(command):
@@ -186,8 +189,11 @@ class RoundedButton(QPushButton):
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
     r = self.rect().toRectF()
     pulso = (math.sin(math.radians(self._ang * 2)) + 1.0) / 2.0
-    ab = (2.0 + (pulso * 1.5)) if self._is_hover else float(self._border_width)
-    r.adjust(ab / 2.0, ab / 2.0, -ab / 2.0, -ab / 2.0)
+    ab = (2.0 + (pulso * 1.2)) if self._is_hover else float(self._border_width)
+    
+    # Margen interior de seguridad: evita que la línea inferior se corte
+    desplazamiento_y = 1.5 if self.isDown() else 0.0
+    r.adjust(1.0, 1.0 + desplazamiento_y, -1.0, -1.0)
 
     tema = config.THEMES.get(config.CURRENT_THEME, {})
     accent_light = tema.get("COLOR_ACCENT_LIGHT", COLOR_ACCENT_LIGHT)
@@ -203,7 +209,7 @@ class RoundedButton(QPushButton):
 
     p.setPen(pen)
     p.setBrush(Qt.BrushStyle.NoBrush)
-    p.drawRoundedRect(r, float(self._radius), float(self._radius))
+    p.drawRoundedRect(r, float(self._radius) - 1.0, float(self._radius) - 1.0)
     p.end()
 
   def setText(self, text):
@@ -366,22 +372,73 @@ class GameCard(QFrame):
         fg="white", border=c_success, radius=11,
         font=("Segoe UI", 8, "bold"), role="success",
       )
+      btn_reclamar.setToolTip(t("tooltip.claim"))
       actions.addWidget(btn_reclamar)
+
+      # Fila inferior simétrica: [ ✔ ] (62px) + [ 🔗 ] (62px) = 128px exactos
+      sub_row = QHBoxLayout()
+      sub_row.setContentsMargins(0, 0, 0, 0)
+      sub_row.setSpacing(4)
+
       btn_marcar = RoundedButton(
-        self, text=t("card.claimed"),
+        self, text="✔",
         command=lambda checked=False, j=juego: owner._alternar_reclamado(j),
-        width=128, height=32,
+        width=62, height=32,
         bg=c_bg_card, hover_bg=c_hover,
         fg=c_accent_light, border=c_border, radius=10,
-        font=("Segoe UI", 7, "bold"), role="secondary",
+        font=("Segoe UI", 10, "bold"), role="secondary",
       )
-      actions.addWidget(btn_marcar)
+      btn_marcar.setToolTip(t("card.check_tooltip"))
+
+      self._btn_compartir = RoundedButton(
+        self, text="🔗",
+        command=lambda checked=False: self._compartir_oferta(),
+        width=62, height=32,
+        bg=c_bg_card, hover_bg=c_hover,
+        fg=c_accent_light, border=c_border, radius=10,
+        font=("Segoe UI", 10, "bold"), role="secondary",
+      )
+      self._btn_compartir.setToolTip(t("card.share_tooltip"))
+
+      sub_row.addWidget(btn_marcar)
+      sub_row.addWidget(self._btn_compartir)
+      actions.addLayout(sub_row)
 
     layout.addLayout(actions)
 
     self._load_image(juego.get("image") or juego.get("thumbnail"))
     self._traducir_descripcion()
     self._consultar_steam()
+
+  def _compartir_oferta(self):
+    """Copia al portapapeles los datos de la oferta en formato Markdown para Discord/Redes."""
+    from PySide6.QtWidgets import QApplication
+    from PySide6.QtCore import QTimer
+
+    titulo = str(self.juego.get("title", "Juego gratuito"))
+    tienda = str(self.nombre_tienda or "PC")
+    url = str(self.juego.get("open_giveaway_url") or "")
+    valor = self.owner._valor_juego(self.juego)
+    valor_txt = f" (Antes: ${valor:,.2f})" if valor > 0 else ""
+
+    texto = (
+      f"🎮 **¡JUEGO GRATIS!** — {titulo}\n"
+      f"🏪 **Tienda:** {tienda}{valor_txt}\n"
+      f"🔗 **Reclámalo aquí:** {url}\n"
+      f"✨ *Compartido desde KG Tracker*"
+    )
+
+    portapapeles = QApplication.clipboard()
+    if portapapeles:
+      portapapeles.setText(texto)
+
+    if hasattr(self, "_btn_compartir") and self._btn_compartir:
+      self._btn_compartir.setText("✓")
+      self._btn_compartir.setToolTip(t("card.share_copied"))
+      QTimer.singleShot(1500, lambda: (
+        self._btn_compartir.setText("🔗"),
+        self._btn_compartir.setToolTip(t("card.share_tooltip"))
+      ))
 
   def _mostrar_placeholder_tienda(self):
     """Muestra el nombre de la tienda en texto tipográfico limpio sin logotipos comerciales."""

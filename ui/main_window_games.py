@@ -95,18 +95,15 @@ class _BusquedaWorker(QObject):
 
 def _set_status(self, text, status="success"):
     self.status_pill.setText(text)
-    colores = {
-        "success": COLOR_SUCCESS,
-        "warning": COLOR_WARNING,
-        "error": COLOR_ERROR,
-        "accent": COLOR_ACCENT_LIGHT,
-    }
-    self.status_pill.set_colors(
-        bg=COLOR_BG_CARD,
-        hover=COLOR_HOVER,
-        fg=colores.get(status, COLOR_SUCCESS),
-        border=COLOR_BORDER,
-    )
+    if status == "success":
+        estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #10B981, stop:1 #059669); color: #FFFFFF; border: 1px solid #34D399; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+    elif status == "warning":
+        estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FF9800, stop:1 #E65100); color: #FFFFFF; border: 1px solid #FFE082; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+    elif status == "error":
+        estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #EF4444, stop:1 #B91C1C); color: #FFFFFF; border: 1px solid #FCA5A5; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+    else:
+        estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6366F1, stop:1 #4F46E5); color: #FFFFFF; border: 1px solid #818CF8; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+    self.status_pill.setStyleSheet(estilo)
 
 
 def _iniciar_animacion_busqueda(self):
@@ -119,8 +116,7 @@ def _iniciar_animacion_busqueda(self):
 
     self._busqueda_neon_inicio = time.monotonic()
     self._busqueda_neon_activo = True
-    self.status_pill.setGraphicsEffect(None)
-    self.status_pill.set_colors(bg=COLOR_BG_CARD, border=COLOR_BORDER, fg="transparent")
+    self.status_pill.setText(t("status.searching"))
     timer.start()
     self._actualizar_animacion_busqueda()
 
@@ -129,17 +125,15 @@ def _actualizar_animacion_busqueda(self):
     if not getattr(self, "_busqueda_neon_activo", False):
         return
     import math
-    from PySide6.QtGui import QColor
-    fase = (time.monotonic() - getattr(self, "_busqueda_neon_inicio", time.monotonic())) * 6.0
+    fase = (time.monotonic() - getattr(self, "_busqueda_neon_inicio", time.monotonic())) * 6.5
     pulso = (1.0 + math.sin(fase)) / 2.0
-    alpha = int(40 + pulso * 160)
-    c = QColor("#00F3FF")
-    c.setAlpha(alpha)
-    self.status_pill.set_colors(
-        bg=COLOR_BG_CARD,
-        border=c.name(QColor.NameFormat.HexArgb),
-        fg="transparent",
-    )
+    
+    # Relleno naranja completo pulsante y vivo
+    color_arriba = "#FFA726" if pulso > 0.5 else "#FB8C00"
+    color_abajo = "#E65100" if pulso > 0.5 else "#BF360C"
+    
+    estilo = f"background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {color_arriba}, stop:1 {color_abajo}); color: #FFFFFF; border: 1.5px solid #FFE082; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+    self.status_pill.setStyleSheet(estilo)
 
 
 def _detener_animacion_busqueda(self):
@@ -147,8 +141,6 @@ def _detener_animacion_busqueda(self):
     timer = getattr(self, "_busqueda_neon_timer", None)
     if timer is not None:
         timer.stop()
-    self.status_pill.set_colors(bg=COLOR_BG_CARD, border=COLOR_BORDER, fg=COLOR_SUCCESS)
-    self.status_pill.setText("LISTO")
 
 
 def _finalizar_busqueda(self, giveaways, inicio, fuente="gamerpower"):
@@ -207,22 +199,21 @@ def _finalizar_busqueda(self, giveaways, inicio, fuente="gamerpower"):
         self.mostrando_reclamados = False
 
         transcurrido = int((time.monotonic() - inicio) * 1000)
-        espera = max(0, 1200 - transcurrido)
-        espera_juegos = max(0, 1000 - transcurrido)
+        espera_total = max(0, 2400 - transcurrido)
 
-        def mostrar_juegos():
+        def mostrar_juegos_y_estado():
+            self._detener_animacion_busqueda()
+            if len(disponibles) > 0:
+                self._set_status(t("status.offers", count=len(disponibles)), "success")
+            else:
+                self._set_status(t("status.ready"), "success")
             self._actualizar_visibilidad_atras()
             self._actualizar_vista_juegos()
-
-        def finalizar_estado():
-            self._detener_animacion_busqueda()
-            self._set_status(t("status.offers", count=len(disponibles)), "success")
             self._busqueda_en_curso = False
             self._busqueda_thread = None
             self._busqueda_worker = None
 
-        QTimer.singleShot(espera_juegos, mostrar_juegos)
-        QTimer.singleShot(espera, finalizar_estado)
+        QTimer.singleShot(espera_total, mostrar_juegos_y_estado)
 
     except Exception as e:
         self._detener_animacion_busqueda()
@@ -242,7 +233,7 @@ def _recibir_resultados_busqueda(self, giveaways, fuente):
 def _buscar_juegos_error(self, mensaje):
     self._detener_animacion_busqueda()
     self._busqueda_en_curso = False
-    self._set_status("● SIN OFERTAS", "warning")
+    self._set_status(t("status.error"), "error")
     log_warning(f"Aviso de búsqueda: {mensaje}")
 
 

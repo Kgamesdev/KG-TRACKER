@@ -168,7 +168,7 @@ def run(self):
     self.activateWindow()
 
 def _actualizar_textos_idioma(self):
-    """Refresca todos los textos de la interfaz al cambiar de idioma."""
+    """Refresca todos los textos, cartelitos flotantes y tarjetas al cambiar de idioma."""
     from core.i18n import t
 
     if hasattr(self, "btn_actualizar"):
@@ -194,14 +194,38 @@ def _actualizar_textos_idioma(self):
 
     self._actualizar_contador_ahorrado()
 
+    # Actualizar cartelitos flotantes de la barra lateral
+    if hasattr(self, "logo_btn"):
+        self.logo_btn.setToolTip(t("tooltip.home"))
     if hasattr(self, "btn_side_todas"):
         tooltip = t("sidebar.deselect_all") if getattr(self, "todas_activado", False) else t("sidebar.select_all")
         self.btn_side_todas.setToolTip(tooltip)
+    if hasattr(self, "btn_side_back"):
+        self.btn_side_back.setToolTip(t("tooltip.back"))
+    if hasattr(self, "btn_side_kofi"):
+        self.btn_side_kofi.setToolTip(t("tooltip.kofi"))
+    if hasattr(self, "btn_side_settings"):
+        self.btn_side_settings.setToolTip(t("tooltip.settings"))
+    if hasattr(self, "btn_side_theme"):
+        self.btn_side_theme.setToolTip(t("tooltip.theme"))
+    if hasattr(self, "ahorro_pill"):
+        self.ahorro_pill.setToolTip(t("tooltip.saved"))
+    if hasattr(self, "btn_mute"):
+        self.btn_mute.setToolTip(t("tooltip.mute"))
 
-    # Reconstruir la lista de tarjetas visibles para aplicar el nuevo idioma
+    # Menú del reloj (System Tray)
+    if hasattr(self, "_tray") and self._tray:
+        self._tray.actualizar_textos_menu()
+
+    # Reconstruir las tarjetas para que aparezcan en el nuevo idioma
+    if hasattr(self, "game_widgets_map"):
+        for widget in list(self.game_widgets_map.values()):
+            widget.setParent(None)
+            widget.deleteLater()
+        self.game_widgets_map.clear()
+
     if hasattr(self, "_actualizar_vista_juegos"):
         self._actualizar_vista_juegos()
-
 
 def instalar_metodos(cls):
     cls._centrar = _centrar
