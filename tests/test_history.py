@@ -64,5 +64,25 @@ class TestHistory(unittest.TestCase):
         mock_win.volume_label.setText.assert_called()
         mock_win.btn_actualizar.setText.assert_called()
 
+
+    def test_animacion_ahorro_se_pausa_al_ocultar(self):
+        from PySide6.QtWidgets import QApplication
+        import sys
+        app = QApplication.instance() or QApplication(sys.argv)
+
+        from ui.components.game_card import RoundedButton
+        from PySide6.QtCore import QVariantAnimation
+
+        btn = RoundedButton(text="$ AHORRADO : 50.00")
+        btn.show()
+        self.assertEqual(btn._anim.state(), QVariantAnimation.State.Running)
+
+        btn.hide()
+        self.assertNotEqual(btn._anim.state(), QVariantAnimation.State.Running)
+
+        btn.show()
+        self.assertEqual(btn._anim.state(), QVariantAnimation.State.Running)
+        btn.deleteLater()
+
 if __name__ == "__main__":
     unittest.main()

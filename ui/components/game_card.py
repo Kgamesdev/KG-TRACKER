@@ -1,7 +1,7 @@
-﻿import os
+import os
 import config
 
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt, QSize, QVariantAnimation, QTimer
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
   QApplication, QFrame, QHBoxLayout, QLabel, QPushButton,
@@ -115,6 +115,26 @@ class RoundedButton(QPushButton):
       self._anim.stop()
     self.update()
     super().leaveEvent(e)
+
+  def hideEvent(self, e):
+    if hasattr(self, "_anim") and self._anim.state() == QVariantAnimation.State.Running:
+      t_up = self.text().upper()
+      if 'AHORRADO' in t_up or 'SAVED' in t_up:
+        self._anim.pause()
+      else:
+        self._anim.stop()
+    super().hideEvent(e)
+
+  def showEvent(self, e):
+    super().showEvent(e)
+    t_up = self.text().upper()
+    if 'AHORRADO' in t_up or 'SAVED' in t_up:
+      if hasattr(self, "_anim") and self._anim.state() != QVariantAnimation.State.Running:
+        if self._anim.state() == QVariantAnimation.State.Paused:
+          self._anim.resume()
+        else:
+          self._anim.start()
+
 
   def paintEvent(self, e):
     from PySide6.QtGui import QPainter, QConicalGradient, QColor, QPen, QLinearGradient
