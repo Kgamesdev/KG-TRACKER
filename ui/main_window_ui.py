@@ -1,4 +1,4 @@
-"""Construcción de la interfaz principal."""
+﻿"""Construcción de la interfaz principal."""
 
 import config
 
@@ -12,7 +12,7 @@ from config import (
   COLOR_BORDER, COLOR_ACCENT_HOVER, COLOR_ACCENT_LIGHT, COLOR_BG_CARD, COLOR_HOVER,
   COLOR_SUCCESS, COLOR_WARNING, COLOR_TEXT_MUTED,
 )
-from ui.components.game_card import RoundedButton, VolumeSlider
+from ui.components.game_card import RoundedButton, VolumeSlider, NeonFrame
 from ui.components.store_widget import StoreWidget
 from ui.modals.kofi_modal import KofiModal
 from ui.modals.settings_modal import SettingsModal
@@ -134,7 +134,7 @@ def _build_ui(self):
   content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
   main_layout.addWidget(self.content, 0, 1)
 
-  self.store_panel = QFrame()
+  self.store_panel = NeonFrame(self.content, radius=12, border_width=1.5, speed_ms=4500)
   self.store_panel.setObjectName("storePanel")
   self.store_panel.setFixedHeight(180)
   self.store_layout = QGridLayout(self.store_panel)

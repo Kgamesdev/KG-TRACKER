@@ -1,4 +1,4 @@
-import os
+﻿import os
 import config
 
 from PySide6.QtCore import Qt, QSize, QVariantAnimation, QTimer
@@ -200,9 +200,11 @@ class RoundedButton(QPushButton):
 
     if self._is_hover:
       g = QConicalGradient(r.center(), self._ang)
-      g.setColorAt(0.0, QColor(self._hover))
-      g.setColorAt(0.5, QColor(accent_light))
-      g.setColorAt(1.0, QColor(self._hover))
+      g.setColorAt(0.0, QColor('#FFFFFF'))
+      g.setColorAt(0.15, QColor('#00F3FF'))
+      g.setColorAt(0.50, QColor('#818CF8'))
+      g.setColorAt(0.85, QColor('#00F3FF'))
+      g.setColorAt(1.0, QColor('#FFFFFF'))
       pen = QPen(g, ab)
     else:
       pen = QPen(QColor(self._border), ab)
@@ -265,9 +267,62 @@ class VolumeSlider(QSlider):
       self._command(value)
 
 
-class GameCard(QFrame):
+class NeonFrame(QFrame):
+    """QFrame con un haz de luz neón blanco autónomo animado que recorre el perímetro."""
+
+    def __init__(self, parent=None, radius=12, border_width=1.5, speed_ms=4500):
+        super().__init__(parent)
+        self._radius = radius
+        self._border_width = border_width
+        self._ang = 0.0
+
+        self._neon_anim = QVariantAnimation(self)
+        self._neon_anim.setStartValue(0.0)
+        self._neon_anim.setEndValue(360.0)
+        self._neon_anim.setDuration(speed_ms)
+        self._neon_anim.setLoopCount(-1)
+        self._neon_anim.valueChanged.connect(self._on_neon_step)
+
+    def _on_neon_step(self, val):
+        self._ang = val
+        self.update()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if hasattr(self, "_neon_anim") and self._neon_anim.state() != QVariantAnimation.State.Running:
+            self._neon_anim.start()
+
+    def hideEvent(self, event):
+        if hasattr(self, "_neon_anim") and self._neon_anim.state() == QVariantAnimation.State.Running:
+            self._neon_anim.pause()
+        super().hideEvent(event)
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        from PySide6.QtGui import QPainter, QConicalGradient, QColor, QPen
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        r = self.rect().toRectF()
+        r.adjust(0.75, 0.75, -0.75, -0.75)
+
+        g = QConicalGradient(r.center(), self._ang)
+        g.setColorAt(0.0, QColor("#FFFFFF"))          # Haz neón blanco puro
+        g.setColorAt(0.05, QColor("#00F3FF"))         # Estela cian eléctrica
+        g.setColorAt(0.12, QColor(129, 140, 248, 50)) # Halo índigo suave
+        g.setColorAt(0.22, QColor(0, 0, 0, 0))         # Fondo transparente
+        g.setColorAt(0.82, QColor(0, 0, 0, 0))
+        g.setColorAt(0.95, QColor(0, 243, 255, 120))  # Destello frontal
+        g.setColorAt(1.0, QColor("#FFFFFF"))          # Cierre incandescente
+
+        pen = QPen(g, float(self._border_width))
+        p.setPen(pen)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.drawRoundedRect(r, float(self._radius), float(self._radius))
+        p.end()
+
+class GameCard(NeonFrame):
   def __init__(self, owner, juego, nombre_tienda):
-    super().__init__(owner.frame_lista)
+    super().__init__(owner.frame_lista, radius=12, border_width=1.5, speed_ms=5500)
     self.owner = owner
     self.juego = juego
     self.nombre_tienda = nombre_tienda
