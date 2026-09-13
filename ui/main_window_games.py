@@ -46,20 +46,20 @@ class _BusquedaWorker(QObject):
 
     def run(self):
         import requests
-        # 1. Proveedor principal (GamerPower) con timeout ultra-ágil (1.2s)
+        # 1. Ruta Primaria (GamerPower) con timeout ultra-ágil de 1.2s (Constitución II)
         try:
-            response = requests.get(API_URL, headers=API_HEADERS, timeout=(1.2, 2.5))
+            response = requests.get(API_URL, headers=API_HEADERS, timeout=1.2)
             response.raise_for_status()
             giveaways = response.json()
             if isinstance(giveaways, list) and len(giveaways) > 0:
                 _guardar_en_cache_disco(giveaways)
                 self.terminado.emit(giveaways, "gamerpower")
-                return
+                return  # Cierre atómico: impidiendo la activación de la Ruta 2
         except Exception as e:
-            print(f"⚠️ GamerPower inaccesible ({e}).")
-            print("🔄 Activando motor oficial de tiendas directas...")
+            print(f"⚠️ GamerPower inaccesible o timeout 1.2s ({e}).")
+            print("🔄 Activando motor autónomo de tiendas directas...")
 
-        # 2. Motor Oficial: Concurrencia multitienda (Epic, Itch.io, GOG, Steam) + Caché legítima
+        # 2. Ruta Autónoma: Concurrencia multitienda (Epic, Itch.io, GOG, Steam)
         try:
             juegos_hibridos = []
 
@@ -83,11 +83,11 @@ class _BusquedaWorker(QObject):
                 juegos_hibridos.extend(juegos_otras_tiendas)
 
             if juegos_hibridos:
-                print(f"✅ Motor completado: {len(juegos_hibridos)} juegos a 0,00 EUR confirmados.")
+                print(f"✅ Motor hibrido completado: {len(juegos_hibridos)} juegos confirmados.")
                 self.terminado.emit(juegos_hibridos, "hibrido")
                 return
         except Exception as err_hibrido:
-            print(f"❌ Error en motor: {err_hibrido}")
+            print(f"❌ Error en motor autónomo: {err_hibrido}")
 
         self.error.emit("No se encontraron ofertas gratuitas activas en este momento.")
 
@@ -168,10 +168,16 @@ def _finalizar_busqueda(self, giveaways, inicio, fuente="gamerpower"):
             juegos_validos.append(g)
 
         juegos_unicos = {}
+        urls_vistas = set()
         for juego in juegos_validos:
             clave = self._clave_juego(juego)
+            url_canonica = str(juego.get("open_giveaway_url") or "").strip().rstrip("/").lower()
+            if url_canonica and url_canonica in urls_vistas:
+                continue
             if clave not in juegos_unicos:
                 juegos_unicos[clave] = juego
+                if url_canonica:
+                    urls_vistas.add(url_canonica)
 
         self.juegos_cache_global = list(juegos_unicos.values())
 
@@ -253,13 +259,17 @@ def buscar_juegos(self):
     thread = QThread(self)
     worker = _BusquedaWorker()
     worker.moveToThread(thread)
+    
     thread.started.connect(worker.run)
     worker.terminado.connect(self._recibir_resultados_busqueda)
     worker.error.connect(self._buscar_juegos_error)
+    
+    # Destrucción limpia y silenciosa del ciclo de vida del hilo (Constitución II)
     worker.terminado.connect(thread.quit)
     worker.error.connect(thread.quit)
     thread.finished.connect(worker.deleteLater)
-    thread.finished.connect(worker.deleteLater)
+    thread.finished.connect(thread.deleteLater)
+    
     self._busqueda_thread = thread
     self._busqueda_worker = worker
     thread.start()
@@ -434,8 +444,3 @@ def instalar_metodos(cls):
     cls._actualizar_visibilidad_contenedor_juegos = _actualizar_visibilidad_contenedor_juegos
     cls._actualizar_vista_juegos = _actualizar_vista_juegos
     cls._toggle_acordeon = _toggle_acordeon
-
-
-
-
-

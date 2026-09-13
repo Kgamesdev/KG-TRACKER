@@ -1,4 +1,19 @@
-﻿from core.i18n import t
+def _normalizar_titulo_clave(titulo):
+    """Limpia sufijos y menciones de plataforma para evitar duplicados."""
+    t = " ".join(str(titulo or "").lower().split()).strip()
+    t = re.sub(r"\s*[\(\[](?:epic games|epic|steam|gog|itch\.io|itch|amazon prime|amazon|prime|pc|free|gratis)[\)\]]", "", t)
+    for sufijo in (
+        " - giveaway", " : giveaway", " giveaway",
+        " free steam key", " steam key", " free key",
+        " free on steam", " free on epic games", " free on gog",
+        " free download", " free",
+    ):
+        if t.endswith(sufijo):
+            t = t[:-len(sufijo)].strip()
+    t = re.sub(r"[:\-\–\—_\'\",.!¡?¿]", " ", t)
+    return " ".join(t.split()).strip()
+
+from core.i18n import t
 """HistÆ’Â³rico de juegos reclamados."""
 
 
@@ -293,38 +308,40 @@ def _guardar_reclamados(self):
 
 def _clave_juego(self, juego):
 
-  titulo = " ".join(str(juego.get("title") or "").lower().split()).strip()
-
   tienda = " ".join(str(self._asignar_tienda(juego) or "").lower().split()).strip()
 
-  for sufijo in (" giveaway", " - giveaway"):
+  titulo_limpio = _normalizar_titulo_clave(juego.get("title"))
 
-    if titulo.endswith(sufijo):
-
-      titulo = titulo[:-len(sufijo)].strip()
-
-  return f"game:{tienda}|{titulo}"
-
-
-
-
-
+  return f"game:{tienda}|{titulo_limpio}"
 
 
 def _esta_reclamado(self, juego):
 
   clave_guardada = juego.get("__reclamado_key")
 
-  if clave_guardada:
+  if clave_guardada and clave_guardada in self.reclamados:
 
-    return clave_guardada in self.reclamados
+    return True
 
-  return self._clave_juego(juego) in self.reclamados
+  clave_actual = self._clave_juego(juego)
 
+  if clave_actual in self.reclamados:
 
+    return True
 
+  titulo_raw = " ".join(str(juego.get("title") or "").lower().split()).strip()
 
+  tienda = " ".join(str(self._asignar_tienda(juego) or "").lower().split()).strip()
 
+  for sufijo in (" giveaway", " - giveaway"):
+
+    if titulo_raw.endswith(sufijo):
+
+      titulo_raw = titulo_raw[:-len(sufijo)].strip()
+
+  clave_legada = f"game:{tienda}|{titulo_raw}"
+
+  return clave_legada in self.reclamados
 
 
 def _abrir_reclamacion(self, url):

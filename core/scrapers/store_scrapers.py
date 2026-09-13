@@ -20,6 +20,36 @@ def guardar_en_cache_disco(giveaways):
         print(f"⚠️ Error guardando caché local: {err}")
 
 
+def detectar_tienda_juego(juego):
+    """Determina la tienda de un juego provenga de GamerPower o de scrapers directos."""
+    store_directo = juego.get("store")
+    if store_directo:
+        return store_directo
+
+    platforms = str(juego.get("platforms", "")).lower()
+    title = str(juego.get("title", "")).lower()
+    url = str(juego.get("open_giveaway_url") or juego.get("gamerpower_url") or "").lower()
+    t_str = f"{platforms} {title} {url}"
+
+    if any(k in t_str for k in ["prime gaming", "amazon", "twitch", "luna"]):
+        return "Amazon Prime"
+    if any(k in t_str for k in ["gog", "gog.com"]):
+        return "GOG"
+    if any(k in t_str for k in ["humble", "humblebundle"]):
+        return "Humble Store"
+    if any(k in t_str for k in ["fanatical", "bundlestars"]):
+        return "Fanatical"
+    if any(k in t_str for k in ["epic", "epicgames"]):
+        return "Epic Games"
+    if "steam" in t_str:
+        return "Steam"
+    if any(k in t_str for k in ["itch", "itch.io"]):
+        return "Itch.io"
+    if "indiegala" in t_str:
+        return "IndieGala"
+    return "Otras Plataformas"
+
+
 def cargar_cache_otras_tiendas(excluir_tiendas=("Epic Games", "Itch.io", "GOG", "Steam")):
     juegos = []
     if os.path.exists(CACHE_GIVEAWAYS_FILE):
@@ -28,7 +58,10 @@ def cargar_cache_otras_tiendas(excluir_tiendas=("Epic Games", "Itch.io", "GOG", 
                 datos = json.load(f)
                 if isinstance(datos, list):
                     for j in datos:
-                        if j.get("store") not in excluir_tiendas:
+                        tienda = detectar_tienda_juego(j)
+                        if tienda not in excluir_tiendas:
+                            if not j.get("store"):
+                                j["store"] = tienda
                             juegos.append(j)
         except Exception as err:
             print(f"⚠️ Error leyendo caché local: {err}")
