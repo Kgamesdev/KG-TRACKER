@@ -14,6 +14,7 @@ def _normalizar_titulo_clave(titulo):
     return " ".join(t.split()).strip()
 
 from core.i18n import t
+from core.storage import guardar_json_atomico, cargar_json_seguro
 """HistÆ’Â³rico de juegos reclamados."""
 
 
@@ -63,119 +64,45 @@ def _ruta_reclamados(self):
 
 
 def _cargar_reclamados(self):
-
   ruta = self._ruta_reclamados()
-
   try:
-
-    if not os.path.exists(ruta):
-
-      return {}
-
-    with open(ruta, "r", encoding="utf-8") as f:
-
-      datos = json.load(f)
-
+    datos = cargar_json_seguro(ruta, valor_por_defecto={})
     if not isinstance(datos, dict):
-
       return {}
-
-
 
     limpios = {}
-
     for registro in datos.values():
-
       if not isinstance(registro, dict):
-
         continue
 
-      titulo = " ".join(str(registro.get("title") or "").lower().split()).strip()
-
       tienda = " ".join(str(registro.get("store") or "Otras Plataformas").lower().split()).strip()
-
-      for sufijo in (" giveaway", " - giveaway"):
-
-        if titulo.endswith(sufijo):
-
-          titulo = titulo[:-len(sufijo)].strip()
-
-      clave = f"game:{tienda}|{titulo}"
-
-
+      titulo_limpio = _normalizar_titulo_clave(registro.get("title"))
+      clave = f"game:{tienda}|{titulo_limpio}"
 
       if clave not in limpios:
-
         registro_limpio = dict(registro)
-
         if "worth_value" not in registro_limpio:
-
           registro_limpio["worth_value"] = self._parsear_valor_juego(registro_limpio.get("worth"))
-
         registro_limpio["key"] = clave
-
         limpios[clave] = registro_limpio
-
       else:
-
         anterior = limpios[clave]
-
         if str(registro.get("claimed_at", "")) > str(anterior.get("claimed_at", "")):
-
           registro_limpio = dict(registro)
-
           if "worth_value" not in registro_limpio:
-
             registro_limpio["worth_value"] = self._parsear_valor_juego(registro_limpio.get("worth"))
-
           registro_limpio["key"] = clave
-
           limpios[clave] = registro_limpio
 
-
-
     if limpios != datos:
-
       try:
-
-        with open(ruta, "w", encoding="utf-8") as f:
-
-          json.dump(limpios, f, ensure_ascii=False, indent=2)
-
+        guardar_json_atomico(ruta, limpios)
       except Exception:
-
         pass
 
-
-
-        if _scroll_bar and hasattr(_scroll_bar, 'verticalScrollBar'):
-
-
-
-          from PySide6.QtCore import QTimer
-
-
-
-
-
-        if _scroll_bar and hasattr(_scroll_bar, 'verticalScrollBar'):
-
-
-
-          from PySide6.QtCore import QTimer
-
-
-
     return limpios
-
   except Exception:
-
     return {}
-
-
-
-
-
 
 
 def _parsear_valor_juego(self, valor):
@@ -289,16 +216,10 @@ def _actualizar_contador_ahorrado(self):
 
 
 def _guardar_reclamados(self):
-
   try:
-
-    with open(self._ruta_reclamados(), "w", encoding="utf-8") as f:
-
-      json.dump(self.reclamados, f, ensure_ascii=False, indent=2)
-
+    guardar_json_atomico(self._ruta_reclamados(), self.reclamados)
   except Exception as e:
-
-    QMessageBox.warning(self, "Aviso", f"No se pudo guardar el histÆ’Â³rico de reclamados:\n{e}")
+    QMessageBox.warning(self, "Aviso", f"No se pudo guardar el histórico de reclamados: {e}")
 
 
 
