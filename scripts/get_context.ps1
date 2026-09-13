@@ -1,32 +1,41 @@
-﻿# Script para generar un dossier de contexto del proyecto KG Tracker
-$outputFile = "CONTEXTO_PROYECTO.md"
-$mainEntryPoint = "main.py"
-$requirementsFile = "requirements.txt"
-$foldersToExclude = @("__pycache__", ".venv", ".git", "node_modules", "cache", "logs", ".vscode")
-Write-Host "Generando dossier de contexto actualizado en '$outputFile'..." -ForegroundColor Cyan
-Set-Content -Path $outputFile -Value "# CONTEXTO DEL PROYECTO: KG TRACKER (Clean Architecture)"
-Add-Content -Path $outputFile -Value "`n## 1. Estructura de Archivos`n"
-Add-Content -Path $outputFile -Value "```text"
-Get-ChildItem -Recurse -Exclude $foldersToExclude | Where-Object {
-    $path = $_.FullName
-    -not ($path -match '\\__pycache__\\|\\\.venv\\|\\\.git\\|\\node_modules\\|\\cache\\|\\logs\\')
+﻿$outputFile = "..\project-context.txt"
+$rootPath = "F:\KURIGAMESDEV\KG TRACKER"
+
+$allowedExtensions = @(".ts", ".tsx", ".js", ".jsx", ".json", ".env.example", ".md", ".ps1")
+$excludedDirs = @("node_modules", ".git", "dist", "build", ".next", "coverage")
+
+Write-Host "🔍 Analizando el proyecto en: $rootPath" -ForegroundColor Cyan
+
+"=== ESTRUCTURA DEL PROYECTO ===" | Out-File -FilePath $outputFile -Encoding utf8
+Get-ChildItem -Path $rootPath -Recurse | Where-Object {
+    $item = $_
+    $skip = $false
+    foreach ($dir in $excludedDirs) {
+        if ($item.FullName -like "*\$dir\*") { $skip = $true }
+    }
+    -not $skip
 } | ForEach-Object {
-    $depth = $_.FullName.Split('\' ).Count - (Get-Location).Path.Split('\' ).Count
-    $indent = "  " * $depth
-    $isDir = if ($_.PSIsContainer) { "/" } else { "" }
-    "$indent- $($_.Name)$isDir"
-} | Add-Content -Path $outputFile
-Add-Content -Path $outputFile -Value "```"
-if (Test-Path $requirementsFile) {
-    Add-Content -Path $outputFile -Value "`n## 2. Dependencias (requirements.txt)`n"
-    Add-Content -Path $outputFile -Value "```"
-    Get-Content $requirementsFile | Add-Content -Path $outputFile
-    Add-Content -Path $outputFile -Value "```"
+    $indent = "  " * ($_.FullName.Replace($rootPath, "").Split("\").Count - 1)
+    "$indent$($_.Name)"
+} | Out-File -FilePath $outputFile -Append -Encoding utf8
+
+"`n`n=== CONTENIDO DE ARCHIVOS ===" | Out-File -FilePath $outputFile -Append -Encoding utf8
+
+Get-ChildItem -Path $rootPath -Recurse -File | Where-Object {
+    $file = $_
+    $skip = $false
+    foreach ($dir in $excludedDirs) {
+        if ($file.FullName -like "*\$dir\*") { $skip = $true }
+    }
+    if ($allowedExtensions -contains $file.Extension -and -not $skip) {
+        $true
+    } else {
+        $false
+    }
+} | ForEach-Object {
+    $relativePath = $_.FullName.Replace($rootPath, "")
+    "`n--- ARCHIVO: $relativePath ---`n" | Out-File -FilePath $outputFile -Append -Encoding utf8
+    Get-Content -Path $_.FullName -Raw | Out-File -FilePath $outputFile -Append -Encoding utf8
 }
-if (Test-Path $mainEntryPoint) {
-    Add-Content -Path $outputFile -Value "`n## 3. Punto de Entrada (main.py)`n"
-    Add-Content -Path $outputFile -Value "```python"
-    Get-Content $mainEntryPoint | Add-Content -Path $outputFile
-    Add-Content -Path $outputFile -Value "```"
-}
-Write-Host "Dossier de contexto actualizado con éxito en la raíz." -ForegroundColor Cyan
+
+Write-Host "✅ Contexto generado correctamente en: $outputFile" -ForegroundColor Green

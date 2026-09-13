@@ -1,4 +1,4 @@
-"""Tema QSS y sincronización visual de la ventana principal."""
+﻿"""Tema QSS y sincronizaciÃ³n visual de la ventana principal."""
 
 import config
 from PySide6.QtCore import QSize
@@ -45,8 +45,7 @@ def _apply_theme_qss(self):
     border-radius: 0px;
   }}
 
-  QFrame#storeBubble[hovering="true"] QFrame#storeIconBox {{
-    background: {c("COLOR_ACCENT_LIGHT")};
+  /* Fondo azul eliminado para hover limpio */;
   }}
 
   QLabel#storeLabel {{
@@ -261,7 +260,7 @@ def alternar_tema(self):
   self.btn_side_theme.setIconSize(QSize(28, 28))
 
   # QSS actualiza todos los widgets existentes. No se reconstruye
-  # rootFrame, no se elimina el árbol y no se vuelve a consultar la API.
+  # rootFrame, no se elimina el Ã¡rbol y no se vuelve a consultar la API.
   self._actualizar_estilo_botones()
 
 
@@ -303,3 +302,4 @@ def instalar_metodos(cls):
   cls._actualizar_estilo_botones = _actualizar_estilo_botones
 
   cls._set_button_role = _set_button_role
+
