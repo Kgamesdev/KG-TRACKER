@@ -1,4 +1,4 @@
-﻿"""Modal de ajustes para K GAME TRACKER basada en PySide6/Qt."""
+"""Modal de ajustes para K GAME TRACKER basada en PySide6/Qt."""
 import os
 import json
 

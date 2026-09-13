@@ -1,4 +1,4 @@
-﻿"""Configuración y constantes globales de la aplicación."""
+"""Configuración y constantes globales de la aplicación."""
 
 import os
 

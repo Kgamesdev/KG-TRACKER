@@ -1,4 +1,4 @@
-﻿"""Modulo de integracion con la bandeja del sistema (System Tray) y eventos de cierre."""
+"""Modulo de integracion con la bandeja del sistema (System Tray) y eventos de cierre."""
 from PySide6.QtCore import QTimer
 from core.tray import GameTrackerTray
 

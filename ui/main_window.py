@@ -1,4 +1,4 @@
-﻿from core.tray import GameTrackerTray
+from core.tray import GameTrackerTray
 """Ventana principal coordinadora de K GAME TRACKER."""
 
 import sys

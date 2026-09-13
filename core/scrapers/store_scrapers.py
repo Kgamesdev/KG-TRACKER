@@ -1,4 +1,5 @@
-﻿"""Módulo centralizado de scrapers y consultas directas a tiendas de videojuegos."""
+import urllib.parse
+"""Módulo centralizado de scrapers y consultas directas a tiendas de videojuegos."""
 
 import os
 import json
@@ -210,17 +211,33 @@ def obtener_itch_directo():
 
             game_id = chunk.split('"')[0]
 
-            title_m = re.search(r'<div class="game_title">\s*<a[^>]+href="([^"]+)"[^>]*>([^<]+)</a>', chunk)
+            # Extracción tolerante a etiquetas internas (b, span, etc.)
+            title_m = re.search(r'<div class="game_title">\s*<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', chunk, re.DOTALL)
             if not title_m:
                 continue
-            url_juego = title_m.group(1)
-            titulo = html.unescape(title_m.group(2).strip())
+            url_raw = title_m.group(1).strip()
+            url_juego = urllib.parse.urljoin("https://itch.io", url_raw)
+
+            # Limpiar etiquetas HTML del título
+            titulo_raw = re.sub(r'<[^>]+>', '', title_m.group(2))
+            titulo = html.unescape(titulo_raw).strip()
+            if not titulo:
+                continue
 
             img_m = re.search(r'data-lazy_src="([^"]+)"', chunk) or re.search(r'src="([^"]+)"', chunk)
-            imagen = img_m.group(1) if img_m else None
+            imagen = img_m.group(1).strip() if img_m else None
+            if imagen:
+                if imagen.startswith("//"):
+                    imagen = "https:" + imagen
+                elif not imagen.startswith("http"):
+                    imagen = urllib.parse.urljoin("https://itch.io", imagen)
 
-            desc_m = re.search(r'class="game_text"[^>]*title="([^"]+)"', chunk) or re.search(r'class="game_text"[^>]*>([^<]+)<', chunk)
-            desc = html.unescape(desc_m.group(1).strip()) if desc_m else f"Oferta 100% gratuita en Itch.io: {titulo}"
+            desc_m = re.search(r'class="game_text"[^>]*title="([^"]+)"', chunk) or re.search(r'class="game_text"[^>]*>(.*?)</div>', chunk, re.DOTALL)
+            if desc_m:
+                desc_limpia = re.sub(r'<[^>]+>', '', desc_m.group(1))
+                desc = html.unescape(desc_limpia).strip()
+            else:
+                desc = f"Oferta 100% gratuita en Itch.io: {titulo}"
 
             juegos.append({
                 "id": f"itch_{game_id}",

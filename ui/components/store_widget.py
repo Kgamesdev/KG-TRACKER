@@ -1,4 +1,4 @@
-﻿import os
+import os
 from PySide6.QtCore import Qt, QSize, QVariantAnimation, QEasingCurve, QEvent
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QTransform
 from PySide6.QtWidgets import (

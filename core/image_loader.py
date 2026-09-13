@@ -1,4 +1,4 @@
-﻿"""Gestor de descarga y caché asíncrona de miniaturas para KG Tracker."""
+"""Gestor de descarga y caché asíncrona de miniaturas para KG Tracker."""
 
 import os
 import hashlib

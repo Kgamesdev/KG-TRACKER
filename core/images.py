@@ -1,4 +1,4 @@
-﻿import os
+import os
 import time
 from config import BASE_DIR
 

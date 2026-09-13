@@ -84,5 +84,21 @@ class TestHistory(unittest.TestCase):
         self.assertEqual(btn._anim.state(), QVariantAnimation.State.Running)
         btn.deleteLater()
 
+
+    def test_parser_itch_robusto_con_tags_anidados(self):
+        import re, html, urllib.parse
+        chunk = """
+        <div class="game_title"><a href="/games/retro-quest"><b>Retro</b> <span>Quest</span></a></div>
+        <img data-lazy_src="//img.itch.zone/thumb.png" />
+        <div class="game_text">Awesome <i>indie</i> game</div>
+        """
+        title_m = re.search(r'<div class="game_title">\s*<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', chunk, re.DOTALL)
+        self.assertIsNotNone(title_m)
+        url_juego = urllib.parse.urljoin("https://itch.io", title_m.group(1).strip())
+        titulo = html.unescape(re.sub(r'<[^>]+>', '', title_m.group(2))).strip()
+
+        self.assertEqual(url_juego, "https://itch.io/games/retro-quest")
+        self.assertEqual(titulo, "Retro Quest")
+
 if __name__ == "__main__":
     unittest.main()
