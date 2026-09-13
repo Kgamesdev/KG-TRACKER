@@ -1,13 +1,14 @@
-"""GestiÃƒÂ³n de audio de la ventana principal."""
+"""Gestión de audio de la ventana principal."""
 
 import os
 import pygame
 from PySide6.QtCore import QTimer
 from config import AUDIO_PATH
+from logger import log_error
 
 
 def _inicializar_audio(self):
-    """Conserva la mÃƒÂºsica iniciada por main.py y evita reinicios/cortes."""
+    """Conserva la música iniciada por main.py y evita reinicios/cortes."""
     try:
         if not os.path.exists(AUDIO_PATH):
             return
@@ -36,7 +37,7 @@ def _inicializar_audio(self):
         self.slider_volumen.blockSignals(False)
 
     except Exception as e:
-        print(f"Ã¢Å¡Â Ã¯Â¸Â No se pudo inicializar el audio: {e}")
+        log_error(f"No se pudo inicializar el audio: {e}")
 
 
 
@@ -68,7 +69,7 @@ def cambiar_volumen(self, valor):
             self.audio_silenciado = True
             self.btn_mute.set_icon(self._icon_path("mute.png"))
     except Exception as e:
-        print(f"Ã¢Å¡Â Ã¯Â¸Â Error cambiando volumen: {e}")
+        log_error(f"Error cambiando volumen: {e}")
 
 
 
@@ -87,7 +88,7 @@ def alternar_mute(self):
             self.audio_silenciado = False
             self.btn_mute.set_icon(self._icon_path("volume.png"))
     except Exception as e:
-        print(f"Ã¢Å¡Â Ã¯Â¸Â Error alternando mute: {e}")
+        log_error(f"Error alternando mute: {e}")
 
 
 

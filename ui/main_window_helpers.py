@@ -7,6 +7,7 @@ import webbrowser
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QApplication
+from logger import log_warning
 from config import (
     COLOR_BG_CARD, COLOR_HOVER, COLOR_BORDER, COLOR_TEXT_PRIMARY,
     COLOR_ACCENT, COLOR_ACCENT_LIGHT,
@@ -77,7 +78,7 @@ def _load_thumbnail(self, url_img):
                 pixmap.save(filename, "PNG")
                 return pixmap
     except Exception as e:
-        print(f"Error descargando miniatura ({url_img}): {e}")
+        log_warning(f"Error descargando miniatura ({url_img}): {e}")
     return None
 
 

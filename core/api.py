@@ -1,4 +1,5 @@
 import requests
+from logger import log_error
 from config import API_URL, API_HEADERS, EXCLUSIONES
 
 def get_free_games():
@@ -10,7 +11,7 @@ def get_free_games():
         response.raise_for_status()
         giveaways = response.json()
     except Exception as e:
-        print(f"[Error API] No se pudieron obtener las promociones: {e}")
+        log_error(f"[API] No se pudieron obtener las promociones: {e}")
         return []
 
     clean_deals = []

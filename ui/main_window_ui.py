@@ -1,4 +1,4 @@
-"""ConstrucciÃ³n de la interfaz principal."""
+"""Construcción de la interfaz principal."""
 
 import config
 

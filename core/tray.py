@@ -5,6 +5,7 @@ from PySide6.QtGui import QIcon, QPixmap, QColor, QPainter, QAction
 from PySide6.QtCore import Qt, QTimer
 from config import ICON_PATH, BASE_DIR
 from core.i18n import t
+from logger import log_info, log_warning, log_error
 
 CONFIG_TRAY_PATH = os.path.join(BASE_DIR, "data", "settings.json")
 RECLAMADOS_PATH = os.path.join(BASE_DIR, "data", "reclamados.json")
@@ -129,7 +130,7 @@ class GameTrackerTray:
             ms = horas_map[frecuencia] * 3600 * 1000
             self.timer_busqueda.setInterval(ms)
             self.timer_busqueda.start()
-            print(f"⏰ [TRAY] Temporizador configurado a: {frecuencia}")
+            log_info(f"[TRAY] Temporizador configurado a: {frecuencia}")
 
     def contar_ofertas_disponibles(self):
         try:
@@ -156,7 +157,7 @@ class GameTrackerTray:
 
             return contador
         except Exception as e:
-            print(f"⚠️ [TRAY] Error calculando disponibles: {e}")
+            log_warning(f"[TRAY] Error calculando disponibles: {e}")
             return 0
 
     def notificar_al_minimizar(self):
@@ -179,11 +180,11 @@ class GameTrackerTray:
             )
 
     def ejecutar_barrido_manual(self):
-        print("🔍 [TRAY] Barrido manual solicitado por el usuario...")
+        log_info("[TRAY] Barrido manual solicitado por el usuario...")
         self._lanzar_busqueda(manual=True)
 
     def _ejecutar_barrido_segundo_plano(self):
-        print("⏰ [TRAY] Ejecutando barrido automático programado...")
+        log_info("[TRAY] Ejecutando barrido automático programado...")
         self._lanzar_busqueda(manual=False)
 
     def _lanzar_busqueda(self, manual=False):
@@ -197,7 +198,7 @@ class GameTrackerTray:
 
             QTimer.singleShot(2500, lambda: self._reportar_resultado_barrido(manual))
         except Exception as e:
-            print(f"⚠️ [TRAY] Error lanzando barrido: {e}")
+            log_error(f"[TRAY] Error lanzando barrido: {e}")
 
     def _reportar_resultado_barrido(self, manual=False):
         cfg = _obtener_config()

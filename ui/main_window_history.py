@@ -15,7 +15,7 @@ def _normalizar_titulo_clave(titulo):
 
 from core.i18n import t
 from core.storage import guardar_json_atomico, cargar_json_seguro
-"""HistÆ’Â³rico de juegos reclamados."""
+"""Histórico de juegos reclamados."""
 
 
 
@@ -295,7 +295,7 @@ def _alternar_reclamado(self, juego):
 
       "id": juego.get("id"),
 
-      "title": str(juego.get("title") or "Elemento sin tÆ’Â­tulo"),
+      "title": str(juego.get("title") or "Elemento sin título"),
 
       "store": self._asignar_tienda(juego),
 
@@ -465,7 +465,7 @@ def _mostrar_lista_reclamados(self):
 
       "id": registro.get("id"),
 
-      "title": registro.get("title", "Elemento sin tÆ’Â­tulo"),
+      "title": registro.get("title", "Elemento sin título"),
 
       "store": registro.get("store", ""),
 

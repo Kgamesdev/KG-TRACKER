@@ -8,6 +8,7 @@ import requests
 import re
 import html
 from config import BASE_DIR
+from logger import log_info, log_warning, log_error
 
 CACHE_GIVEAWAYS_FILE = os.path.join(BASE_DIR, "data", "giveaways_cache.json")
 
@@ -18,7 +19,7 @@ def guardar_en_cache_disco(giveaways):
         with open(CACHE_GIVEAWAYS_FILE, "w", encoding="utf-8") as f:
             json.dump(giveaways, f, ensure_ascii=False, indent=2)
     except Exception as err:
-        print(f"⚠️ Error guardando caché local: {err}")
+        log_error(f"Error guardando caché local: {err}")
 
 
 def detectar_tienda_juego(juego):
@@ -65,7 +66,7 @@ def cargar_cache_otras_tiendas(excluir_tiendas=("Epic Games", "Itch.io", "GOG", 
                                 j["store"] = tienda
                             juegos.append(j)
         except Exception as err:
-            print(f"⚠️ Error leyendo caché local: {err}")
+            log_error(f"Error leyendo caché local: {err}")
     return juegos
 
 
@@ -152,7 +153,7 @@ def obtener_epic_directo():
                 "store": "Epic Games",
             })
     except Exception as err:
-        print(f"⚠️ Error consultando Epic Games directo: {err}")
+        log_error(f"Error consultando Epic Games directo: {err}")
     return juegos
 
 
@@ -188,7 +189,7 @@ def obtener_steam_directo():
                         "store": "Steam",
                     })
     except Exception as err:
-        print(f"⚠️ Error consultando Steam directo: {err}")
+        log_error(f"Error consultando Steam directo: {err}")
     return juegos
 
 
@@ -255,7 +256,7 @@ def obtener_itch_directo():
                 "store": "Itch.io",
             })
     except Exception as err:
-        print(f"⚠️ Error consultando Itch.io directo: {err}")
+        log_error(f"Error consultando Itch.io directo: {err}")
     return juegos
 
 
@@ -304,5 +305,5 @@ def obtener_gog_directo():
                     "store": "GOG",
                 })
     except Exception as err:
-        print(f"⚠️ Error consultando GOG directo: {err}")
+        log_error(f"Error consultando GOG directo: {err}")
     return juegos

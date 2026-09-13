@@ -19,6 +19,7 @@ from config import (
 from core.images import limpiar_cache_imagenes
 from ui.components.game_card import GameCard
 from core.i18n import t
+from logger import log_info, log_warning, log_error
 from core.scrapers.store_scrapers import (
     guardar_en_cache_disco as _guardar_en_cache_disco,
     cargar_cache_otras_tiendas as _cargar_cache_otras_tiendas,
@@ -56,8 +57,8 @@ class _BusquedaWorker(QObject):
                 self.terminado.emit(giveaways, "gamerpower")
                 return  # Cierre atómico: impidiendo la activación de la Ruta 2
         except Exception as e:
-            print(f"⚠️ GamerPower inaccesible o timeout 1.2s ({e}).")
-            print("🔄 Activando motor autónomo de tiendas directas...")
+            log_warning(f"GamerPower inaccesible o timeout 1.2s ({e}).")
+            log_info("Activando motor autónomo de tiendas directas...")
 
         # 2. Ruta Autónoma: Concurrencia multitienda (Epic, Itch.io, GOG, Steam)
         try:
@@ -75,7 +76,7 @@ class _BusquedaWorker(QObject):
                         if res:
                             juegos_hibridos.extend(res)
                     except Exception as err_f:
-                        print(f"⚠️ Error en subfuente directa: {err_f}")
+                        log_warning(f"Error en subfuente directa: {err_f}")
 
             tiendas_vivas = ("Epic Games", "Itch.io", "GOG", "Steam")
             juegos_otras_tiendas = _cargar_cache_otras_tiendas(excluir_tiendas=tiendas_vivas)
@@ -83,11 +84,11 @@ class _BusquedaWorker(QObject):
                 juegos_hibridos.extend(juegos_otras_tiendas)
 
             if juegos_hibridos:
-                print(f"✅ Motor hibrido completado: {len(juegos_hibridos)} juegos confirmados.")
+                log_info(f"Motor híbrido completado: {len(juegos_hibridos)} juegos confirmados.")
                 self.terminado.emit(juegos_hibridos, "hibrido")
                 return
         except Exception as err_hibrido:
-            print(f"❌ Error en motor autónomo: {err_hibrido}")
+            log_error(f"Error en motor autónomo: {err_hibrido}")
 
         self.error.emit("No se encontraron ofertas gratuitas activas en este momento.")
 
@@ -226,7 +227,7 @@ def _finalizar_busqueda(self, giveaways, inicio, fuente="gamerpower"):
     except Exception as e:
         self._detener_animacion_busqueda()
         self._busqueda_en_curso = False
-        print(f"❌ Error procesando lista de juegos: {e}")
+        log_error(f"Error procesando lista de juegos: {e}")
         self._set_status("● ERROR", "error")
 
 
@@ -242,7 +243,7 @@ def _buscar_juegos_error(self, mensaje):
     self._detener_animacion_busqueda()
     self._busqueda_en_curso = False
     self._set_status("● SIN OFERTAS", "warning")
-    print(f"⚠️ Aviso de búsqueda: {mensaje}")
+    log_warning(f"Aviso de búsqueda: {mensaje}")
 
 
 def buscar_juegos(self):
