@@ -1,4 +1,4 @@
-"""Construcción de la interfaz principal."""
+﻿"""ConstrucciÃ³n de la interfaz principal."""
 
 import config
 
@@ -12,10 +12,10 @@ from config import (
   COLOR_BORDER, COLOR_ACCENT_HOVER, COLOR_ACCENT_LIGHT, COLOR_BG_CARD, COLOR_HOVER,
   COLOR_SUCCESS, COLOR_WARNING, COLOR_TEXT_MUTED,
 )
-from ui.game_card import RoundedButton, VolumeSlider
-from ui.store_widget import StoreWidget
-from ui.kofi_modal import KofiModal
-from ui.settings_modal import SettingsModal
+from ui.components.game_card import RoundedButton, VolumeSlider
+from ui.components.store_widget import StoreWidget
+from ui.modals.kofi_modal import KofiModal
+from ui.modals.settings_modal import SettingsModal
 from core.i18n import t
 
 
@@ -310,3 +310,4 @@ def instalar_metodos(cls):
   cls._crear_burbujas_tiendas = _crear_burbujas_tiendas
   cls._on_bubble_hover = _on_bubble_hover
   cls._sync_store_states = _sync_store_states
+

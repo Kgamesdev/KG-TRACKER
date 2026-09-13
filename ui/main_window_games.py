@@ -1,12 +1,9 @@
-"""Búsqueda, filtrado y construcción de la vista de juegos con validación temporal estricta a 0.00 EUR."""
+﻿"""Búsqueda, filtrado y construcción de la vista de juegos con validación temporal estricta a 0.00 EUR."""
 
 import os
 import json
 import time
 import datetime
-import requests
-import re
-import html
 import concurrent.futures
 from PySide6.QtWidgets import (
     QApplication, QLabel, QFrame, QHBoxLayout, QPushButton,
@@ -20,8 +17,16 @@ from config import (
     BASE_DIR,
 )
 from core.images import limpiar_cache_imagenes
-from ui.game_card import GameCard
+from ui.components.game_card import GameCard
 from core.i18n import t
+from core.scrapers.store_scrapers import (
+    guardar_en_cache_disco as _guardar_en_cache_disco,
+    cargar_cache_otras_tiendas as _cargar_cache_otras_tiendas,
+    obtener_epic_directo as _obtener_epic_directo,
+    obtener_steam_directo as _obtener_steam_directo,
+    obtener_itch_directo as _obtener_itch_directo,
+    obtener_gog_directo as _obtener_gog_directo,
+)
 
 CACHE_GIVEAWAYS_FILE = os.path.join(BASE_DIR, "data", "giveaways_cache.json")
 
@@ -35,261 +40,12 @@ def _limpiar_hilo_busqueda(self):
     self._busqueda_worker = None
 
 
-def _guardar_en_cache_disco(giveaways):
-    try:
-        os.makedirs(os.path.dirname(CACHE_GIVEAWAYS_FILE), exist_ok=True)
-        with open(CACHE_GIVEAWAYS_FILE, "w", encoding="utf-8") as f:
-            json.dump(giveaways, f, ensure_ascii=False, indent=2)
-    except Exception as err:
-        print(f"⚠️ Error guardando caché local: {err}")
-
-
-def _cargar_cache_otras_tiendas(excluir_tiendas=("Epic Games", "Itch.io", "GOG", "Steam")):
-    juegos = []
-    if os.path.exists(CACHE_GIVEAWAYS_FILE):
-        try:
-            with open(CACHE_GIVEAWAYS_FILE, "r", encoding="utf-8-sig") as f:
-                datos = json.load(f)
-                if isinstance(datos, list):
-                    for j in datos:
-                        if j.get("store") not in excluir_tiendas:
-                            juegos.append(j)
-        except Exception as err:
-            print(f"⚠️ Error leyendo caché local: {err}")
-    return juegos
-
-
-def _obtener_epic_directo():
-    """Consulta oficial a Epic Games Store validando fecha UTC activa y precio 0.00 EUR."""
-    juegos = []
-    try:
-        url = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=es-ES&country=ES"
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-        res = requests.get(url, headers=headers, timeout=5)
-        if res.status_code != 200:
-            return []
-        data = res.json()
-        elements = data.get("data", {}).get("Catalog", {}).get("searchStore", {}).get("elements", [])
-        ahora_utc = datetime.datetime.now(datetime.timezone.utc)
-
-        for el in elements:
-            price_info = el.get("price", {}).get("totalPrice", {})
-            original_price_cents = price_info.get("originalPrice", 0)
-            if original_price_cents <= 0:
-                continue
-
-            promotions = el.get("promotions") or {}
-            promo_offers = promotions.get("promotionalOffers") or []
-            activa_hoy = False
-
-            for group in promo_offers:
-                for off in group.get("promotionalOffers", []):
-                    # Descuento del 100% (discountPercentage == 0 en el setting de Epic)
-                    if off.get("discountSetting", {}).get("discountPercentage") == 0:
-                        try:
-                            start = datetime.datetime.fromisoformat(off["startDate"].replace("Z", "+00:00"))
-                            end = datetime.datetime.fromisoformat(off["endDate"].replace("Z", "+00:00"))
-                            if start <= ahora_utc <= end:
-                                activa_hoy = True
-                                break
-                        except Exception:
-                            pass
-                if activa_hoy:
-                    break
-
-            if not activa_hoy:
-                continue
-
-            title = str(el.get("title") or "").strip()
-            if not title:
-                continue
-
-            desc = str(el.get("description") or "").strip()
-            worth_val = round(original_price_cents / 100.0, 2)
-            worth_str = f"${worth_val:.2f}"
-
-            thumb = None
-            for img in el.get("keyImages", []):
-                if img.get("type") in ("OfferImageWide", "Thumbnail", "DieselStoreFrontWide"):
-                    thumb = img.get("url")
-                    break
-            if not thumb and el.get("keyImages"):
-                thumb = el.get("keyImages")[0].get("url")
-
-            # Resolución canónica del enlace directo
-            slug = None
-            mappings = el.get("offerMappings") or []
-            if mappings and mappings[0].get("pageSlug"):
-                slug = mappings[0].get("pageSlug")
-            elif el.get("productSlug"):
-                slug = el.get("productSlug")
-            elif el.get("urlSlug"):
-                slug = el.get("urlSlug")
-
-            giveaway_url = f"https://store.epicgames.com/es-ES/p/{slug}" if slug else "https://store.epicgames.com/free-games"
-
-            juegos.append({
-                "id": f"epic_{el.get('id', title)}",
-                "title": title,
-                "worth": worth_str,
-                "worth_value": worth_val,
-                "thumbnail": thumb,
-                "image": thumb,
-                "description": desc,
-                "instructions": "Reclama el juego gratis en la tienda de Epic Games.",
-                "open_giveaway_url": giveaway_url,
-                "published_date": "",
-                "type": "Game",
-                "platforms": "PC",
-                "store": "Epic Games",
-            })
-    except Exception as err:
-        print(f"⚠️ Error consultando Epic Games directo: {err}")
-    return juegos
-
-
-def _obtener_steam_directo():
-    """Consulta oficial a Steam filtrando ofertas temporales al 100% de descuento activas."""
-    juegos = []
-    try:
-        url = "https://store.steampowered.com/api/featuredcategories"
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-        res = requests.get(url, headers=headers, timeout=5)
-        if res.status_code == 200:
-            data = res.json()
-            specials = data.get("specials", {}).get("items", [])
-            for it in specials:
-                orig_cents = it.get("original_price", 0)
-                final_cents = it.get("final_price", -1)
-                discount_pct = it.get("discount_percent", 0)
-                if orig_cents > 0 and (final_cents == 0 or discount_pct == 100):
-                    worth_val = round(orig_cents / 100.0, 2)
-                    juegos.append({
-                        "id": f"steam_{it.get('id')}",
-                        "title": it.get("name"),
-                        "worth": f"${worth_val:.2f}",
-                        "worth_value": worth_val,
-                        "thumbnail": it.get("header_image"),
-                        "image": it.get("header_image"),
-                        "description": f"Oferta 100% gratuita en Steam: {it.get('name')}.",
-                        "instructions": "Añádelo gratis a tu cuenta de Steam para siempre.",
-                        "open_giveaway_url": f"https://store.steampowered.com/app/{it.get('id')}/",
-                        "published_date": "",
-                        "type": "Game",
-                        "platforms": "PC, Steam",
-                        "store": "Steam",
-                    })
-    except Exception as err:
-        print(f"⚠️ Error consultando Steam directo: {err}")
-    return juegos
-
-
-
-
-def _obtener_itch_directo():
-    """Consulta oficial a Itch.io filtrando ofertas activas al 100% de descuento."""
-    juegos = []
-    try:
-        url = "https://itch.io/games/on-sale?format=json"
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-        res = requests.get(url, headers=headers, timeout=6)
-        if res.status_code != 200:
-            return []
-        data = res.json()
-        content_html = data.get("content", "")
-        chunks = content_html.split('data-game_id="')[1:]
-
-        for chunk in chunks:
-            if "-100%" not in chunk and 'class="price_value">$0</div>' not in chunk:
-                continue
-
-            game_id = chunk.split('"')[0]
-
-            title_m = re.search(r'<div class="game_title">\s*<a[^>]+href="([^"]+)"[^>]*>([^<]+)</a>', chunk)
-            if not title_m:
-                continue
-            url_juego = title_m.group(1)
-            titulo = html.unescape(title_m.group(2).strip())
-
-            img_m = re.search(r'data-lazy_src="([^"]+)"', chunk) or re.search(r'src="([^"]+)"', chunk)
-            imagen = img_m.group(1) if img_m else None
-
-            desc_m = re.search(r'class="game_text"[^>]*title="([^"]+)"', chunk) or re.search(r'class="game_text"[^>]*>([^<]+)<', chunk)
-            desc = html.unescape(desc_m.group(1).strip()) if desc_m else f"Oferta 100% gratuita en Itch.io: {titulo}"
-
-            juegos.append({
-                "id": f"itch_{game_id}",
-                "title": titulo,
-                "worth": "100% OFF",
-                "worth_value": 0.0,
-                "thumbnail": imagen,
-                "image": imagen,
-                "description": desc,
-                "instructions": "Reclama o descarga gratis en Itch.io.",
-                "open_giveaway_url": url_juego,
-                "published_date": "",
-                "type": "Game",
-                "platforms": "PC",
-                "store": "Itch.io",
-            })
-    except Exception as err:
-        print(f"⚠️ Error consultando Itch.io directo: {err}")
-    return juegos
-
-
-def _obtener_gog_directo():
-    """Consulta oficial a GOG catalogando ofertas activas con 100% de descuento."""
-    juegos = []
-    try:
-        url = "https://catalog.gog.com/v1/catalog?limit=48&order=desc:bestselling&discounted=eq:true"
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-        res = requests.get(url, headers=headers, timeout=6)
-        if res.status_code != 200:
-            return []
-        data = res.json()
-        products = data.get("products", [])
-
-        for p in products:
-            price_info = p.get("price") or {}
-            final_money = price_info.get("finalMoney") or {}
-            base_money = price_info.get("baseMoney") or {}
-
-            try:
-                final_val = float(final_money.get("amount", -1))
-                base_val = float(base_money.get("amount", 0))
-            except (ValueError, TypeError):
-                continue
-
-            if final_val == 0.0 and base_val > 0.0:
-                titulo = p.get("title", "").strip()
-                slug = p.get("slug", "")
-                link = p.get("storeLink") or f"https://www.gog.com/game/{slug}"
-                img = p.get("coverHorizontal") or p.get("coverVertical")
-
-                juegos.append({
-                    "id": f"gog_{p.get('id', slug)}",
-                    "title": titulo,
-                    "worth": f"${base_val:.2f}",
-                    "worth_value": base_val,
-                    "thumbnail": img,
-                    "image": img,
-                    "description": f"Juego gratuito con 100% de descuento en GOG: {titulo}.",
-                    "instructions": "Reclama el juego gratis para siempre en GOG.",
-                    "open_giveaway_url": link,
-                    "published_date": "",
-                    "type": "Game",
-                    "platforms": "PC, DRM-Free",
-                    "store": "GOG",
-                })
-    except Exception as err:
-        print(f"⚠️ Error consultando GOG directo: {err}")
-    return juegos
-
 class _BusquedaWorker(QObject):
     terminado = Signal(object, str)
     error = Signal(str)
 
     def run(self):
+        import requests
         # 1. Proveedor principal (GamerPower) con timeout ultra-ágil (1.2s)
         try:
             response = requests.get(API_URL, headers=API_HEADERS, timeout=(1.2, 2.5))
@@ -503,7 +259,7 @@ def buscar_juegos(self):
     worker.terminado.connect(thread.quit)
     worker.error.connect(thread.quit)
     thread.finished.connect(worker.deleteLater)
-    thread.finished.connect(thread.deleteLater)
+    thread.finished.connect(worker.deleteLater)
     self._busqueda_thread = thread
     self._busqueda_worker = worker
     thread.start()
@@ -547,15 +303,7 @@ def actualizar_insignias(self, conteos):
 
 
 def _clear_layout(self, layout):
-    while layout.count():
-        item = layout.takeAt(0)
-        widget = item.widget()
-        child_layout = item.layout()
-        if widget is not None:
-            widget.setParent(None)
-            widget.deleteLater()
-        elif child_layout is not None:
-            self._clear_layout(child_layout)
+    pass
 
 
 def _actualizar_visibilidad_contenedor_juegos(self):
@@ -573,56 +321,83 @@ def _actualizar_vista_juegos(self):
     if root is not None:
         root.setUpdatesEnabled(False)
     try:
-        self._clear_layout(self.frame_lista_layout)
         self._actualizar_visibilidad_contenedor_juegos()
 
+        juegos_visibles_ordenados = []
+        juegos_a_mostrar_map = {}
+
         if getattr(self, "mostrando_reclamados", False):
-            self._mostrar_lista_reclamados()
-            return
-
-        tiendas = [s for s, a in self.active_filters.items() if a]
-        if not tiendas:
-            return
-
-        for store in tiendas:
-            juegos = [
+            lista_reclamados = sorted(self.reclamados.values(), key=lambda j: j.get('title', ''))
+            for juego in lista_reclamados:
+                clave = self._clave_juego(juego)
+                juegos_visibles_ordenados.append(clave)
+                juegos_a_mostrar_map[clave] = {'juego': juego, 'tienda': "Reclamados"}
+        else:
+            tiendas_activas = {s for s, a in self.active_filters.items() if a}
+            juegos_filtrados = [
                 j for j in self.juegos_cache_global
-                if self._asignar_tienda(j) == store and not self._esta_reclamado(j)
+                if self._asignar_tienda(j) in tiendas_activas and not self._esta_reclamado(j)
             ]
-            open_ = self.acordeon_estados.get(store, True)
+            juegos_por_tienda = {}
+            for juego in juegos_filtrados:
+                tienda = self._asignar_tienda(juego)
+                if tienda not in juegos_por_tienda:
+                    juegos_por_tienda[tienda] = []
+                juegos_por_tienda[tienda].append(juego)
 
-            header = QFrame()
-            header.setObjectName("storeHeader")
-            header_layout = QHBoxLayout(header)
-            header_layout.setContentsMargins(0, 0, 0, 0)
-            header_layout.setSpacing(0)
+            for tienda in sorted(juegos_por_tienda.keys()):
+                clave_header = f"header_{tienda}"
+                juegos_visibles_ordenados.append(clave_header)
+                juegos_a_mostrar_map[clave_header] = {'tienda': tienda, 'juegos_count': len(juegos_por_tienda[tienda])}
 
-            arrow = "▼" if open_ else "▶"
-            header_button = QPushButton(f"{arrow}  {store.upper()}")
-            header_button.setObjectName("storeHeaderButton")
-            header_button.clicked.connect(lambda checked=False, s=store: self._toggle_acordeon(s))
-            header_layout.addWidget(header_button)
+                if self.acordeon_estados.get(tienda, True):
+                    for juego in sorted(juegos_por_tienda[tienda], key=lambda j: j.get('title', '')):
+                        clave = self._clave_juego(juego)
+                        juegos_visibles_ordenados.append(clave)
+                        juegos_a_mostrar_map[clave] = {'juego': juego, 'tienda': tienda}
 
-            count_label = QLabel(f"{len(juegos)} ofertas")
-            count_label.setObjectName("offerCount")
-            header_layout.addWidget(count_label)
-            self.frame_lista_layout.addWidget(header)
+        widgets_actuales = set(self.game_widgets_map.keys())
+        widgets_necesarios = set(juegos_visibles_ordenados)
 
-            if not open_:
-                continue
+        for clave in widgets_actuales - widgets_necesarios:
+            widget = self.game_widgets_map.pop(clave)
+            widget.setParent(None)
+            widget.deleteLater()
 
-            if not juegos:
-                empty = QLabel(f"No hay elementos disponibles en {store} actualmente.")
-                empty.setObjectName("emptyLabel")
-                empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                empty.setMinimumHeight(30)
-                self.frame_lista_layout.addWidget(empty)
-                continue
+        for i, clave in enumerate(juegos_visibles_ordenados):
+            if clave not in self.game_widgets_map:
+                data = juegos_a_mostrar_map[clave]
+                if clave.startswith("header_"):
+                    tienda = data['tienda']
+                    open_ = self.acordeon_estados.get(tienda, True)
+                    header = QFrame()
+                    header.setObjectName("storeHeader")
+                    header_layout = QHBoxLayout(header)
+                    header_layout.setContentsMargins(0, 0, 0, 0)
+                    header_layout.setSpacing(0)
+                    arrow = "▼" if open_ else "▶"
+                    header_button = QPushButton(f"{arrow}  {tienda.upper()}")
+                    header_button.setObjectName("storeHeaderButton")
+                    header_button.clicked.connect(lambda checked=False, s=tienda: self._toggle_acordeon(s))
+                    header_layout.addWidget(header_button)
+                    count_label = QLabel(f"{data['juegos_count']} ofertas")
+                    count_label.setObjectName("offerCount")
+                    header_layout.addWidget(count_label)
+                    widget = header
+                else:
+                    widget = GameCard(self, data['juego'], data['tienda'])
+                self.game_widgets_map[clave] = widget
 
-            for juego in juegos:
-                self.frame_lista_layout.addWidget(GameCard(self, juego, store))
+            widget = self.game_widgets_map[clave]
+            self.frame_lista_layout.insertWidget(i, widget)
+        
+        while self.frame_lista_layout.count() > len(juegos_visibles_ordenados):
+            item = self.frame_lista_layout.takeAt(len(juegos_visibles_ordenados))
+            if item.widget():
+                item.widget().deleteLater()
 
         self.frame_lista_layout.addStretch(1)
+
     finally:
         if root is not None:
             root.setUpdatesEnabled(True)
@@ -643,6 +418,7 @@ def _toggle_acordeon(self, store):
 
 
 def instalar_metodos(cls):
+    cls.game_widgets_map = {}
     cls._limpiar_hilo_busqueda = _limpiar_hilo_busqueda
     cls._set_status = _set_status
     cls._recibir_resultados_busqueda = _recibir_resultados_busqueda
@@ -658,3 +434,8 @@ def instalar_metodos(cls):
     cls._actualizar_visibilidad_contenedor_juegos = _actualizar_visibilidad_contenedor_juegos
     cls._actualizar_vista_juegos = _actualizar_vista_juegos
     cls._toggle_acordeon = _toggle_acordeon
+
+
+
+
+

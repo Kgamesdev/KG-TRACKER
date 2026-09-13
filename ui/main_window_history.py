@@ -1,5 +1,5 @@
-from core.i18n import t
-"""Histƒ³rico de juegos reclamados."""
+﻿from core.i18n import t
+"""HistÆ’Â³rico de juegos reclamados."""
 
 
 
@@ -25,7 +25,7 @@ from config import (
 
 )
 
-from ui.game_card import GameCard
+from ui.components.game_card import GameCard
 
 
 
@@ -283,7 +283,7 @@ def _guardar_reclamados(self):
 
   except Exception as e:
 
-    QMessageBox.warning(self, "Aviso", f"No se pudo guardar el histƒ³rico de reclamados:\n{e}")
+    QMessageBox.warning(self, "Aviso", f"No se pudo guardar el histÆ’Â³rico de reclamados:\n{e}")
 
 
 
@@ -357,7 +357,7 @@ def _alternar_reclamado(self, juego):
 
       "id": juego.get("id"),
 
-      "title": str(juego.get("title") or "Elemento sin tƒ­tulo"),
+      "title": str(juego.get("title") or "Elemento sin tÆ’Â­tulo"),
 
       "store": self._asignar_tienda(juego),
 
@@ -527,7 +527,7 @@ def _mostrar_lista_reclamados(self):
 
       "id": registro.get("id"),
 
-      "title": registro.get("title", "Elemento sin tƒ­tulo"),
+      "title": registro.get("title", "Elemento sin tÆ’Â­tulo"),
 
       "store": registro.get("store", ""),
 
@@ -610,6 +610,7 @@ def instalar_metodos(cls):
 
 
   cls._mostrar_lista_reclamados = _mostrar_lista_reclamados
+
 
 
 

@@ -1,4 +1,4 @@
-import os
+﻿import os
 import config
 
 from PySide6.QtCore import Qt, QSize
@@ -265,7 +265,7 @@ class GameCard(QFrame):
     info = QVBoxLayout()
     info.setSpacing(4)
 
-    title = QLabel(str(juego.get("title", "Elemento sin título")))
+    title = QLabel(str(juego.get("title", "Elemento sin tÃ­tulo")))
     title.setObjectName("gameTitle")
     title.setWordWrap(True)
     info.addWidget(title)
@@ -364,7 +364,7 @@ class GameCard(QFrame):
     self._consultar_steam()
 
   def _mostrar_placeholder_tienda(self):
-    """Muestra el nombre de la tienda en texto tipográfico limpio sin logotipos comerciales."""
+    """Muestra el nombre de la tienda en texto tipogrÃ¡fico limpio sin logotipos comerciales."""
     self._image_label.setPixmap(QPixmap())
     self._image_label.setText(str(self.nombre_tienda).upper())
 
@@ -427,7 +427,7 @@ class GameCard(QFrame):
     if not datos:
       return
 
-    # Si la foto original de la tienda falló y Steam tiene carátula oficial de respaldo:
+    # Si la foto original de la tienda fallÃ³ y Steam tiene carÃ¡tula oficial de respaldo:
     banner = datos.get("banner_url")
     if banner and not getattr(self, "_imagen_cargada_con_exito", False):
       self._load_image(banner)

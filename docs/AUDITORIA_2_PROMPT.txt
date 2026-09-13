@@ -1,0 +1,496 @@
+AUDITORÍA 2 — VERIFICACIÓN FORENSE DEL INFORME ANTERIOR
+
+IMPORTANTE:
+NO MODIFIQUES NINGÚN ARCHIVO.
+NO CREES ARCHIVOS DE CÓDIGO.
+NO HAGAS REFACTORIZACIONES.
+NO APLIQUES NINGUNA SOLUCIÓN.
+
+Tu única tarea es VERIFICAR contra el código fuente REAL del proyecto KG Tracker los hallazgos del informe de auditoría anterior.
+
+Debes ignorar las conclusiones del informe como hechos demostrados.
+Trata cada hallazgo como una HIPÓTESIS que debe demostrarse mediante inspección directa del código.
+
+PROYECTO:
+KG Tracker
+Windows
+Python 3.14+
+PySide6 / Qt6
+
+==================================================
+OBJETIVO
+==================================================
+
+Para CADA hallazgo determina:
+
+1. ¿Existe realmente?
+2. ¿Dónde está exactamente?
+3. ¿Qué archivo?
+4. ¿Qué función/clase?
+5. ¿Qué líneas?
+6. ¿Qué flujo de ejecución lo provoca?
+7. ¿Es reproducible mediante análisis estático?
+8. ¿Cuál es el impacto REAL?
+9. ¿La prioridad asignada por la auditoría anterior es correcta?
+10. ¿La solución propuesta realmente corrige el problema?
+
+Clasifica cada hallazgo únicamente como:
+
+CONFIRMADO
+PARCIALMENTE CONFIRMADO
+FALSO POSITIVO
+NO VERIFICABLE CON EL CÓDIGO ACTUAL
+
+==================================================
+REGLAS
+==================================================
+
+- NO modificar archivos.
+- NO ejecutar migraciones.
+- NO instalar dependencias.
+- NO eliminar código.
+- NO cambiar requirements.txt.
+- NO cambiar package.json.
+- NO hacer commits.
+- NO generar parches.
+
+Puedes ejecutar comandos de lectura, búsqueda, análisis estático y tests NO destructivos.
+
+Si ejecutas código, debe ser únicamente para observar comportamiento y nunca para modificar datos del proyecto.
+
+No aceptes como evidencia una simple coincidencia de texto.
+
+Debes seguir el flujo real de ejecución.
+
+==================================================
+P0 #1 — STEAM CACHE
+==================================================
+
+Verifica exhaustivamente:
+
+core/steam_enricher.py
+
+Determina:
+
+- dónde se crea self.cache
+- quién accede a self.cache
+- desde qué hilos/QThreads/QRunnables
+- si varios workers pueden ejecutar simultáneamente
+- si las lecturas están protegidas
+- si las escrituras están protegidas
+- si _guardar_cache puede ejecutarse concurrentemente
+- si utiliza archivo temporal
+- si varios workers utilizan exactamente el mismo archivo temporal
+- si os.replace puede ejecutarse concurrentemente
+- si existe riesgo real de pérdida/corrupción de cache
+- si el dict compartido constituye realmente un problema en este diseño concreto
+
+NO afirmar "corrupción de memoria" salvo evidencia técnica real.
+
+Explica el escenario concreto de carrera.
+
+==================================================
+P0 #2 — GAME TRANSLATOR CACHE
+==================================================
+
+Inspecciona:
+
+core/translator.py
+
+Determina:
+
+- cómo se crea translations_cache
+- quién la modifica
+- cuántos QThreads/workers pueden acceder
+- cómo se persiste
+- si existe lock
+- si hay escritura concurrente
+- si existe archivo temporal compartido
+- si el problema descrito realmente existe
+
+==================================================
+P0 #3 — POWERSHELL AUDIO
+==================================================
+
+Inspecciona:
+
+core/audio.py
+
+Determina exactamente:
+
+- cómo se genera ruta_temp
+- de dónde procede
+- quién controla su contenido
+- si puede contener caracteres especiales
+- si puede contener comillas
+- si puede contener metacaracteres PowerShell
+- si un usuario externo puede influir en ella
+- si el comando realmente permite command injection
+- construye un escenario de explotación TEÓRICO si existe
+- determina si sería explotación remota, local o únicamente un fallo de rutas
+- determina si winsound o pygame ya están disponibles en el proyecto
+
+IMPORTANTE:
+No llames automáticamente a esto "RCE" si el atacante necesita modificar previamente archivos locales.
+
+Determina el riesgo real.
+
+==================================================
+P0 #4 — RECLAMADOS.JSON
+==================================================
+
+Inspecciona:
+
+ui/main_window_history.py
+core/storage.py
+
+Comprueba:
+
+- cómo se carga reclamados.json
+- cómo se guarda
+- todas las funciones que pueden escribirlo
+- si guardar_json_atomico existe realmente
+- si _guardar_reclamados lo utiliza o no
+- si existen otros escritores
+- qué ocurre ante crash durante open(...,"w")
+- si existe backup
+- si existe recuperación
+- si realmente puede perderse todo el historial
+
+Determina también si utilizar guardar_json_atomico sería compatible con el formato actual.
+
+==================================================
+P0 #5 — CÓDIGO DUPLICADO / MERGE ARTIFACTS
+==================================================
+
+Inspecciona:
+
+ui/main_window_helpers.py
+ui/main_window_history.py
+
+Busca:
+
+- funciones duplicadas
+- definiciones sobrescritas
+- código inalcanzable
+- imports inútiles
+- bloques huérfanos
+- restos de refactorizaciones
+- errores de indentación
+- código que aparentemente no tiene efecto
+
+Para cada uno indica:
+
+archivo
+líneas
+qué ocurre realmente en runtime
+gravedad real
+
+NO clasifiques como P0 algo que solamente sea deuda de limpieza si no provoca un fallo funcional.
+
+==================================================
+P1 — REQUESTS SESSION
+==================================================
+
+Inspecciona:
+
+core/steam_enricher.py
+
+Determina:
+
+- dónde se crea requests.Session
+- quién la utiliza
+- desde qué hilos
+- si requests.Session se comparte realmente entre workers
+- si el patrón utilizado es oficialmente problemático
+- qué estado mutable se comparte
+- si existe evidencia de riesgo real en esta aplicación
+
+No asumir que "Session no es thread-safe" equivale automáticamente a vulnerabilidad.
+
+==================================================
+P1 — MONKEY PATCHING
+==================================================
+
+Inspecciona:
+
+ui/main_window.py
+todos los main_window_*.py
+
+Determina:
+
+- cuántos métodos se inyectan
+- cómo
+- cuándo
+- si Pyright/Mypy realmente perderían información
+- si VS Code puede navegar a las funciones
+- si existen errores funcionales derivados
+- si realmente es necesario convertirlo inmediatamente a Mixins
+
+Clasifica esto como:
+BUG
+DEUDA TÉCNICA
+DECISIÓN ARQUITECTÓNICA
+
+==================================================
+P1 — ITCH.IO SCRAPER
+==================================================
+
+Inspecciona:
+
+ui/main_window_games.py
+
+Determina:
+
+- cómo se obtiene HTML
+- cómo se parsea
+- si existe parser HTML en dependencias
+- qué tan frágil es realmente
+- si existe fallback
+- qué ocurre si cambia el HTML
+
+==================================================
+P2 — RENDERIZADO
+==================================================
+
+Inspecciona:
+
+_actualizar_vista_juegos
+_clear_layout
+GameCard
+
+Determina:
+
+- cuántos widgets se destruyen
+- cuándo
+- si se reutilizan
+- si se disparan de nuevo cargas de imágenes
+- si se disparan nuevas peticiones Steam
+- si existen caches que mitiguen el problema
+
+NO asumir impacto de rendimiento sin evidencia.
+
+==================================================
+P2 — ANIMACIÓN
+==================================================
+
+Inspecciona:
+
+ui/game_card.py
+
+Determina:
+
+- cómo funciona _anim
+- frecuencia real
+- loop
+- duración
+- cuándo se inicia
+- cuándo se detiene
+- qué widget se repinta
+- si realmente consume CPU en idle
+- si la afirmación de 3–8% CPU está justificada
+
+NO aceptes cifras de rendimiento sin medición.
+
+==================================================
+P2 — GIVEAWAYS CACHE
+==================================================
+
+Inspecciona:
+
+ui/main_window_games.py
+core/storage.py
+
+Determina si giveaways_cache.json realmente se escribe sin protección atómica y todos sus escritores.
+
+==================================================
+DEPENDENCIAS
+==================================================
+
+Analiza realmente:
+
+requirements.txt
+package.json
+package-lock.json
+
+Comprueba mediante búsqueda completa del repositorio:
+
+- numpy
+- pillow
+- plyer
+- pygame
+- PySide6
+- requests
+- @google/genai
+
+Busca imports y usos reales.
+
+NO eliminar nada.
+
+Solo determinar:
+
+USADO
+NO USADO
+USO INDIRECTO
+NO DETERMINABLE
+
+==================================================
+TESTS
+==================================================
+
+Inspecciona tests/
+
+Determina:
+
+- número real de tests
+- módulos cubiertos
+- módulos sin tests
+- si es correcto afirmar "<2% coverage"
+- NO ejecutar cobertura destructiva.
+
+==================================================
+LOGGING
+==================================================
+
+Busca todos los print() del proyecto.
+
+Determina:
+
+- cuántos existen
+- cuáles son deliberados
+- cuáles deberían ser logger
+- si logger.py realmente está disponible
+- si reemplazarlos sería seguro.
+
+==================================================
+LICENCIA
+==================================================
+
+Inspecciona:
+
+README.md
+LICENSE
+pyproject.toml
+setup.py
+otros metadatos
+
+Determina exactamente qué licencia declara cada archivo.
+
+NO interpretar legalmente.
+Solo documentar la contradicción técnica.
+
+==================================================
+SALIDA OBLIGATORIA
+==================================================
+
+Genera un informe en la respuesta con EXACTAMENTE esta estructura:
+
+# AUDITORÍA 2 — VERIFICACIÓN
+
+## Resumen
+
+Tabla:
+
+| ID | Hallazgo | Resultado | Prioridad propuesta | Prioridad real |
+|----|----------|-----------|---------------------|----------------|
+
+Resultados permitidos:
+
+CONFIRMADO
+PARCIALMENTE CONFIRMADO
+FALSO POSITIVO
+NO VERIFICABLE
+
+---
+
+## P0
+
+### P0-01 Steam cache
+Resultado:
+Evidencia:
+Archivos:
+Líneas:
+Flujo:
+Impacto real:
+Escenario de carrera:
+Prioridad recomendada:
+Solución recomendada:
+
+### P0-02 Translator cache
+...
+
+### P0-03 PowerShell
+...
+
+### P0-04 reclamados.json
+...
+
+### P0-05 código duplicado
+...
+
+---
+
+## P1
+
+...
+
+---
+
+## P2
+
+...
+
+---
+
+## Dependencias
+
+Tabla:
+
+| Dependencia | Estado | Evidencia |
+|-------------|--------|-----------|
+
+---
+
+## Tests
+
+...
+
+---
+
+## Logging
+
+...
+
+---
+
+## Licencia
+
+...
+
+---
+
+# CONCLUSIÓN FINAL
+
+Divide los hallazgos en:
+
+### ARREGLAR INMEDIATAMENTE
+Solo problemas reales de estabilidad, seguridad o integridad de datos.
+
+### ARREGLAR PRÓXIMAMENTE
+Problemas reales pero no críticos.
+
+### DEUDA TÉCNICA
+Problemas arquitectónicos que no requieren intervención inmediata.
+
+### DESCARTAR
+Falsos positivos o afirmaciones no sustentadas.
+
+==================================================
+REGLA FINAL
+==================================================
+
+Tu trabajo NO es arreglar el proyecto.
+
+Tu trabajo es demostrar cuáles de las afirmaciones de la auditoría anterior son verdaderas.
+
+NO MODIFIQUES NINGÚN ARCHIVO.

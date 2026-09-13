@@ -1,4 +1,4 @@
-from core.tray import GameTrackerTray
+﻿from core.tray import GameTrackerTray
 """Ventana principal coordinadora de K GAME TRACKER."""
 
 import sys
@@ -11,10 +11,10 @@ from PySide6.QtGui import QIcon
 
 from config import WINDOW_TITLE, ICON_PATH, LOGO_PATH, STORES_MAPPING
 from core.images import limpiar_cache_imagenes
-from ui.kofi_modal import KofiModal
-from ui.settings_modal import SettingsModal
-from ui.game_card import RoundedButton, VolumeSlider, GameCard
-from ui.store_widget import StoreWidget
+from ui.modals.kofi_modal import KofiModal
+from ui.modals.settings_modal import SettingsModal
+from ui.components.game_card import RoundedButton, VolumeSlider, GameCard
+from ui.components.store_widget import StoreWidget
 from ui.main_window_theme import instalar_metodos as instalar_metodos_tema
 from ui.main_window_ui import instalar_metodos as instalar_metodos_ui
 from ui.main_window_audio import instalar_metodos as instalar_metodos_audio
@@ -33,10 +33,10 @@ class VentanaPrincipal(QMainWindow):
         self.parent = parent
         self.al_cerrar_app = al_cerrar_app
 
-        # Alias de compatibilidad con el código existente.
+        # Alias de compatibilidad con el cÃ³digo existente.
         self.ventana = self
 
-        # 1. Congelar el motor de renderizado antes de que nazca un solo elemento gráfico
+        # 1. Congelar el motor de renderizado antes de que nazca un solo elemento grÃ¡fico
         self.setUpdatesEnabled(False)
 
         self.setWindowTitle(WINDOW_TITLE)
@@ -63,7 +63,7 @@ class VentanaPrincipal(QMainWindow):
         self._apply_theme_qss()
         self._ajustar_ventana_por_estado(False)
         
-        # Preparar la capa interna para un desvanecimiento óptico limpio
+        # Preparar la capa interna para un desvanecimiento Ã³ptico limpio
         if self.centralWidget():
             self._efecto_entrada = QGraphicsOpacityEffect(self.centralWidget())
             self.centralWidget().setGraphicsEffect(self._efecto_entrada)
@@ -76,21 +76,21 @@ class VentanaPrincipal(QMainWindow):
         """Intercepta el instante exacto en que la ventana se posiciona en Windows."""
         super().showEvent(event)
         
-        # 2. Descongelar los gráficos e iniciar el Fade In fluido solo cuando la geometría es 100% estable
+        # 2. Descongelar los grÃ¡ficos e iniciar el Fade In fluido solo cuando la geometrÃ­a es 100% estable
         if not self.updatesEnabled():
             self.setUpdatesEnabled(True)
-            QApplication.processEvents() # Forzar sincronización del búfer de vídeo
+            QApplication.processEvents() # Forzar sincronizaciÃ³n del bÃºfer de vÃ­deo
             
             if self.centralWidget() and hasattr(self, '_efecto_entrada'):
                 self._anim_entrada = QPropertyAnimation(self._efecto_entrada, b"opacity")
-                self._anim_entrada.setDuration(480) # Duración sedosa cinematográfica
+                self._anim_entrada.setDuration(480) # DuraciÃ³n sedosa cinematogrÃ¡fica
                 self._anim_entrada.setStartValue(0.0)
                 self._anim_entrada.setEndValue(1.0)
                 self._anim_entrada.setEasingCurve(QEasingCurve.Type.OutCubic)
                 self._anim_entrada.start()
 
 
-# Los métodos especializados se instalan en la misma clase para conservar
+# Los mÃ©todos especializados se instalan en la misma clase para conservar
 # exactamente la API y las llamadas self existentes.
 instalar_metodos_tema(VentanaPrincipal)
 instalar_metodos_ui(VentanaPrincipal)
@@ -107,5 +107,7 @@ if __name__ == "__main__":
     window = VentanaPrincipal()
     window.show()
     sys.exit(app.exec())
+
+
 
 

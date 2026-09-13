@@ -1,5 +1,13 @@
 ﻿# Changelog
 
+## [v0.1.24] - 2026-09-13 (Stable)
+
+### Interfaz Gráfica (UI/UX) y Animaciones
+* **Efecto Paper Tilt dinámico (ui/components/store_widget.py):** Animación avanzada de inclinación y zoom fluido en las burbujas de las tiendas según la posición exacta del cursor.
+* **Limpieza visual de hover:** Eliminado el destello de fondo azulado para lograr una transición de diseño mucho más limpia, moderna y profesional.
+
+
+
 ## [v0.1.21] - 2026-09-11 (Stable)
 
 ### Rendimiento y Optimización de Carga
@@ -191,3 +199,4 @@ Los cambios relevantes de KG Game Tracker se documentan en este archivo.
 
 - Retirada progresiva de componentes heredados de Tkinter.
 - Limpieza de imÃ¡genes y paneles obsoletos.
+

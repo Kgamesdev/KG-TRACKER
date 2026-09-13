@@ -19,3 +19,15 @@ q
 BACKUP_*
 iconografíadata/giveaways_cache.json*
 data/giveaways_cache.json*
+
+# Node.js
+node_modules/
+
+
+# AI audit context
+CONTEXTO_PROYECTO.md
+
+
+# AI audit context
+CONTEXTO_PROYECTO.md
+
