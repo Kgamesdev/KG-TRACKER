@@ -18,11 +18,12 @@ class _ImageWorkerSignals(QObject):
 class _ImageDownloadWorker(QRunnable):
     """Worker que descarga, cachea y pre-escala la imagen en un hilo secundario."""
 
-    def __init__(self, url: str, ruta_disco: str, target_size: tuple = (190, 104)):
+    def __init__(self, url: str, ruta_disco: str, target_size: tuple = (190, 104), session: requests.Session = None):
         super().__init__()
         self.url = url
         self.ruta_disco = ruta_disco
         self.target_size = target_size
+        self.session = session
         self.signals = _ImageWorkerSignals()
 
     def run(self):
@@ -33,7 +34,8 @@ class _ImageDownloadWorker(QRunnable):
             )
         }
         try:
-            resp = requests.get(self.url, headers=headers, timeout=8)
+            requester = self.session if self.session is not None else requests
+            resp = requester.get(self.url, headers=headers, timeout=8)
             if resp.status_code == 200:
                 img = QImage()
                 if img.loadFromData(resp.content):
@@ -76,6 +78,10 @@ class ImageLoader(QObject):
         self._ram_cache = {}          # url -> QPixmap
         self._descargas_en_curso = {}  # url -> lista de callbacks pendientes
         self._pool = QThreadPool.globalInstance()
+        self._session = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(pool_connections=12, pool_maxsize=12)
+        self._session.mount("https://", adapter)
+        self._session.mount("http://", adapter)
 
     def _ruta_cache(self, url: str) -> str:
         hash_url = hashlib.sha256(url.encode("utf-8")).hexdigest()
@@ -119,7 +125,7 @@ class ImageLoader(QObject):
         self._descargas_en_curso[url] = [callback]
 
         # 4. Lanzar Worker asíncrono
-        worker = _ImageDownloadWorker(url, ruta, target_size)
+        worker = _ImageDownloadWorker(url, ruta, target_size, session=self._session)
         worker.signals.completado.connect(self._al_terminar_descarga)
         self._pool.start(worker)
 

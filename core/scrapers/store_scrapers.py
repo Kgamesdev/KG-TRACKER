@@ -12,6 +12,18 @@ from logger import log_info, log_warning, log_error
 
 CACHE_GIVEAWAYS_FILE = os.path.join(BASE_DIR, "data", "giveaways_cache.json")
 
+_session_scrapers = None
+
+def _obtener_sesion_scrapers():
+    global _session_scrapers
+    if _session_scrapers is None:
+        _session_scrapers = requests.Session()
+        adapter = requests.adapters.HTTPAdapter(pool_connections=8, pool_maxsize=8)
+        _session_scrapers.mount("https://", adapter)
+        _session_scrapers.mount("http://", adapter)
+    return _session_scrapers
+
+
 
 def guardar_en_cache_disco(giveaways):
     try:
@@ -70,13 +82,14 @@ def cargar_cache_otras_tiendas(excluir_tiendas=("Epic Games", "Itch.io", "GOG", 
     return juegos
 
 
-def obtener_epic_directo():
+def obtener_epic_directo(session=None):
     """Consulta oficial a Epic Games Store validando fecha UTC activa y precio 0.00 EUR."""
     juegos = []
     try:
         url = "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=es-ES&country=ES"
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-        res = requests.get(url, headers=headers, timeout=5)
+        s = session or _obtener_sesion_scrapers()
+        res = s.get(url, headers=headers, timeout=5)
         if res.status_code != 200:
             return []
         data = res.json()
@@ -157,13 +170,14 @@ def obtener_epic_directo():
     return juegos
 
 
-def obtener_steam_directo():
+def obtener_steam_directo(session=None):
     """Consulta oficial a Steam filtrando ofertas temporales al 100% de descuento activas."""
     juegos = []
     try:
         url = "https://store.steampowered.com/api/featuredcategories"
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-        res = requests.get(url, headers=headers, timeout=5)
+        s = session or _obtener_sesion_scrapers()
+        res = s.get(url, headers=headers, timeout=5)
         if res.status_code == 200:
             data = res.json()
             specials = data.get("specials", {}).get("items", [])
@@ -193,13 +207,14 @@ def obtener_steam_directo():
     return juegos
 
 
-def obtener_itch_directo():
+def obtener_itch_directo(session=None):
     """Consulta oficial a Itch.io filtrando ofertas activas al 100% de descuento."""
     juegos = []
     try:
         url = "https://itch.io/games/on-sale?format=json"
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-        res = requests.get(url, headers=headers, timeout=6)
+        s = session or _obtener_sesion_scrapers()
+        res = s.get(url, headers=headers, timeout=6)
         if res.status_code != 200:
             return []
         data = res.json()
@@ -260,13 +275,14 @@ def obtener_itch_directo():
     return juegos
 
 
-def obtener_gog_directo():
+def obtener_gog_directo(session=None):
     """Consulta oficial a GOG catalogando ofertas activas con 100% de descuento."""
     juegos = []
     try:
         url = "https://catalog.gog.com/v1/catalog?limit=48&order=desc:bestselling&discounted=eq:true"
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-        res = requests.get(url, headers=headers, timeout=6)
+        s = session or _obtener_sesion_scrapers()
+        res = s.get(url, headers=headers, timeout=6)
         if res.status_code != 200:
             return []
         data = res.json()

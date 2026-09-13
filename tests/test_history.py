@@ -100,5 +100,27 @@ class TestHistory(unittest.TestCase):
         self.assertEqual(url_juego, "https://itch.io/games/retro-quest")
         self.assertEqual(titulo, "Retro Quest")
 
+
+    def test_scrapers_aceptan_y_usan_sesion_http(self):
+        import requests
+        from unittest.mock import MagicMock
+        from core.scrapers.store_scrapers import (
+            obtener_epic_directo,
+            obtener_steam_directo,
+            obtener_itch_directo,
+            obtener_gog_directo,
+        )
+
+        mock_session = MagicMock(spec=requests.Session)
+        mock_resp = MagicMock()
+        mock_resp.status_code = 500  # Respuesta no-200 para retorno ágil
+        mock_session.get.return_value = mock_resp
+
+        self.assertEqual(obtener_epic_directo(session=mock_session), [])
+        self.assertEqual(obtener_steam_directo(session=mock_session), [])
+        self.assertEqual(obtener_itch_directo(session=mock_session), [])
+        self.assertEqual(obtener_gog_directo(session=mock_session), [])
+        self.assertEqual(mock_session.get.call_count, 4)
+
 if __name__ == "__main__":
     unittest.main()
