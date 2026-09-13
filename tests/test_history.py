@@ -1,4 +1,4 @@
-﻿import unittest
+import unittest
 from unittest.mock import MagicMock
 
 class TestHistory(unittest.TestCase):
@@ -47,6 +47,22 @@ class TestHistory(unittest.TestCase):
             # 4. cargar_json_seguro debe rescatar los datos desde el .bak automáticamente
             rescatados = cargar_json_seguro(test_file, valor_por_defecto={})
             self.assertIn("game:steam|portal", rescatados)
+
+
+    def test_actualizar_textos_idioma_incluye_volumen(self):
+        from ui.main_window_helpers import _actualizar_textos_idioma
+        mock_win = MagicMock()
+        mock_win.volume_label = MagicMock()
+        mock_win.btn_actualizar = MagicMock()
+        mock_win.btn_reclamados = MagicMock()
+        mock_win.status_pill = MagicMock()
+        mock_win.juegos_cache_global = []
+        mock_win.reclamados = {}
+        mock_win._esta_reclamado = MagicMock(return_value=False)
+
+        _actualizar_textos_idioma(mock_win)
+        mock_win.volume_label.setText.assert_called()
+        mock_win.btn_actualizar.setText.assert_called()
 
 if __name__ == "__main__":
     unittest.main()
