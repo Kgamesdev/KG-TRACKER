@@ -1,5 +1,12 @@
 ﻿# Changelog
 
+## [v0.1.34] - 2026-09-14 (Stable)
+
+### Infraestructura, Herramientas y Auditoría
+* **Herramientas de contexto PowerShell:** Nuevos scripts nativos `Studio_completo.ps1` y `Studio_reducido.ps1` para sincronización con Google AI Studio.
+* **Limpieza de dependencias y scripts obsoletos:** Retirados scripts desfasados de Node/JavaScript y eliminados residuos temporales del repositorio.
+* **Protección de repositorio:** Filtro en `.gitignore` para volcados dinámicos y bloqueos ofimáticos.
+* **Consolidación de suite de pruebas:** 6 pruebas unitarias automáticas activas y validadas al 100% cubriendo persistencia atómica, concurrencia, ahorro de energía e internacionalización.
 ## [v0.1.24] - 2026-09-13 (Stable)
 
 ### Interfaz Gráfica (UI/UX) y Animaciones

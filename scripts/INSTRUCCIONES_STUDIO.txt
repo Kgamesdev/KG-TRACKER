@@ -1,0 +1,63 @@
+KG TRACKER — CONTEXTOS PARA GOOGLE AI STUDIO
+==============================================
+
+Scripts:
+- Scripts\Studio_reducido.ps1
+- Scripts\Studio_completo.ps1
+
+USO NORMAL — STUDIO REDUCIDO
+----------------------------
+Ejecutar antes de empezar una conversación nueva en AI Studio.
+
+Desde la raíz del proyecto:
+.\Scripts\Studio_reducido.ps1
+
+Genera:
+Scripts\Studio_reducido.txt
+
+Contiene contexto general, estado Git, estructura y reglas, pero NO el código fuente completo.
+Límite duro: 120 KB.
+
+AUDITORÍA / DEBUGGING — STUDIO COMPLETO
+---------------------------------------
+Usar cuando Gemini necesite analizar el código real del proyecto.
+
+Desde la raíz del proyecto:
+.\Scripts\Studio_completo.ps1
+
+Genera:
+Scripts\Studio_completo.txt
+
+Incluye código técnico relevante de core, ui, tests, scripts y archivos raíz importantes.
+Límites duros:
+- 2 MB total
+- 160 KB por archivo
+- 70 archivos
+
+EXCLUSIONES
+-----------
+.git, .venv, venv, env, node_modules, __pycache__, caches, logs, build, dist,
+coverage, .idea, .vscode y otros artefactos generados/dependencias.
+
+SEGURIDAD
+---------
+Los scripts son de solo lectura respecto al proyecto:
+- no hacen commit
+- no hacen push
+- no borran archivos
+- no modifican código
+- solo leen Git y archivos para construir el contexto
+
+FLUJO RECOMENDADO
+-----------------
+1. Abre PowerShell en F:\KURIGAMESDEV\KG TRACKER.
+2. Ejecuta Studio_reducido.ps1 para el contexto habitual.
+3. Pasa Studio_reducido.txt a AI Studio.
+4. Para auditorías profundas, ejecuta Studio_completo.ps1 y pasa Studio_completo.txt.
+5. Las auditorías anteriores son hipótesis: Gemini debe verificar el código actual.
+6. No autorices cambios hasta revisar causa, impacto y validación.
+
+NOTA
+----
+Los scripts detectan la raíz desde su propia ubicación, pero se recomienda ejecutarlos desde
+la raíz del proyecto para mantener el flujo sencillo.
