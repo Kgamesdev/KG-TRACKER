@@ -168,7 +168,7 @@ class RoundedButton(QPushButton):
             self.clicked.connect(command)
         self.aplicar_estilo_segun_rol()
 
-        def aplicar_estilo_segun_rol(self):
+    def aplicar_estilo_segun_rol(self):
         es_oscuro = (config.CURRENT_THEME == "dark")
         role = self.property("role") or getattr(self, "_role", "default")
 
