@@ -15,6 +15,14 @@ def _apply_theme_qss(self):
   tema = config.THEMES[config.CURRENT_THEME]
   es_oscuro = (config.CURRENT_THEME == "dark")
 
+  c_store_chip_bg = "rgba(99, 102, 241, 0.18)" if es_oscuro else "rgba(79, 70, 229, 0.10)"
+  c_store_chip_fg = "#A5B4FC" if es_oscuro else "#4338CA"
+  c_store_chip_bd = "#818CF8" if es_oscuro else "#818CF8"
+
+  c_worth_bg = "rgba(245, 158, 11, 0.18)" if es_oscuro else "#F1F5F9"
+  c_worth_fg = "#FCD34D" if es_oscuro else "#475569"
+  c_worth_bd = "#F59E0B" if es_oscuro else "#CBD5E1"
+
   def c(name):
     return tema[name]
 
