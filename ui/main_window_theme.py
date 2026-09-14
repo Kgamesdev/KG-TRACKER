@@ -349,7 +349,7 @@ def _actualizar_estilo_botones(self):
   self._set_button_role(self.btn_side_kofi, "sidebar")
   self._set_button_role(self.btn_side_settings, "sidebar")
   self._set_button_role(self.btn_side_theme, "sidebar")
-  self._set_button_role(self.btn_side_todas, "accent")
+  self._set_button_role(self.btn_side_todas, "sidebar")
   self._set_button_role(self.btn_actualizar, "accent")
   self._set_button_role(self.btn_reclamados, "secondary")
   if hasattr(self, "ahorro_pill") and self.ahorro_pill is not None:

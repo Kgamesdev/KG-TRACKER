@@ -93,14 +93,25 @@ class _BusquedaWorker(QObject):
 
 def _set_status(self, text, status="success"):
     self.status_pill.setText(text)
-    if status == "success":
-        estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #10B981, stop:1 #059669); color: #FFFFFF; border: 1px solid #34D399; border-radius: 10px; font-weight: bold; padding: 0 10px;"
-    elif status == "warning":
-        estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FF9800, stop:1 #E65100); color: #FFFFFF; border: 1px solid #FFE082; border-radius: 10px; font-weight: bold; padding: 0 10px;"
-    elif status == "error":
-        estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #EF4444, stop:1 #B91C1C); color: #FFFFFF; border: 1px solid #FCA5A5; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+    es_oscuro = (config.CURRENT_THEME == "dark")
+    if not es_oscuro:
+        if status == "success":
+            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E5173, stop:1 #3C3E5A); color: #34D399; border: 1.2px solid #34D399; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+        elif status == "warning":
+            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E5173, stop:1 #3C3E5A); color: #F59E0B; border: 1.2px solid #F59E0B; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+        elif status == "error":
+            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E5173, stop:1 #3C3E5A); color: #EF4444; border: 1.2px solid #EF4444; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+        else:
+            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E5173, stop:1 #3C3E5A); color: #818CF8; border: 1.2px solid #818CF8; border-radius: 10px; font-weight: bold; padding: 0 10px;"
     else:
-        estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6366F1, stop:1 #4F46E5); color: #FFFFFF; border: 1px solid #818CF8; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+        if status == "success":
+            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #10B981, stop:1 #059669); color: #FFFFFF; border: 1px solid #34D399; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+        elif status == "warning":
+            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FF9800, stop:1 #E65100); color: #FFFFFF; border: 1px solid #FFE082; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+        elif status == "error":
+            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #EF4444, stop:1 #B91C1C); color: #FFFFFF; border: 1px solid #FCA5A5; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+        else:
+            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6366F1, stop:1 #4F46E5); color: #FFFFFF; border: 1px solid #818CF8; border-radius: 10px; font-weight: bold; padding: 0 10px;"
     self.status_pill.setStyleSheet(estilo)
 
 
