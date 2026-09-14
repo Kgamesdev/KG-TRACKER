@@ -1,6 +1,6 @@
 import os
 from PySide6.QtCore import Qt, QSize, QVariantAnimation, QEasingCurve, QEvent
-from PySide6.QtGui import QIcon, QPixmap, QPainter, QTransform
+from PySide6.QtGui import QIcon, QPixmap, QPainter, QTransform, QCursor
 from PySide6.QtWidgets import (
     QApplication, QFrame, QHBoxLayout, QLabel, QPushButton,
     QSizePolicy, QVBoxLayout,
@@ -96,7 +96,7 @@ class StoreWidget(QFrame):
 
         elif event.type() == QEvent.Type.Leave:
             # Comprobar si el ratón realmente salió del widget principal
-            if not self.rect().contains(self.mapFromGlobal(QApplication.cursor().pos())):
+            if not self.rect().contains(self.mapFromGlobal(QCursor.pos())):
                 if self.property("hovering"):
                     self.setProperty("hovering", False)
                     self._refresh_state()

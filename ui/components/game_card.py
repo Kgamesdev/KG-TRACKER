@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt, QSize, QVariantAnimation, QTimer
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
   QApplication, QFrame, QHBoxLayout, QLabel, QPushButton,
-  QSizePolicy, QSlider, QVBoxLayout,
+  QSizePolicy, QSlider, QScrollBar, QVBoxLayout,
 )
 
 from config import (
@@ -251,6 +251,127 @@ class RoundedButton(QPushButton):
     self.setText(t("saved.pill", amount=f"{self._current_val:,.2f}"))
     self._bloqueo_recursivo = False
 
+
+
+class NeonScrollBar(QScrollBar):
+  """Scrollbar vertical con la misma física, halo incandescente y animación de VolumeSlider."""
+
+  def __init__(self, orientation=Qt.Orientation.Vertical, parent=None):
+    super().__init__(orientation, parent)
+    self.setFixedWidth(14)
+    self.setCursor(Qt.CursorShape.PointingHandCursor)
+    self.setMouseTracking(True)
+    self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
+
+    self._hover_progress = 0.0
+    self._is_hover = False
+    self._is_dragging = False
+
+    from PySide6.QtCore import QVariantAnimation, QEasingCurve
+    self._anim_hover = QVariantAnimation(self)
+    self._anim_hover.setDuration(160)
+    self._anim_hover.setEasingCurve(QEasingCurve.Type.OutCubic)
+    self._anim_hover.valueChanged.connect(self._on_hover_step)
+
+  def _on_hover_step(self, val):
+    self._hover_progress = val
+    self.update()
+
+  def enterEvent(self, event):
+    self._is_hover = True
+    self._anim_hover.stop()
+    self._anim_hover.setStartValue(self._hover_progress)
+    self._anim_hover.setEndValue(1.0)
+    self._anim_hover.start()
+    super().enterEvent(event)
+
+  def leaveEvent(self, event):
+    self._is_hover = False
+    if not self._is_dragging:
+      self._anim_hover.stop()
+      self._anim_hover.setStartValue(self._hover_progress)
+      self._anim_hover.setEndValue(0.0)
+      self._anim_hover.start()
+    super().leaveEvent(event)
+
+  def mousePressEvent(self, event):
+    if event.button() == Qt.MouseButton.LeftButton:
+      self._is_dragging = True
+    super().mousePressEvent(event)
+
+  def mouseReleaseEvent(self, event):
+    if event.button() == Qt.MouseButton.LeftButton:
+      self._is_dragging = False
+      if not self._is_hover:
+        self._anim_hover.stop()
+        self._anim_hover.setStartValue(self._hover_progress)
+        self._anim_hover.setEndValue(0.0)
+        self._anim_hover.start()
+    super().mouseReleaseEvent(event)
+
+  def paintEvent(self, event):
+    from PySide6.QtGui import QPainter, QColor, QLinearGradient, QPen
+    from PySide6.QtCore import QRectF
+
+    p = QPainter(self)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+    min_v = self.minimum()
+    max_v = self.maximum()
+    val = self.value()
+    page = self.pageStep()
+
+    # Si no hay scroll necesario, no pintar
+    if max_v <= min_v:
+      p.end()
+      return
+
+    centro_x = self.width() / 2.0
+    altura_disp = self.height() - 16.0  # Márgenes superior e inferior de 8px
+
+    # 1. Pista vertical centrada (Groove)
+    groove_rect = QRectF(centro_x - 2.5, 8.0, 5.0, altura_disp)
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QColor(58, 58, 80, 160))
+    p.drawRoundedRect(groove_rect, 2.5, 2.5)
+
+    # 2. Cálculo del tirador (Handle)
+    total_range = (max_v - min_v) + page
+    thumb_h = max(32.0, min(altura_disp * 0.75, (page / float(total_range or 1)) * altura_disp))
+    recorrido_disp = altura_disp - thumb_h
+    ratio = (val - min_v) / float(max_v - min_v or 1)
+    thumb_y = 8.0 + (ratio * recorrido_disp)
+
+    # Expansión elástica en hover (de 6px a 10px de ancho)
+    ancho_base, ancho_hover = 6.0, 10.0
+    ancho_actual = ancho_base + (self._hover_progress * (ancho_hover - ancho_base))
+    radio_esquina = ancho_actual / 2.0
+
+    thumb_rect = QRectF(centro_x - (ancho_actual / 2.0), thumb_y, ancho_actual, thumb_h)
+
+    # 3. Halo exterior incandescente cian
+    if self._hover_progress > 0.05:
+      halo_alpha = int(self._hover_progress * 55)
+      p.setBrush(QColor(0, 243, 255, halo_alpha))
+      p.setPen(Qt.PenStyle.NoPen)
+      p.drawRoundedRect(thumb_rect.adjusted(-3, -2, 3, 2), radio_esquina + 2, radio_esquina + 2)
+
+    # 4. Tirador con gradiente idéntico al control de volumen
+    grad = QLinearGradient(0, thumb_y, 0, thumb_y + thumb_h)
+    if self._hover_progress > 0.4:
+      grad.setColorAt(0.0, QColor('#818CF8'))
+      grad.setColorAt(1.0, QColor('#00F3FF'))
+      border_color = QColor('#00F3FF')
+    else:
+      grad.setColorAt(0.0, QColor('#6366F1'))
+      grad.setColorAt(1.0, QColor('#818CF8'))
+      border_color = QColor(129, 140, 248, 180)
+
+    p.setBrush(grad)
+    p.setPen(QPen(border_color, 1.2))
+    p.drawRoundedRect(thumb_rect, radio_esquina, radio_esquina)
+
+    p.end()
 
 class VolumeSlider(QSlider):
   def __init__(self, parent=None, from_=0, to=100, length=120, command=None, **kwargs):

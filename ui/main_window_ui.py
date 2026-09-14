@@ -12,7 +12,7 @@ from config import (
   COLOR_BORDER, COLOR_ACCENT_HOVER, COLOR_ACCENT_LIGHT, COLOR_BG_CARD, COLOR_HOVER,
   COLOR_SUCCESS, COLOR_WARNING, COLOR_TEXT_MUTED,
 )
-from ui.components.game_card import RoundedButton, VolumeSlider, NeonFrame
+from ui.components.game_card import RoundedButton, VolumeSlider, NeonFrame, NeonScrollBar
 from ui.components.store_widget import StoreWidget
 from ui.modals.kofi_modal import KofiModal
 from ui.modals.settings_modal import SettingsModal
@@ -169,6 +169,7 @@ def _build_ui(self):
 
   self.scrollbar = None
   self.canvas = QScrollArea()
+  self.canvas.setVerticalScrollBar(NeonScrollBar(Qt.Orientation.Vertical, self.canvas))
   self.canvas.setObjectName("gamesScroll")
   self.canvas.setWidgetResizable(True)
   self.canvas.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -180,7 +181,7 @@ def _build_ui(self):
   self.frame_lista.setObjectName("gamesList")
   self.frame_lista.setAutoFillBackground(False)
   self.frame_lista_layout = QVBoxLayout(self.frame_lista)
-  self.frame_lista_layout.setContentsMargins(0, 0, 0, 0)
+  self.frame_lista_layout.setContentsMargins(0, 0, 12, 0)
   self.frame_lista_layout.setSpacing(4)
   self.frame_lista_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
   self.canvas.setWidget(self.frame_lista)
