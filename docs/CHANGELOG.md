@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 ## [v0.1.34] - 2026-09-14 (Stable)
 

@@ -1,4 +1,4 @@
-﻿"""Tema QSS y sincronización visual de la ventana principal."""
+"""Tema QSS y sincronización visual de la ventana principal."""
 
 import config
 from PySide6.QtCore import QSize

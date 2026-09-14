@@ -62,8 +62,15 @@ def enviar_notificacion_windows(titulo: str, mensaje: str, icono_path: str = Non
     """
     def _worker():
         try:
-            t_xml = html.escape(str(titulo or "K GAME TRACKER"))
-            m_xml = html.escape(str(mensaje or ""))
+            t_str = str(titulo or "K GAME TRACKER")
+            m_str = str(mensaje or "")
+
+            # Escapar comillas y caracteres reservados de PowerShell ($ y `) para evitar fallos de evaluación
+            t_ps = t_str.replace("`", "``").replace("$", "`$")
+            m_ps = m_str.replace("`", "``").replace("$", "`$")
+
+            t_xml = html.escape(t_ps)
+            m_xml = html.escape(m_ps)
 
             ruta_img = icono_path or os.path.join(BASE_DIR, "assets", "branding", "KG LOGO.png")
             if not os.path.exists(ruta_img):

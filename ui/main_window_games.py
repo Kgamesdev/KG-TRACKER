@@ -63,11 +63,15 @@ class _BusquedaWorker(QObject):
         try:
             juegos_hibridos = []
 
+            def _ejecutar_scraper_con_sesion(fn):
+                with requests.Session() as s:
+                    return fn(session=s)
+
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                f_epic = executor.submit(_obtener_epic_directo)
-                f_itch = executor.submit(_obtener_itch_directo)
-                f_gog = executor.submit(_obtener_gog_directo)
-                f_steam = executor.submit(_obtener_steam_directo)
+                f_epic = executor.submit(_ejecutar_scraper_con_sesion, _obtener_epic_directo)
+                f_itch = executor.submit(_ejecutar_scraper_con_sesion, _obtener_itch_directo)
+                f_gog = executor.submit(_ejecutar_scraper_con_sesion, _obtener_gog_directo)
+                f_steam = executor.submit(_ejecutar_scraper_con_sesion, _obtener_steam_directo)
 
                 for f in (f_epic, f_itch, f_gog, f_steam):
                     try:
@@ -384,17 +388,15 @@ def _actualizar_vista_juegos(self):
                 juegos_visibles_ordenados.append(clave)
                 juegos_a_mostrar_map[clave] = {'tipo': 'juego', 'juego': juego, 'tienda': tienda}
 
-        # 1. Liberar memoria y limpiar el Layout correctamente
         widgets_actuales = set(self.game_widgets_map.keys())
         widgets_necesarios = set(juegos_visibles_ordenados)
 
         for clave in widgets_actuales - widgets_necesarios:
             widget = self.game_widgets_map.pop(clave)
-            self.frame_lista_layout.removeWidget(widget) # Desenlace seguro del motor de UI
+            self.frame_lista_layout.removeWidget(widget)
             widget.setParent(None)
             widget.deleteLater()
 
-        # 2. Retirar TODOS los espaciadores elásticos (Evita acumulación de basura en el scroll)
         while self.frame_lista_layout.count() > 0:
             last_item = self.frame_lista_layout.itemAt(self.frame_lista_layout.count() - 1)
             if last_item.spacerItem():
@@ -404,7 +406,6 @@ def _actualizar_vista_juegos(self):
 
         widgets_to_animate = []
 
-        # 3. Insertar y garantizar visualización
         for i, clave in enumerate(juegos_visibles_ordenados):
             es_nuevo = False
             if clave not in self.game_widgets_map:
@@ -425,18 +426,13 @@ def _actualizar_vista_juegos(self):
                     widget.preparar_animacion_cascada()
                     widgets_to_animate.append(widget)
             else:
-                # RESCATE: Si el usuario clica rápido, la opacidad puede quedarse atascada en el limbo. 
-                # La forzamos al 100% para que reaparezca sin problemas.
                 if hasattr(widget, "graphicsEffect") and widget.graphicsEffect():
                     widget.graphicsEffect().setOpacity(1.0)
                     
             self.frame_lista_layout.insertWidget(i, widget)
-            widget.show() # <- FUNDAMENTAL: Obliga a Qt a pintarlo incluso si fue reciclado
+            widget.show()
 
-        # 4. Restaurar 1 solo espaciador al final
         self.frame_lista_layout.addStretch(1)
-
-        # 5. Fuerza bruta para Qt
         self.frame_lista_layout.activate()
         QApplication.processEvents()
 
@@ -444,11 +440,10 @@ def _actualizar_vista_juegos(self):
         if root is not None:
             root.setUpdatesEnabled(True)
 
-    # 6. Despachar Animaciones con total seguridad
     if widgets_to_animate:
         if hasattr(self, "_master_anim_group") and self._master_anim_group.state() != 0:
             self._master_anim_group.stop()
-            self._master_anim_group.deleteLater() # Limpiar punteros en memoria
+            self._master_anim_group.deleteLater()
 
         self._master_anim_group = QParallelAnimationGroup(self)
         

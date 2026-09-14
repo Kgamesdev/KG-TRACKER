@@ -1,4 +1,4 @@
-﻿from core.i18n import t
+from core.i18n import t
 """Interacción y navegación de la ventana principal."""
 
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QSize

@@ -1,4 +1,4 @@
-﻿"""Notificación push flotante de escritorio estilo gaming para KG Tracker."""
+"""Notificación push flotante de escritorio estilo gaming para KG Tracker."""
 
 import os
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QPoint, QRectF
