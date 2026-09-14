@@ -270,21 +270,8 @@ QScrollArea {{
 
   QSlider {{
     background: transparent;
-  }}
-  QSlider::groove:horizontal {{
-    height: 5px;
-    background: {c("COLOR_BORDER")};
-    border-radius: 2px;
-  }}
-  QSlider::sub-page:horizontal {{
-    background: {c("COLOR_ACCENT")};
-    border-radius: 2px;
-  }}
-  QSlider::handle:horizontal {{
-    width: 14px;
-    margin: -5px 0;
-    border-radius: 7px;
-    background: {c("COLOR_TEXT_PRIMARY")};
+    border: none;
+  }};
     border: 2px solid {c("COLOR_ACCENT")};
   }}
   """

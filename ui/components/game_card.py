@@ -1,4 +1,4 @@
-﻿import os
+import os
 import config
 
 from PySide6.QtCore import Qt, QSize, QVariantAnimation, QTimer
@@ -258,14 +258,148 @@ class VolumeSlider(QSlider):
     self._command = command
     self.setRange(int(from_), int(to))
     self.setFixedWidth(int(length))
-    self.setFixedHeight(22)
+    self.setFixedHeight(38)
     self.setCursor(Qt.CursorShape.PointingHandCursor)
+    self.setMouseTracking(True)
+    self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
+
+    self._hover_progress = 0.0  # 0.0 a 1.0
+    self._is_hover = False
+    self._is_dragging = False
+
+    from PySide6.QtCore import QVariantAnimation, QEasingCurve
+    self._anim_hover = QVariantAnimation(self)
+    self._anim_hover.setDuration(160)
+    self._anim_hover.setEasingCurve(QEasingCurve.Type.OutCubic)
+    self._anim_hover.valueChanged.connect(self._on_hover_step)
+
     self.valueChanged.connect(self._on_value_changed)
 
+  def _on_hover_step(self, val):
+    self._hover_progress = val
+    self.update()
+
   def _on_value_changed(self, value):
+    self.update()
     if callable(self._command):
       self._command(value)
 
+  def enterEvent(self, event):
+    self._is_hover = True
+    self._anim_hover.stop()
+    self._anim_hover.setStartValue(self._hover_progress)
+    self._anim_hover.setEndValue(1.0)
+    self._anim_hover.start()
+    super().enterEvent(event)
+
+  def leaveEvent(self, event):
+    self._is_hover = False
+    if not self._is_dragging:
+      self._anim_hover.stop()
+      self._anim_hover.setStartValue(self._hover_progress)
+      self._anim_hover.setEndValue(0.0)
+      self._anim_hover.start()
+    super().leaveEvent(event)
+
+  def mousePressEvent(self, event):
+    if event.button() == Qt.MouseButton.LeftButton:
+      self._is_dragging = True
+      self._actualizar_valor_por_pos(event.position().x())
+      event.accept()
+    else:
+      super().mousePressEvent(event)
+
+  def mouseMoveEvent(self, event):
+    if self._is_dragging:
+      self._actualizar_valor_por_pos(event.position().x())
+      event.accept()
+    else:
+      super().mouseMoveEvent(event)
+
+  def mouseReleaseEvent(self, event):
+    if event.button() == Qt.MouseButton.LeftButton:
+      self._is_dragging = False
+      if not self._is_hover:
+        self._anim_hover.stop()
+        self._anim_hover.setStartValue(self._hover_progress)
+        self._anim_hover.setEndValue(0.0)
+        self._anim_hover.start()
+      event.accept()
+    else:
+      super().mouseReleaseEvent(event)
+
+  def _actualizar_valor_por_pos(self, mouse_x):
+    ancho = self.width() - 16
+    clamped_x = max(0, min(ancho, mouse_x - 8))
+    nuevo_val = int(round((clamped_x / float(ancho)) * (self.maximum() - self.minimum()) + self.minimum()))
+    if nuevo_val != self.value():
+      self.setValue(nuevo_val)
+
+  def paintEvent(self, event):
+    from PySide6.QtGui import QPainter, QColor, QLinearGradient, QPen, QFont
+    from PySide6.QtCore import QRectF
+
+    p = QPainter(self)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+    ancho_util = self.width() - 16
+    ratio = (self.value() - self.minimum()) / float(self.maximum() - self.minimum() or 1)
+    handle_x = 8 + (ratio * ancho_util)
+    centro_y = self.height() / 2.0  # Exactamente centrado en 19px
+
+    # 1. Pista de fondo (Groove centrado)
+    groove_rect = QRectF(8, centro_y - 2.5, ancho_util, 5)
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QColor(58, 58, 80, 180))
+    p.drawRoundedRect(groove_rect, 2.5, 2.5)
+
+    # 2. Relleno activo (Progress)
+    if ratio > 0.001:
+      prog_w = ratio * ancho_util
+      prog_rect = QRectF(8, centro_y - 2.5, prog_w, 5)
+      grad = QLinearGradient(8, 0, 8 + prog_w, 0)
+      grad.setColorAt(0.0, QColor('#6366F1'))
+      grad.setColorAt(1.0, QColor('#00F3FF') if self._hover_progress > 0.3 else QColor('#818CF8'))
+      p.setBrush(grad)
+      p.drawRoundedRect(prog_rect, 2.5, 2.5)
+
+    # 3. Tirador interactivo (Píldora expandible con % integrado en hover)
+    rx_base, ry_base = 6.0, 6.0
+    rx_hover, ry_hover = 16.0, 9.0  # Se expande a píldora en hover/drag
+
+    rx = rx_base + (self._hover_progress * (rx_hover - rx_base))
+    ry = ry_base + (self._hover_progress * (ry_hover - ry_base))
+
+    # Limitar posición X para no salirse de los bordes laterales
+    handle_cx = max(rx + 2.0, min(self.width() - rx - 2.0, handle_x))
+    handle_rect = QRectF(handle_cx - rx, centro_y - ry, rx * 2.0, ry * 2.0)
+
+    # Halo exterior incandescente
+    if self._hover_progress > 0.05:
+      halo_alpha = int(self._hover_progress * 55)
+      p.setBrush(QColor(0, 243, 255, halo_alpha))
+      p.setPen(Qt.PenStyle.NoPen)
+      p.drawRoundedRect(handle_rect.adjusted(-3, -3, 3, 3), ry + 3, ry + 3)
+
+    # Fondo del tirador (Blanco en reposo, pizarra/índigo con luz en hover)
+    if self._hover_progress < 0.2:
+      p.setBrush(QColor('#FFFFFF'))
+      p.setPen(QPen(QColor('#818CF8'), 1.8))
+    else:
+      bg_alpha = int(self._hover_progress * 255)
+      p.setBrush(QColor(18, 19, 31, bg_alpha))
+      p.setPen(QPen(QColor('#00F3FF'), 1.5))
+
+    p.drawRoundedRect(handle_rect, ry, ry)
+
+    # Texto del porcentaje integrado (%) visible durante hover/arrastre
+    if self._hover_progress > 0.25:
+      txt_alpha = int(((self._hover_progress - 0.25) / 0.75) * 255)
+      p.setPen(QColor(255, 255, 255, txt_alpha))
+      p.setFont(QFont('Segoe UI', 7, QFont.Weight.Bold))
+      p.drawText(handle_rect, Qt.AlignmentFlag.AlignCenter, f"{self.value()}%")
+
+    p.end()
 
 class NeonFrame(QFrame):
     """QFrame con un haz de luz neón blanco autónomo animado que recorre el perímetro."""
