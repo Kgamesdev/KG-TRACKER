@@ -769,6 +769,36 @@ class NeonFrame(QFrame):
         p.drawRoundedRect(r, float(self._radius), float(self._radius))
         p.end()
 
+    def animar_entrada(self, delay=0):
+        from PySide6.QtWidgets import QGraphicsOpacityEffect
+        from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QTimer
+        
+        if not hasattr(self, "_efecto_opacidad") or self.graphicsEffect() is None:
+            self._efecto_opacidad = QGraphicsOpacityEffect(self)
+            self.setGraphicsEffect(self._efecto_opacidad)
+            
+        self._efecto_opacidad.setOpacity(0.0)
+        
+        if hasattr(self, "_anim_entrada") and self._anim_entrada.state() == QPropertyAnimation.State.Running:
+            self._anim_entrada.stop()
+            
+        self._anim_entrada = QPropertyAnimation(self._efecto_opacidad, b"opacity", self)
+        self._anim_entrada.setDuration(500)
+        self._anim_entrada.setStartValue(0.0)
+        self._anim_entrada.setEndValue(1.0)
+        self._anim_entrada.setEasingCurve(QEasingCurve.Type.OutCubic)
+        
+        if delay > 0:
+            if hasattr(self, "_timer_entrada") and self._timer_entrada.isActive():
+                self._timer_entrada.stop()
+            self._timer_entrada = QTimer(self)
+            self._timer_entrada.setSingleShot(True)
+            self._timer_entrada.setInterval(delay)
+            self._timer_entrada.timeout.connect(self._anim_entrada.start)
+            self._timer_entrada.start()
+        else:
+            self._anim_entrada.start()
+
 
 class StoreHeaderBanner(NeonFrame):
     """Banner de cabecera con efecto cristal (glassmorphism) y contorno neón resplandeciente."""

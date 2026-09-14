@@ -390,7 +390,8 @@ def _actualizar_vista_juegos(self):
             widget.setParent(None)
             widget.deleteLater()
 
-        # Insertar banner brillante o tarjetas directamente
+        # Insertar banner brillante o tarjetas directamente con cascada visual
+        retraso_cascada = 0
         for i, clave in enumerate(juegos_visibles_ordenados):
             if clave not in self.game_widgets_map:
                 data = juegos_a_mostrar_map[clave]
@@ -402,6 +403,11 @@ def _actualizar_vista_juegos(self):
 
             widget = self.game_widgets_map[clave]
             self.frame_lista_layout.insertWidget(i, widget)
+            
+            # Disparar la animación con retraso incremental
+            if hasattr(widget, "animar_entrada"):
+                widget.animar_entrada(retraso_cascada)
+                retraso_cascada += 35
         
         while self.frame_lista_layout.count() > len(juegos_visibles_ordenados):
             item = self.frame_lista_layout.takeAt(len(juegos_visibles_ordenados))
