@@ -500,7 +500,7 @@ class NeonScrollBar(QScrollBar):
 
         groove_rect = QRectF(centro_x - 2.5, 8.0, 5.0, altura_disp)
         p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QColor(58, 58, 80, 160))
+        p.setBrush(QColor(58, 58, 80, 160) if config.CURRENT_THEME == "dark" else QColor(203, 213, 225, 180))
         p.drawRoundedRect(groove_rect, 2.5, 2.5)
 
         total_range = (max_v - min_v) + page
@@ -1007,26 +1007,34 @@ class GameCard(NeonFrame):
         prog = self._hover_progress
         r = self.rect().toRectF().adjusted(1.0, 1.0, -1.0, -1.0)
         radius = float(self._radius)
+        es_oscuro = config.CURRENT_THEME == "dark"
 
         # 1. Sombra ambiental difusa de elevación tridimensional (Z-Lift)
         if prog > 0.03:
             s_alpha = int(prog * 48)
             p.setPen(Qt.PenStyle.NoPen)
             # Capa de penumbra exterior
-            p.setBrush(QColor(0, 0, 0, s_alpha // 2))
+            p.setBrush(QColor(0, 0, 0, s_alpha // 2) if es_oscuro else QColor(15, 23, 42, s_alpha // 3))
             p.drawRoundedRect(r.adjusted(-3, 1, 3, 5), radius + 2, radius + 2)
             # Capa de sombra cercana de oclusión
-            p.setBrush(QColor(0, 0, 0, s_alpha))
+            p.setBrush(QColor(0, 0, 0, s_alpha) if es_oscuro else QColor(15, 23, 42, s_alpha // 2))
             p.drawRoundedRect(r.adjusted(-1, 0, 1, 3), radius + 1, radius + 1)
 
         # 2. Fondo continuo interpolado orgánicamente
-        # Interpolación cromática entre reposo (#2D2D3F / #1C1D2E) y elevación (#36384F / #202133)
-        c_top_r = int(45 + (prog * 9))
-        c_top_g = int(45 + (prog * 11))
-        c_top_b = int(63 + (prog * 16))
-        c_bot_r = int(28 + (prog * 4))
-        c_bot_g = int(29 + (prog * 4))
-        c_bot_b = int(46 + (prog * 5))
+        if es_oscuro:
+            c_top_r = int(45 + (prog * 9))
+            c_top_g = int(45 + (prog * 11))
+            c_top_b = int(63 + (prog * 16))
+            c_bot_r = int(28 + (prog * 4))
+            c_bot_g = int(29 + (prog * 4))
+            c_bot_b = int(46 + (prog * 5))
+        else:
+            c_top_r = int(255 - (prog * 6))
+            c_top_g = int(255 - (prog * 6))
+            c_top_b = int(255 - (prog * 4))
+            c_bot_r = int(241 - (prog * 8))
+            c_bot_g = int(245 - (prog * 8))
+            c_bot_b = int(249 - (prog * 6))
 
         bg = QLinearGradient(0, 0, 0, self.height())
         bg.setColorAt(0.0, QColor(c_top_r, c_top_g, c_top_b))
@@ -1042,7 +1050,7 @@ class GameCard(NeonFrame):
             c_neon = QColor(0, 243, 255, int(prog * 200))
             p.setPen(QPen(c_neon, 1.2 + (prog * 0.6)))
         else:
-            p.setPen(QPen(QColor(COLOR_BORDER), 1.0))
+            p.setPen(QPen(QColor(COLOR_BORDER if es_oscuro else "#CBD5E1"), 1.0))
         p.drawRoundedRect(r, radius, radius)
         p.end()
 
