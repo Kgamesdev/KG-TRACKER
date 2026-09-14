@@ -341,6 +341,11 @@ def alternar_tema(self):
 
   self._actualizar_estilo_botones()
   if hasattr(self, "_actualizar_vista_juegos"):
+      if hasattr(self, "game_widgets_map"):
+          for w in list(self.game_widgets_map.values()):
+              w.setParent(None)
+              w.deleteLater()
+          self.game_widgets_map.clear()
       self._actualizar_vista_juegos()
 
 

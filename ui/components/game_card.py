@@ -168,33 +168,33 @@ class RoundedButton(QPushButton):
             self.clicked.connect(command)
         self.aplicar_estilo_segun_rol()
 
-    def aplicar_estilo_segun_rol(self):
+        def aplicar_estilo_segun_rol(self):
         es_oscuro = (config.CURRENT_THEME == "dark")
         role = self.property("role") or getattr(self, "_role", "default")
 
         if role == 'accent':
-            # Botón Azul de Búsqueda: AZUL ELÉCTRICO ACLARADO Y LUMINOSO
+            # 1. BOTÓN AZUL (BUSCAR JUEGOS): Mismo azul eléctrico, versión luminosa
             if es_oscuro:
                 self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6366F1, stop:1 #4F46E5); color: #FFFFFF; border: 1.2px solid #818CF8; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; letter-spacing: 0.5px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #818CF8, stop:1 #6366F1); border: 1.2px solid #00F3FF; }} QPushButton:pressed {{ background: #4338CA; padding-top: 2px; }}')
             else:
                 self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #4F46E5, stop:0.5 #6366F1, stop:1 #38BDF8); color: #FFFFFF; border: 1.5px solid #818CF8; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; letter-spacing: 0.5px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6366F1, stop:0.5 #818CF8, stop:1 #67E8F9); border: 1.5px solid #00F3FF; }} QPushButton:pressed {{ background: #3730A3; padding-top: 2px; }}')
 
         elif role == 'success':
-            # Botón Reclamar: Verde esmeralda menta más claro y vibrante
+            # 2. BOTÓN VERDE (RECLAMAR): Mismo verde esmeralda, versión menta luminosa
             if es_oscuro:
                 self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {self._bg}, stop:1 {self._hover}); color: {self._fg}; border: 1px solid #34D399; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #34D399, stop:1 {self._bg}); }} QPushButton:pressed {{ background: #047857; padding-top: 2px; }}')
             else:
-                self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #10B981, stop:1 #34D399); color: #FFFFFF; border: 1.2px solid #6EE7B7; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #34D399, stop:1 #6EE7B7); color: #064E3B; border: 1.2px solid #A7F3D0; }} QPushButton:pressed {{ background: #059669; padding-top: 2px; }}')
+                self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #34D399, stop:1 #10B981); color: #FFFFFF; border: 1.2px solid #6EE7B7; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6EE7B7, stop:1 #34D399); color: #064E3B; border: 1.2px solid #A7F3D0; }} QPushButton:pressed {{ background: #059669; padding-top: 2px; }}')
 
         elif role in ('secondary', 'sidebar'):
-            # Botones de sidebar y de tarjetas: Color del tema oscuro pero aclarado para correlación
+            # 3. BOTONES AZUL MARINO / PIZARRA (SIDEBAR, [✔], [🔗], RECLAMADOS, MUTE):
+            # En tema claro: El mismo azul pizarra del tema oscuro, pero en tono acero claro satinado y visible
             if es_oscuro:
                 bg_dark = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3A3B52, stop:1 #262738)" if role == 'secondary' else "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #25263A, stop:1 #171827)"
                 bd_dark = "#4E506B" if role == 'secondary' else "#3A3A50"
                 self.setStyleSheet(f'QPushButton {{ background: {bg_dark}; color: #FFFFFF; border: 1px solid {bd_dark}; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E506B, stop:1 #3A3B52); border: 1px solid #818CF8; color: #818CF8; }} QPushButton:pressed {{ background: #1E1F2E; padding-top: 2px; }}')
             else:
-                # Versión aclarada del azul noche grafito con borde sutil e iconos blancos
-                self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3D4160, stop:1 #2C2F46); color: #FFFFFF; border: 1px solid #565C85; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6366F1, stop:1 #4F46E5); border: 1px solid #818CF8; color: #FFFFFF; }} QPushButton:pressed {{ background: #1E2033; padding-top: 2px; }}')
+                self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #636792, stop:1 #4D5175); color: #FFFFFF; border: 1.2px solid #878BB8; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #787CAE, stop:1 #5E628E); border: 1.2px solid #A5B4FC; color: #FFFFFF; }} QPushButton:pressed {{ background: #3C3F5E; padding-top: 2px; }}')
 
         else:
             b_bg = "#FFFFFF" if not es_oscuro else self._bg
@@ -264,12 +264,21 @@ class RoundedButton(QPushButton):
             r.adjust(ab / 2.0, ab / 2.0, -ab / 2.0, -ab / 2.0)
 
             bg_grad = QLinearGradient(0, 0, 0, self.height())
-            if self._is_hover:
-                bg_grad.setColorAt(0.0, QColor('#F0B74E'))
-                bg_grad.setColorAt(1.0, QColor('#D4922A'))
+            es_oscuro_ahorro = (config.CURRENT_THEME == "dark")
+            if not es_oscuro_ahorro:
+                if self._is_hover:
+                    bg_grad.setColorAt(0.0, QColor('#FCD34D'))
+                    bg_grad.setColorAt(1.0, QColor('#F59E0B'))
+                else:
+                    bg_grad.setColorAt(0.0, QColor('#FBBF24'))
+                    bg_grad.setColorAt(1.0, QColor('#D97706'))
             else:
-                bg_grad.setColorAt(0.0, QColor('#E5A93C'))
-                bg_grad.setColorAt(1.0, QColor('#C8861E'))
+                if self._is_hover:
+                    bg_grad.setColorAt(0.0, QColor('#F0B74E'))
+                    bg_grad.setColorAt(1.0, QColor('#D4922A'))
+                else:
+                    bg_grad.setColorAt(0.0, QColor('#E5A93C'))
+                    bg_grad.setColorAt(1.0, QColor('#C8861E'))
 
             p.setPen(Qt.PenStyle.NoPen)
             p.setBrush(bg_grad)
