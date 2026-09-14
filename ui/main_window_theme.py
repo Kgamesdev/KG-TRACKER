@@ -132,7 +132,13 @@ def _apply_theme_qss(self):
   }}
 
   QLabel#gameWorth {{
-    background-color: {"rgba(245, 158, 11, 0.18)" if es_oscuro else "#F1F5F9"};
+    background-color: {"rgba(245, 158, 11, 0.18)" if es_oscuro else "#FEF3C7"};
+    color: {"#FCD34D" if es_oscuro else "#92400E"};
+    border: 1.2px solid #F59E0B;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font: bold 7.5pt "Segoe UI";
+  }};
     color: {"#FCD34D" if es_oscuro else "#334155"};
     border: 1.2px solid {"#F59E0B" if es_oscuro else "#CBD5E1"};
     border-radius: 6px;

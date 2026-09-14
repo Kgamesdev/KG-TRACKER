@@ -914,12 +914,12 @@ class GameCard(NeonFrame):
 
         valor = owner._valor_juego(juego)
         if valor > 0:
-            worth = QLabel(f"💰 Antes: ")
+            worth = QLabel(f"💰 Antes: ${valor:,.2f}")
             worth.setObjectName("gameWorth")
             es_oscuro_w = (config.CURRENT_THEME == "dark")
-            w_bg = "rgba(245, 158, 11, 0.18)" if es_oscuro_w else "#F1F5F9"
-            w_fg = "#FCD34D" if es_oscuro_w else "#334155"
-            w_bd = "#F59E0B" if es_oscuro_w else "#CBD5E1"
+            w_bg = "rgba(245, 158, 11, 0.18)" if es_oscuro_w else "#FEF3C7"
+            w_fg = "#FCD34D" if es_oscuro_w else "#92400E"
+            w_bd = "#F59E0B"
             worth.setStyleSheet(f"""
                 QLabel#gameWorth {{
                     background-color: {w_bg};
