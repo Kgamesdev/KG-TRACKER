@@ -340,6 +340,8 @@ def alternar_tema(self):
   self.btn_side_theme.setIconSize(QSize(28, 28))
 
   self._actualizar_estilo_botones()
+  if hasattr(self, "_actualizar_vista_juegos"):
+      self._actualizar_vista_juegos()
 
 
 def _actualizar_estilo_botones(self):
