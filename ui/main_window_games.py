@@ -1,4 +1,5 @@
-﻿"""Búsqueda, filtrado y construcción de la vista de juegos con validación temporal estricta a 0.00 EUR."""
+﻿import config
+"""Búsqueda, filtrado y construcción de la vista de juegos con validación temporal estricta a 0.00 EUR."""
 
 import os
 import json
@@ -93,7 +94,7 @@ class _BusquedaWorker(QObject):
 
 def _set_status(self, text, status="success"):
     self.status_pill.setText(text)
-    es_oscuro = (config.CURRENT_THEME == "dark")
+    es_oscuro = getattr(self, "es_modo_oscuro", config.CURRENT_THEME == "dark")
     if not es_oscuro:
         if status == "success":
             estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #10B981, stop:1 #34D399); color: #FFFFFF; border: 1.2px solid #6EE7B7; border-radius: 10px; font-weight: bold; padding: 0 10px;"
