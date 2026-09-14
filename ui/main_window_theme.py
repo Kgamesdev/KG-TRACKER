@@ -87,6 +87,11 @@ def _apply_theme_qss(self):
     border-radius: 12px;
   }}
 
+  QFrame#gameCard:hover {{
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #383952, stop:1 #222338);
+    border: 1px solid rgba(129, 140, 248, 0.75);
+  }}
+
   QLabel#gameImage {{
     background: {c("COLOR_BG_DESC")};
     color: {c("COLOR_TEXT_MUTED")};

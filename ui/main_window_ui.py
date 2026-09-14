@@ -12,7 +12,7 @@ from config import (
   COLOR_BORDER, COLOR_ACCENT_HOVER, COLOR_ACCENT_LIGHT, COLOR_BG_CARD, COLOR_HOVER,
   COLOR_SUCCESS, COLOR_WARNING, COLOR_TEXT_MUTED,
 )
-from ui.components.game_card import RoundedButton, VolumeSlider, NeonFrame, NeonScrollBar
+from ui.components.game_card import RoundedButton, VolumeSlider, NeonFrame, NeonScrollBar, SmoothScrollArea
 from ui.components.store_widget import StoreWidget
 from ui.modals.kofi_modal import KofiModal
 from ui.modals.settings_modal import SettingsModal
@@ -168,7 +168,7 @@ def _build_ui(self):
   container_layout.setSpacing(0)
 
   self.scrollbar = None
-  self.canvas = QScrollArea()
+  self.canvas = SmoothScrollArea()
   self.canvas.setVerticalScrollBar(NeonScrollBar(Qt.Orientation.Vertical, self.canvas))
   self.canvas.setObjectName("gamesScroll")
   self.canvas.setWidgetResizable(True)

@@ -5,6 +5,7 @@ import re
 import config
 
 from PySide6.QtCore import (
+    QObject, Signal,
     Qt, QSize, QVariantAnimation, QTimer, QRectF, QPoint,
     QPropertyAnimation, QParallelAnimationGroup, QEasingCurve,
 )
@@ -13,6 +14,7 @@ from PySide6.QtGui import (
     QLinearGradient, QFont, QConicalGradient,
 )
 from PySide6.QtWidgets import (
+    QScrollArea,
     QApplication, QFrame, QHBoxLayout, QLabel, QPushButton,
     QSizePolicy, QSlider, QScrollBar, QVBoxLayout, QWidget,
     QGraphicsOpacityEffect,
@@ -326,6 +328,83 @@ class RoundedButton(QPushButton):
         self._bloqueo_recursivo = False
 
 
+
+class NeonMasterClock(QObject):
+    """Reloj maestro sincronizado a 45 FPS: elimina la sobrecarga de múltiples animaciones."""
+    _instancia = None
+    angulo_actualizado = Signal(float)
+
+    @classmethod
+    def instance(cls):
+        if cls._instancia is None:
+            cls._instancia = cls()
+        return cls._instancia
+
+    def __init__(self):
+        super().__init__()
+        self._ang = 0.0
+        self._timer = QTimer(self)
+        self._timer.setInterval(22)
+        self._timer.timeout.connect(self._tick)
+        self._subscriptores = 0
+
+    def suscribir(self):
+        self._subscriptores += 1
+        if self._subscriptores == 1 and not self._timer.isActive():
+            self._timer.start()
+
+    def desuscribir(self):
+        self._subscriptores = max(0, self._subscriptores - 1)
+        if self._subscriptores == 0 and self._timer.isActive():
+            self._timer.stop()
+
+    def _tick(self):
+        self._ang = (self._ang + 1.8) % 360.0
+        self.angulo_actualizado.emit(self._ang)
+
+
+class SmoothScrollArea(QScrollArea):
+    """ScrollArea con desplazamiento cinético interpolado y amortiguación sedosa."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._target_value = 0.0
+        self._anim_scroll = None
+
+    def _obtener_animacion(self):
+        bar = self.verticalScrollBar()
+        if self._anim_scroll is None or self._anim_scroll.targetObject() != bar:
+            self._anim_scroll = QPropertyAnimation(bar, b"value", self)
+            self._anim_scroll.setDuration(180)
+            self._anim_scroll.setEasingCurve(QEasingCurve.Type.OutCubic)
+        return self._anim_scroll
+
+    def wheelEvent(self, event):
+        delta = event.angleDelta().y()
+        if delta == 0:
+            delta = event.pixelDelta().y()
+
+        if delta != 0:
+            bar = self.verticalScrollBar()
+            paso = -(delta / 120.0) * 85.0
+            min_v = float(bar.minimum())
+            max_v = float(bar.maximum())
+            anim = self._obtener_animacion()
+
+            if anim.state() == QPropertyAnimation.State.Running:
+                self._target_value = max(min_v, min(max_v, self._target_value + paso))
+            else:
+                self._target_value = max(min_v, min(max_v, float(bar.value()) + paso))
+
+            anim.stop()
+            anim.setStartValue(bar.value())
+            anim.setEndValue(int(self._target_value))
+            anim.start()
+            event.accept()
+        else:
+            super().wheelEvent(event)
+
+
 class NeonScrollBar(QScrollBar):
     def __init__(self, orientation=Qt.Orientation.Vertical, parent=None):
         super().__init__(orientation, parent)
@@ -364,10 +443,32 @@ class NeonScrollBar(QScrollBar):
             self._anim_hover.start()
         super().leaveEvent(event)
 
+    def _actualizar_valor_por_pos(self, mouse_y):
+        altura_disp = max(1.0, float(self.height() - 16.0))
+        clamped_y = max(0.0, min(altura_disp, float(mouse_y - 8.0)))
+        ratio = clamped_y / altura_disp
+        min_v = self.minimum()
+        max_v = self.maximum()
+        nuevo_val = int(round(min_v + (ratio * (max_v - min_v))))
+        if nuevo_val != self.value():
+            self.setValue(nuevo_val)
+
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self._is_dragging = True
-        super().mousePressEvent(event)
+            y = event.position().y() if hasattr(event, "position") else event.pos().y()
+            self._actualizar_valor_por_pos(y)
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self._is_dragging:
+            y = event.position().y() if hasattr(event, "position") else event.pos().y()
+            self._actualizar_valor_por_pos(y)
+            event.accept()
+        else:
+            super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -377,7 +478,9 @@ class NeonScrollBar(QScrollBar):
                 self._anim_hover.setStartValue(self._hover_progress)
                 self._anim_hover.setEndValue(0.0)
                 self._anim_hover.start()
-        super().mouseReleaseEvent(event)
+            event.accept()
+        else:
+            super().mouseReleaseEvent(event)
 
     def paintEvent(self, event):
         p = QPainter(self)
@@ -573,33 +676,36 @@ class VolumeSlider(QSlider):
 
 
 class NeonFrame(QFrame):
-    """QFrame con un haz de luz neón blanco autónomo animado que recorre el perímetro."""
+    """QFrame con haz neón sincronizado por el reloj maestro ultraliviano."""
 
     def __init__(self, parent=None, radius=12, border_width=1.5, speed_ms=4500):
         super().__init__(parent)
         self._radius = radius
         self._border_width = border_width
         self._ang = 0.0
+        self._conectado_clock = False
 
-        self._neon_anim = QVariantAnimation(self)
-        self._neon_anim.setStartValue(0.0)
-        self._neon_anim.setEndValue(360.0)
-        self._neon_anim.setDuration(speed_ms)
-        self._neon_anim.setLoopCount(-1)
-        self._neon_anim.valueChanged.connect(self._on_neon_step)
-
-    def _on_neon_step(self, val):
-        self._ang = val
+    def _on_clock_tick(self, ang):
+        self._ang = ang
         self.update()
 
     def showEvent(self, event):
         super().showEvent(event)
-        if hasattr(self, "_neon_anim") and self._neon_anim.state() != QVariantAnimation.State.Running:
-            self._neon_anim.start()
+        if not self._conectado_clock:
+            clock = NeonMasterClock.instance()
+            clock.angulo_actualizado.connect(self._on_clock_tick)
+            clock.suscribir()
+            self._conectado_clock = True
 
     def hideEvent(self, event):
-        if hasattr(self, "_neon_anim") and self._neon_anim.state() == QVariantAnimation.State.Running:
-            self._neon_anim.pause()
+        if self._conectado_clock:
+            clock = NeonMasterClock.instance()
+            try:
+                clock.angulo_actualizado.disconnect(self._on_clock_tick)
+            except Exception:
+                pass
+            clock.desuscribir()
+            self._conectado_clock = False
         super().hideEvent(event)
 
     def paintEvent(self, event):
@@ -702,6 +808,14 @@ class GameCard(NeonFrame):
         self.nombre_tienda = nombre_tienda
         self._imagen_cargada_con_exito = False
         self.setObjectName("gameCard")
+        self.setMouseTracking(True)
+        self.setFixedHeight(124)
+
+        self._hover_progress = 0.0
+        self._anim_scale = QVariantAnimation(self)
+        self._anim_scale.setDuration(230)
+        self._anim_scale.setEasingCurve(QEasingCurve.Type.OutQuart)
+        self._anim_scale.valueChanged.connect(self._on_scale_step)
 
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -711,6 +825,7 @@ class GameCard(NeonFrame):
         layout.setSpacing(14)
 
         image_box = QLabel()
+        image_box.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         image_box.setObjectName("gameImage")
         image_box.setFixedSize(184, 104)
         image_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -722,6 +837,7 @@ class GameCard(NeonFrame):
 
         titulo_limpio = _limpiar_titulo_visual(juego.get("title", "Elemento sin título"))
         title = QLabel(titulo_limpio)
+        title.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         title.setObjectName("gameTitle")
         title.setWordWrap(True)
         info.addWidget(title)
@@ -731,6 +847,7 @@ class GameCard(NeonFrame):
         texto_inicial = desc_raw if desc_raw else t("card.no_desc")
         self._desc_label = QLabel(texto_inicial[:145] + ("..." if len(texto_inicial) > 148 else ""))
         self._desc_label.setObjectName("gameDescription")
+        self._desc_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self._desc_label.setWordWrap(True)
         info.addWidget(self._desc_label)
 
@@ -862,6 +979,75 @@ class GameCard(NeonFrame):
         self._load_image(juego.get("image") or juego.get("thumbnail"))
         self._traducir_descripcion()
         self._consultar_steam()
+
+    def _on_scale_step(self, val):
+        self._hover_progress = val
+        # Elevación vertical fluida
+        self.setFixedHeight(int(124 + (val * 12)))
+        self._border_width = 1.5 + (val * 0.8)
+        self.update()
+
+    def enterEvent(self, event):
+        self._anim_scale.stop()
+        self._anim_scale.setStartValue(self._hover_progress)
+        self._anim_scale.setEndValue(1.0)
+        self._anim_scale.start()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self._anim_scale.stop()
+        self._anim_scale.setStartValue(self._hover_progress)
+        self._anim_scale.setEndValue(0.0)
+        self._anim_scale.start()
+        super().leaveEvent(event)
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        prog = self._hover_progress
+        r = self.rect().toRectF().adjusted(1.0, 1.0, -1.0, -1.0)
+        radius = float(self._radius)
+
+        # 1. Sombra ambiental difusa de elevación tridimensional (Z-Lift)
+        if prog > 0.03:
+            s_alpha = int(prog * 48)
+            p.setPen(Qt.PenStyle.NoPen)
+            # Capa de penumbra exterior
+            p.setBrush(QColor(0, 0, 0, s_alpha // 2))
+            p.drawRoundedRect(r.adjusted(-3, 1, 3, 5), radius + 2, radius + 2)
+            # Capa de sombra cercana de oclusión
+            p.setBrush(QColor(0, 0, 0, s_alpha))
+            p.drawRoundedRect(r.adjusted(-1, 0, 1, 3), radius + 1, radius + 1)
+
+        # 2. Fondo continuo interpolado orgánicamente
+        # Interpolación cromática entre reposo (#2D2D3F / #1C1D2E) y elevación (#36384F / #202133)
+        c_top_r = int(45 + (prog * 9))
+        c_top_g = int(45 + (prog * 11))
+        c_top_b = int(63 + (prog * 16))
+        c_bot_r = int(28 + (prog * 4))
+        c_bot_g = int(29 + (prog * 4))
+        c_bot_b = int(46 + (prog * 5))
+
+        bg = QLinearGradient(0, 0, 0, self.height())
+        bg.setColorAt(0.0, QColor(c_top_r, c_top_g, c_top_b))
+        bg.setColorAt(1.0, QColor(c_bot_r, c_bot_g, c_bot_b))
+
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(bg)
+        p.drawRoundedRect(r, radius, radius)
+
+        # 3. Borde reactivo orgánico (halo cian suave proporcional a la elevación)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        if prog > 0.05:
+            c_neon = QColor(0, 243, 255, int(prog * 200))
+            p.setPen(QPen(c_neon, 1.2 + (prog * 0.6)))
+        else:
+            p.setPen(QPen(QColor(COLOR_BORDER), 1.0))
+        p.drawRoundedRect(r, radius, radius)
+        p.end()
+
+        # 4. Superponer el haz neón orbital animado
+        super().paintEvent(event)
 
     def _lanzar_recompensa_flotante(self, widget_origen=None):
         try:
