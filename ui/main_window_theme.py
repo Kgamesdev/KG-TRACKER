@@ -123,18 +123,18 @@ def _apply_theme_qss(self):
 
   /* CHIPS / CÁPSULAS UNIFORMES */
   QLabel#gameStore {{
-    background-color: rgba(99, 102, 241, 0.18);
-    color: #A5B4FC;
-    border: 1px solid #818CF8;
+    background-color: {"rgba(99, 102, 241, 0.18)" if es_oscuro else "rgba(79, 70, 229, 0.10)"};
+    color: {"#A5B4FC" if es_oscuro else "#4338CA"};
+    border: 1.2px solid #818CF8;
     border-radius: 6px;
     padding: 2px 8px;
     font: bold 7.5pt "Segoe UI";
   }}
 
   QLabel#gameWorth {{
-    background-color: rgba(245, 158, 11, 0.18);
-    color: #FCD34D;
-    border: 1px solid #F59E0B;
+    background-color: {"rgba(245, 158, 11, 0.18)" if es_oscuro else "#F1F5F9"};
+    color: {"#FCD34D" if es_oscuro else "#334155"};
+    border: 1.2px solid {"#F59E0B" if es_oscuro else "#CBD5E1"};
     border-radius: 6px;
     padding: 2px 8px;
     font: bold 7.5pt "Segoe UI";
