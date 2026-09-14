@@ -1,4 +1,4 @@
-import unittest
+﻿import unittest
 from unittest.mock import MagicMock
 
 class TestHistory(unittest.TestCase):
@@ -20,7 +20,6 @@ class TestHistory(unittest.TestCase):
         self.assertEqual(_normalizar_titulo_clave("The Fall [Epic]"), "the fall")
         self.assertEqual(_normalizar_titulo_clave("Half-Life - Free Steam Key"), "half life")
         self.assertEqual(_normalizar_titulo_clave("Half-Life"), "half life")
-
 
     def test_guardado_atomico_y_rescate_bak(self):
         import tempfile
@@ -48,7 +47,6 @@ class TestHistory(unittest.TestCase):
             rescatados = cargar_json_seguro(test_file, valor_por_defecto={})
             self.assertIn("game:steam|portal", rescatados)
 
-
     def test_actualizar_textos_idioma_incluye_volumen(self):
         from ui.main_window_helpers import _actualizar_textos_idioma
         mock_win = MagicMock()
@@ -63,7 +61,6 @@ class TestHistory(unittest.TestCase):
         _actualizar_textos_idioma(mock_win)
         mock_win.volume_label.setText.assert_called()
         mock_win.btn_actualizar.setText.assert_called()
-
 
     def test_animacion_ahorro_se_pausa_al_ocultar(self):
         from PySide6.QtWidgets import QApplication
@@ -84,7 +81,6 @@ class TestHistory(unittest.TestCase):
         self.assertEqual(btn._anim.state(), QVariantAnimation.State.Running)
         btn.deleteLater()
 
-
     def test_parser_itch_robusto_con_tags_anidados(self):
         import re, html, urllib.parse
         chunk = """
@@ -99,7 +95,6 @@ class TestHistory(unittest.TestCase):
 
         self.assertEqual(url_juego, "https://itch.io/games/retro-quest")
         self.assertEqual(titulo, "Retro Quest")
-
 
     def test_scrapers_aceptan_y_usan_sesion_http(self):
         import requests
@@ -121,6 +116,35 @@ class TestHistory(unittest.TestCase):
         self.assertEqual(obtener_itch_directo(session=mock_session), [])
         self.assertEqual(obtener_gog_directo(session=mock_session), [])
         self.assertEqual(mock_session.get.call_count, 4)
+
+    def test_i18n_fallback_clave_inexistente(self):
+        from core.i18n import t
+        clave_rara = "clave_inexistente_de_prueba_xyz_999"
+        self.assertEqual(t(clave_rara), clave_rara)
+
+    def test_steam_enricher_respuesta_malformada(self):
+        from unittest.mock import MagicMock
+        from core.steam_enricher import SteamEnricher
+        enricher = SteamEnricher()
+        mock_session = MagicMock()
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"bad_schema": True}
+        mock_session.get.return_value = mock_resp
+
+        res = enricher._obtener_resenas_sincrono("Juego Inexistente", session=mock_session)
+        self.assertIsInstance(res, dict)
+
+    def test_translator_fallback_red_mock(self):
+        from unittest.mock import MagicMock
+        from core.translator import _consultar_traduccion_red
+        mock_session = MagicMock()
+        mock_resp = MagicMock()
+        mock_resp.status_code = 500
+        mock_session.get.return_value = mock_resp
+
+        res = _consultar_traduccion_red(mock_session, "Sample Text", "es")
+        self.assertEqual(res, "Sample Text")
 
 if __name__ == "__main__":
     unittest.main()
