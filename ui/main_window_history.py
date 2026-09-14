@@ -1,6 +1,6 @@
 import re
 _RE_SUFIJOS = re.compile(r"\s*[\(\[](?:epic games|epic|steam|gog|itch\.io|itch|amazon prime|amazon|prime|pc|free|gratis)[\)\]]", re.IGNORECASE)
-_RE_CHARS = re.compile(r"[:\-\–\—_'",.!¡?¿]")
+_RE_CHARS = re.compile(r"[:\-\–\—_\'\",.!¡?¿]")
 
 def _normalizar_titulo_clave(titulo):
     """Limpia sufijos y menciones de plataforma con Regex compiladas en memoria (O(1))."""
