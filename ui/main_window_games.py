@@ -96,13 +96,13 @@ def _set_status(self, text, status="success"):
     es_oscuro = (config.CURRENT_THEME == "dark")
     if not es_oscuro:
         if status == "success":
-            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E5173, stop:1 #3C3E5A); color: #34D399; border: 1.2px solid #34D399; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #10B981, stop:1 #34D399); color: #FFFFFF; border: 1.2px solid #6EE7B7; border-radius: 10px; font-weight: bold; padding: 0 10px;"
         elif status == "warning":
-            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E5173, stop:1 #3C3E5A); color: #F59E0B; border: 1.2px solid #F59E0B; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F59E0B, stop:1 #D97706); color: #FFFFFF; border: 1.2px solid #FCD34D; border-radius: 10px; font-weight: bold; padding: 0 10px;"
         elif status == "error":
-            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E5173, stop:1 #3C3E5A); color: #EF4444; border: 1.2px solid #EF4444; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #EF4444, stop:1 #DC2626); color: #FFFFFF; border: 1.2px solid #FCA5A5; border-radius: 10px; font-weight: bold; padding: 0 10px;"
         else:
-            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E5173, stop:1 #3C3E5A); color: #818CF8; border: 1.2px solid #818CF8; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4F46E5, stop:1 #6366F1); color: #FFFFFF; border: 1.2px solid #818CF8; border-radius: 10px; font-weight: bold; padding: 0 10px;"
     else:
         if status == "success":
             estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #10B981, stop:1 #059669); color: #FFFFFF; border: 1px solid #34D399; border-radius: 10px; font-weight: bold; padding: 0 10px;"
