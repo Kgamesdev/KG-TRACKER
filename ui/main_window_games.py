@@ -1,4 +1,4 @@
-"""Búsqueda, filtrado y construcción de la vista de juegos con validación temporal estricta a 0.00 EUR."""
+﻿"""Búsqueda, filtrado y construcción de la vista de juegos con validación temporal estricta a 0.00 EUR."""
 
 import os
 import json
@@ -336,60 +336,28 @@ def _actualizar_vista_juegos(self):
                 j for j in self.juegos_cache_global
                 if self._asignar_tienda(j) in tiendas_activas and not self._esta_reclamado(j)
             ]
-            juegos_por_tienda = {}
-            for juego in juegos_filtrados:
+            
+            # Ordenar directamente por tienda y título de juego para despliegue directo
+            for juego in sorted(juegos_filtrados, key=lambda j: (self._asignar_tienda(j), j.get('title', ''))):
+                clave = self._clave_juego(juego)
                 tienda = self._asignar_tienda(juego)
-                if tienda not in juegos_por_tienda:
-                    juegos_por_tienda[tienda] = []
-                juegos_por_tienda[tienda].append(juego)
-
-            for tienda in sorted(juegos_por_tienda.keys()):
-                clave_header = f"header_{tienda}"
-                juegos_visibles_ordenados.append(clave_header)
-                juegos_a_mostrar_map[clave_header] = {'tienda': tienda, 'juegos_count': len(juegos_por_tienda[tienda])}
-
-                if self.acordeon_estados.get(tienda, True):
-                    for juego in sorted(juegos_por_tienda[tienda], key=lambda j: j.get('title', '')):
-                        clave = self._clave_juego(juego)
-                        juegos_visibles_ordenados.append(clave)
-                        juegos_a_mostrar_map[clave] = {'juego': juego, 'tienda': tienda}
+                juegos_visibles_ordenados.append(clave)
+                juegos_a_mostrar_map[clave] = {'juego': juego, 'tienda': tienda}
 
         widgets_actuales = set(self.game_widgets_map.keys())
         widgets_necesarios = set(juegos_visibles_ordenados)
 
+        # Destruir widgets que ya no son visibles
         for clave in widgets_actuales - widgets_necesarios:
             widget = self.game_widgets_map.pop(clave)
             widget.setParent(None)
             widget.deleteLater()
 
+        # Insertar o actualizar directamente las tarjetas sin cajones intermedios
         for i, clave in enumerate(juegos_visibles_ordenados):
             if clave not in self.game_widgets_map:
                 data = juegos_a_mostrar_map[clave]
-                if clave.startswith("header_"):
-                    tienda = data['tienda']
-                    open_ = self.acordeon_estados.get(tienda, True)
-                    header = QFrame()
-                    header.setObjectName("storeHeader")
-                    header_layout = QHBoxLayout(header)
-                    header_layout.setContentsMargins(12, 6, 14, 6)
-                    header_layout.setSpacing(10)
-
-                    arrow = "▾" if open_ else "▸"
-                    header_button = QPushButton(f"{arrow}   {tienda.upper()}")
-                    header_button.setObjectName("storeHeaderButton")
-                    header_button.setCursor(Qt.CursorShape.PointingHandCursor)
-                    header_button.clicked.connect(lambda checked=False, s=tienda: self._toggle_acordeon(s))
-                    header_layout.addWidget(header_button, 1)
-
-                    count_text = t("store.offers_count", count=data['juegos_count'])
-                    count_label = QLabel(count_text)
-                    count_label.setObjectName("offerCount")
-                    count_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                    header_layout.addWidget(count_label, 0)
-
-                    widget = header
-                else:
-                    widget = GameCard(self, data['juego'], data['tienda'])
+                widget = GameCard(self, data['juego'], data['tienda'])
                 self.game_widgets_map[clave] = widget
 
             widget = self.game_widgets_map[clave]
@@ -402,19 +370,6 @@ def _actualizar_vista_juegos(self):
 
         self.frame_lista_layout.addStretch(1)
 
-    finally:
-        if root is not None:
-            root.setUpdatesEnabled(True)
-            root.update()
-
-
-def _toggle_acordeon(self, store):
-    root = self.centralWidget()
-    if root is not None:
-        root.setUpdatesEnabled(False)
-    try:
-        self.acordeon_estados[store] = not self.acordeon_estados.get(store, True)
-        self._actualizar_vista_juegos()
     finally:
         if root is not None:
             root.setUpdatesEnabled(True)
@@ -437,4 +392,3 @@ def instalar_metodos(cls):
     cls._clear_layout = _clear_layout
     cls._actualizar_visibilidad_contenedor_juegos = _actualizar_visibilidad_contenedor_juegos
     cls._actualizar_vista_juegos = _actualizar_vista_juegos
-    cls._toggle_acordeon = _toggle_acordeon
