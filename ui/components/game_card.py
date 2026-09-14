@@ -163,6 +163,9 @@ class RoundedButton(QPushButton):
         if 'AHORRADO' in text.upper() or 'SAVED' in text.upper():
             self._anim.start()
         self._role = role
+        self.set_icon(icon_path)
+        if callable(command):
+            self.clicked.connect(command)
         self.aplicar_estilo_segun_rol()
 
     def aplicar_estilo_segun_rol(self):
@@ -188,10 +191,6 @@ class RoundedButton(QPushButton):
             b_fg = "#0F172A" if (not es_oscuro and self._fg in ("white", COLOR_TEXT_PRIMARY)) else self._fg
             b_border = "#CBD5E1" if not es_oscuro else self._border
             self.setStyleSheet(f'QPushButton {{ background: {b_bg}; color: {b_fg}; border: 1px solid {b_border}; border-radius: {self._radius}px; padding: 0 8px; }}')
-
-        self.set_icon(icon_path)
-        if callable(command):
-            self.clicked.connect(command)
 
     def set_icon(self, p):
         self._icon_path = p
