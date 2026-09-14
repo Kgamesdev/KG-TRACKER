@@ -1,209 +1,28 @@
-# Changelog
+﻿# CHANGELOG — KG TRACKER
 
-## [v0.1.34] - 2026-09-14 (Stable)
+Todos los cambios notables en este proyecto se documentan en este archivo.
 
-### Infraestructura, Herramientas y Auditoría
-* **Herramientas de contexto PowerShell:** Nuevos scripts nativos `Studio_completo.ps1` y `Studio_reducido.ps1` para sincronización con Google AI Studio.
-* **Limpieza de dependencias y scripts obsoletos:** Retirados scripts desfasados de Node/JavaScript y eliminados residuos temporales del repositorio.
-* **Protección de repositorio:** Filtro en `.gitignore` para volcados dinámicos y bloqueos ofimáticos.
-* **Consolidación de suite de pruebas:** 6 pruebas unitarias automáticas activas y validadas al 100% cubriendo persistencia atómica, concurrencia, ahorro de energía e internacionalización.
-## [v0.1.24] - 2026-09-13 (Stable)
-
-### Interfaz Gráfica (UI/UX) y Animaciones
-* **Efecto Paper Tilt dinámico (ui/components/store_widget.py):** Animación avanzada de inclinación y zoom fluido en las burbujas de las tiendas según la posición exacta del cursor.
-* **Limpieza visual de hover:** Eliminado el destello de fondo azulado para lograr una transición de diseño mucho más limpia, moderna y profesional.
-
-
-
-## [v0.1.21] - 2026-09-11 (Stable)
-
-### Rendimiento y Optimización de Carga
-* **Concurrencia x3 en segundo plano (core/translator.py y core/steam_enricher.py):** Pool de 3 hilos paralelos por servicio que acelera radicalmente los tiempos de respuesta sin saturar las conexiones de red.
-* **Precarga anticipada (Pre-fetching):** Al buscar ofertas, el motor inicia de inmediato la traducción y las consultas a Steam de fondo para que al abrir cualquier tienda los datos se muestren de forma casi instantánea.
-
-### Internacionalización y System Tray
-* **Notificaciones push bilingües (core/tray.py):** Los globos nativos de Windows al minimizar y los avisos de barrido se adaptan automáticamente al idioma configurado (Español o Inglés).
-* **Menú contextual dinámico:** Las opciones del reloj (*Mostrar*, *Comprobar ofertas*, *Salir*) y los tooltips se sincronizan en caliente sin reiniciar la app.
-* **Compatibilidad bilingüe del temporizador:** Soporte para frecuencias guardadas tanto en español (*"Cada 4 horas"*) como en inglés (*"Every 4 hours"*).
-
-
-## [v0.1.20] - 2026-09-11 (Stable)
-
-### Enriquecimiento de Datos (Steam API)
-* **Cruce multiplataforma de ofertas (core/steam_enricher.py):** Búsqueda inteligente de títulos en la base de datos de Steam para asociar ofertas de Epic Games, GOG, Amazon Prime y otras tiendas a su homólogo en PC.
-* **Valoraciones comunitarias en vivo:** Cálculo de porcentaje de aprobación y balance de críticas oficiales de Valve (ej. ★ Steam: 95% (Muy positivas)).
-* **Insignias dinámicas en tarjetas (ui/game_card.py):** Código de colores reactivo según el porcentaje de críticas positivas (verde $\ge 80\%$, azul $\ge 70\%$, ámbar $< 70\%$).
-* **Caché en disco (data/steam_cache.json):** Almacenamiento local persistente para despliegue instantáneo de juegos ya consultados.
-
-
-## [v0.1.19] - 2026-09-11 (Stable)
-
-### Internacionalización (i18n) e Idiomas
-* **Motor central i18n (core/i18n.py):** Diccionario bilingüe estructurado (Español / Inglés) que centraliza botones, estados de búsqueda, etiquetas de volumen, insignias y modales.
-* **Selector reactivo en Ajustes (ui/settings_modal.py):** Opciones de frecuencia y temas completamente localizadas, con refresco de la interfaz en caliente al guardar cambios sin necesidad de reiniciar la app.
-
-### Traducción Dinámica de Juegos
-* **Motor asíncrono multicanal (core/translator.py):** Pasarela web optimizada (Google Mobile Web + MyMemory) inmune a bloqueos por 403 Forbidden y caídas de red.
-* **Cola secuencial no bloqueante (QThread + queue.Queue):** Descarga educada en segundo plano que desacopla la traducción del hilo principal y conserva los 60 FPS estables.
-* **Caché en disco persistente (data/translations_cache.json):** Almacenamiento local de descripciones traducidas para despliegue instantáneo (0 ms) en posteriores aperturas.
-
-
-## [v0.1.18] - 2026-09-11 (Stable)
-
-### Rendimiento y Core
-* **Carga asíncrona de miniaturas (core/image_loader.py):** Desacoplada la descarga de carátulas del hilo principal de la interfaz gráfica mediante QThreadPool y QRunnable.
-* **Caché multinivel:**
-  * L1 (RAM): Acceso instantáneo en memoria para navegación y scroll fluido a 60 FPS sin microcongelaciones.
-  * L2 (Disco): Persistencia local en cache/ mediante hash SHA-256 de las URLs.
-* **Ciclo de vida desacoplado (ui/game_card.py):** Implementado estado transitorio no bloqueante (CARGANDO...) y deduplicación de peticiones concurrentes de red.
-
-
-Los cambios relevantes de KG Game Tracker se documentan en este archivo.
-
-## [En desarrollo]
-
-## [0.1.13] - 2026-09-11
-
+## [v0.2.33] - 2026-09-15
 ### Corregido
-- El conteo de notificaciones ahora se sincroniza con el método interno _esta_reclamado() y la estructura dict de reclamados.json.
-- Notificaciones de bandeja y barrido reportan exactamente las ofertas pendientes de reclamar.
+- **Concurrencia:** Aislamiento de señales en `_busqueda_thread` al cancelar/reiniciar búsquedas en segundo plano.
+- **Codificación:** Normalización estricta UTF-8 en `config.py` eliminando residuos de caracteres Mojibake.
 
-## [0.1.12] - 2026-09-11
-
-### Corregido
-- El conteo de notificaciones ahora descuenta con precisión los juegos marcados como reclamados en disco y memoria.
-- Mensaje adaptativo si el usuario ya ha reclamado todas las ofertas ('¡Al día! No tienes ofertas pendientes').
-
-## [0.1.11] - 2026-09-11
-
+## [v0.2.32] - 2026-09-15
 ### Mejorado
-- Icono personalizado de la app en las notificaciones del sistema (eliminado el icono genérico de aviso).
-- Restauración interactiva de la ventana al hacer clic directamente en la notificación.
+- Rediseño profesional de `README.md` con formato estandarizado UTF-8.
 
-## [0.1.10] - 2026-09-11
+## [v0.2.31] - 2026-09-14
+### Pruebas
+- Ampliación de cobertura de pruebas unitarias para i18n, enriquecedor de Steam y traductor.
 
-### Añadido
-- Notificación al minimizar que informa en tiempo real las ofertas sin reclamar disponibles.
-- Notificación al finalizar el barrido de ofertas (tanto periódico como manual desde el System Tray).
+## [v0.2.30] - 2026-09-13
+### Persistencia
+- Estandarización de persistencia atómica de configuración y cachés JSON con respaldos `.bak`.
 
-## [0.1.9] - 2026-09-11
+## [v0.2.29] - 2026-09-12
+### Mantenimiento
+- Ignorar datos runtime del usuario en `.gitignore` y eliminación de scripts obsoletos.
 
-### Añadido
-- Modal de Ajustes 100% funcional con persistencia en data/settings.json.
-- Selector de frecuencia de barrido de ofertas en segundo plano (2h, 4h, 8h, 24h, off).
-- Interruptor para activar/desactivar notificaciones de escritorio.
-- Opción de inicio voluntario con Windows vinculada al Registro.
-
-## [0.1.8] - 2026-09-11
-
-### Mejorado
-- Notificación de bandeja silenciosa (sin el sonido estridente de alerta de Windows).
-- La notificación ahora informa dinámicamente el número real de ofertas disponibles sin reclamar.
-
-## [0.1.7] - 2026-09-11
-
-### Añadido
-- Módulo ui/main_window_tray.py para desacoplar el ciclo de vida del System Tray.
-- Transición suave de audio (Fade Out) al minimizar al área de notificación de Windows.
-- Transición suave de audio (Fade In) al restaurar la ventana desde el reloj.
-
-## [0.1.6] - 2026-09-11
-
-### Añadido
-- Integración con la bandeja del sistema (System Tray) al pulsar cerrar.
-- Notificación educativa nativa de Windows en el primer cierre explicando que la app sigue activa.
-- Menú contextual en el icono del reloj para abrir la app o salir completamente.
-
-## [0.1.5] - 2026-09-11
-
-### Corregido
-- Corregido el salto automático del scroll al fondo al pulsar 'NO RECLAMADO'.
-- Preservada la posición exacta de visualización del usuario tras modificar el estado de un juego.
-
-## [0.1.5] - 2026-09-11
-
-### Corregido
-- Corregido el salto automático del scroll al fondo al pulsar 'NO RECLAMADO'.
-- Preservada la posición exacta de visualización del usuario tras modificar el estado de un juego.
-
-## [0.1.4] - 2026-09-11
-
-### Corregido
-- Eliminado autostart forzado no consentido en el Registro de Windows.
-- Optimizado subsistema de dependencias eliminando librerías innecesarias de audio.
-- Resueltas inconsistencias de contraste WCAG AA en la paleta del modo claro.
-- Implementada persistencia atómica con copias de seguridad automáticas en el historial.
-
-### Cambiado
-
-- El indicador de estado de bÃºsqueda usa un pulso azul neÃ³n temporal mientras se consulta la API.
-
-## [0.1.3] - 2026-09-11
-
-### Corregido
-
-- El botÃ³n `NO RECLAMADO` elimina correctamente el juego del historial persistente.
-- La vista de Reclamados mantiene su estado y actualiza sus tarjetas tras modificar un juego.
-- Se consolidÃ³ el guardado previo de cambios en el historial de reclamados.
-- Se ajustÃ³ el comportamiento de la ventana en su modo expandido.
-
-## [0.1.2] - 2026-09-10
-
-### Mejorado
-
-- Splash de inicio con transiciÃ³n cinematogrÃ¡fica.
-- ReducciÃ³n de parpadeos durante las transiciones de la interfaz.
-
-## [0.1.1] - 2026-09-10
-
-### AÃ±adido
-
-- Ondas de borde neÃ³n en la interfaz.
-
-## [0.1.0] - 2026-09-10
-
-### AÃ±adido
-
-- Primera versiÃ³n estable de la interfaz Qt.
-
-## [0.0.10] - 2026-09-11
-
-### Corregido
-
-- El indicador `LISTO` permanece visible al abrir Reclamados.
-- El botÃ³n de Reclamados tiene espacio suficiente para mostrar su texto completo.
-
-## [0.0.9] - 2026-09-11
-
-### Mejorado
-
-- AnimaciÃ³n de bÃºsqueda en el indicador de estado.
-- CorrecciÃ³n del recorte lateral del efecto neÃ³n.
-- Barra inferior anclada visualmente al borde inferior al maximizar o restaurar la ventana.
-
-## [0.0.8] - 2026-09-10
-
-### Mejorado
-
-- Estabilidad y fluidez de la interfaz.
-- ReducciÃ³n de repintados, saltos visuales y parpadeos.
-
-## [0.0.7] - 2026-09-10
-
-### Cambiado
-
-- DivisiÃ³n de `main_window.py` en mÃ³dulos especializados de interfaz, tema, audio, juegos, historial, navegaciÃ³n y utilidades.
-
-## [0.0.5] - 2026-09-10
-
-### Cambiado
-
-- MigraciÃ³n de los modales de Ko-fi y ajustes a PySide6.
-
-## [0.0.4] y anteriores
-
-### Cambiado
-
-- Retirada progresiva de componentes heredados de Tkinter.
-- Limpieza de imÃ¡genes y paneles obsoletos.
-
+## [v0.2.28] - 2026-09-11
+### Seguridad y Concurrencia
+- Aislamiento de sesiones HTTP concurrentes por scraper y escape de caracteres en notificaciones push de PowerShell.
