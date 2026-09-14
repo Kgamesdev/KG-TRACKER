@@ -1281,8 +1281,8 @@ class GameCard(NeonFrame):
         if pixmap is not None and not pixmap.isNull():
             self._imagen_cargada_con_exito = True
             self._image_label.setText("")
-            redondeado = _redondear_pixmap(pixmap, 8)
-            self._image_label.setPixmap(redondeado)
+            # La imagen ya llega perfectamente escalada y redondeada por el worker de C++
+            self._image_label.setPixmap(pixmap)
         else:
             self._imagen_cargada_con_exito = False
             self._mostrar_placeholder_tienda()
