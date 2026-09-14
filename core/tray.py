@@ -124,6 +124,25 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
 
 
 class GameTrackerTray:
+    
+    def mostrar_notificacion_push(self, titulo, cuerpo):
+        try:
+            from ui.components.notification_toast import DesktopToast
+            if hasattr(self, "_toast_activo") and self._toast_activo is not None:
+                try:
+                    self._toast_activo.close()
+                    self._toast_activo.deleteLater()
+                except Exception:
+                    pass
+            self._toast_activo = DesktopToast(
+                titulo=titulo,
+                mensaje=cuerpo,
+                ventana_principal=self.ventana
+            )
+            self._toast_activo.mostrar()
+        except Exception as e:
+            log_error(f"Error mostrando toast gaming: {e}")
+
     def __init__(self, ventana_principal):
         self.ventana = ventana_principal
         self.tray_icon = None
@@ -244,11 +263,7 @@ class GameTrackerTray:
         else:
             cuerpo = t("tray.minimized_body_uptodate")
 
-        enviar_notificacion_windows(
-            titulo=t("tray.minimized_title"),
-            mensaje=cuerpo,
-            duracion_larga=True
-        )
+        self.mostrar_notificacion_push(t("tray.minimized_title"), cuerpo)
 
     def ejecutar_barrido_manual(self):
         log_info("[TRAY] Barrido manual solicitado por el usuario...")
@@ -283,11 +298,7 @@ class GameTrackerTray:
         else:
             cuerpo = t("tray.sweep_body_none")
 
-        enviar_notificacion_windows(
-            titulo=titulo,
-            mensaje=cuerpo,
-            duracion_larga=True
-        )
+        self.mostrar_notificacion_push(titulo, cuerpo)
 
     def salir_definitivo(self):
         if self.tray_icon:
