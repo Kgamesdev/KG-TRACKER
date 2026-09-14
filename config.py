@@ -1,4 +1,4 @@
-"""Configuración y constantes globales de la aplicación."""
+﻿"""Configuración y constantes globales de la aplicación."""
 
 import os
 
@@ -68,7 +68,7 @@ THEMES = {
         "COLOR_ACCENT_LIGHT": "#6366F1",
         "COLOR_SUCCESS": "#0D9488",
         "COLOR_SUCCESS_HOVER": "#0F766E",
-        "COLOR_WARNING": "#D97706",
+        "COLOR_WARNING": "#F59E0B",
         "COLOR_ERROR": "#DC2626",
         "COLOR_BORDER": "#CBD5E1",
         "COLOR_HOVER": "#F8FAFC",
@@ -113,4 +113,3 @@ AUDIO_FADE_IN_DURATION = 3.0
 # --- AUTOSTART (Windows) ---
 AUTOSTART_REG_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
 AUTOSTART_APP_NAME = "KGameTracker"
-
