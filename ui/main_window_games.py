@@ -390,9 +390,9 @@ def _actualizar_vista_juegos(self):
             widget.setParent(None)
             widget.deleteLater()
 
-        # Insertar banner brillante o tarjetas directamente con cascada visual
-        retraso_cascada = 0
-        for i, clave in enumerate(juegos_visibles_ordenados):
+        # 1. Crear e inicializar TODAS las tarjetas a opacidad 0.0 ANTES de insertarlas
+        # Esto evita el "parpadeo de 1 frame" abrupto de Qt.
+        for clave in juegos_visibles_ordenados:
             if clave not in self.game_widgets_map:
                 data = juegos_a_mostrar_map[clave]
                 if data.get('tipo') == 'banner':
@@ -400,14 +400,19 @@ def _actualizar_vista_juegos(self):
                 else:
                     widget = GameCard(self, data['juego'], data['tienda'])
                 self.game_widgets_map[clave] = widget
+            
+            if hasattr(self.game_widgets_map[clave], "preparar_animacion_cascada"):
+                self.game_widgets_map[clave].preparar_animacion_cascada()
 
+        # 2. Insertar en el layout y lanzar animaciones con cascada suave
+        retraso_cascada = 0
+        for i, clave in enumerate(juegos_visibles_ordenados):
             widget = self.game_widgets_map[clave]
             self.frame_lista_layout.insertWidget(i, widget)
             
-            # Disparar la animación con retraso incremental
             if hasattr(widget, "animar_entrada"):
                 widget.animar_entrada(retraso_cascada)
-                retraso_cascada += 35
+                retraso_cascada += 45
         
         while self.frame_lista_layout.count() > len(juegos_visibles_ordenados):
             item = self.frame_lista_layout.takeAt(len(juegos_visibles_ordenados))

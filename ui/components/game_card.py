@@ -769,24 +769,25 @@ class NeonFrame(QFrame):
         p.drawRoundedRect(r, float(self._radius), float(self._radius))
         p.end()
 
-    def animar_entrada(self, delay=0):
+    def preparar_animacion_cascada(self):
         from PySide6.QtWidgets import QGraphicsOpacityEffect
-        from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QTimer
-        
         if not hasattr(self, "_efecto_opacidad") or self.graphicsEffect() is None:
             self._efecto_opacidad = QGraphicsOpacityEffect(self)
             self.setGraphicsEffect(self._efecto_opacidad)
-            
         self._efecto_opacidad.setOpacity(0.0)
+
+    def animar_entrada(self, delay=0):
+        from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QTimer
+        self.preparar_animacion_cascada()
         
         if hasattr(self, "_anim_entrada") and self._anim_entrada.state() == QPropertyAnimation.State.Running:
             self._anim_entrada.stop()
             
         self._anim_entrada = QPropertyAnimation(self._efecto_opacidad, b"opacity", self)
-        self._anim_entrada.setDuration(500)
+        self._anim_entrada.setDuration(700)
         self._anim_entrada.setStartValue(0.0)
         self._anim_entrada.setEndValue(1.0)
-        self._anim_entrada.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._anim_entrada.setEasingCurve(QEasingCurve.Type.OutQuart)
         
         if delay > 0:
             if hasattr(self, "_timer_entrada") and self._timer_entrada.isActive():
