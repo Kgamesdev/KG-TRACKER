@@ -1,4 +1,4 @@
-# 🎮 K GAME TRACKER (KG Tracker)
+﻿# 🎮 K GAME TRACKER (KG Tracker)
 
 <p align="center">
   <img src="assets/LogoKG_transparente.png" alt="KG Tracker Logo" width="130"/>
@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.2.26-blue?style=for-the-badge&logo=git" alt="Version"/>
+  <img src="https://img.shields.io/badge/version-v0.2.29-blue?style=for-the-badge&logo=git" alt="Version"/>
   <img src="https://img.shields.io/badge/python-3.14+-yellow?style=for-the-badge&logo=python" alt="Python Version"/>
   <img src="https://img.shields.io/badge/framework-PySide6%20(Qt%206)-41CD52?style=for-the-badge&logo=qt" alt="PySide6"/>
   <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=for-the-badge&logo=windows" alt="Platform"/>

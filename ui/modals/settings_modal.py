@@ -1,4 +1,4 @@
-"""Modal de ajustes para K GAME TRACKER basada en PySide6/Qt."""
+﻿"""Modal de ajustes para K GAME TRACKER basada en PySide6/Qt."""
 import os
 import json
 
@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 
 import config
 from config import ICON_PATH, BASE_DIR
+from core.storage import guardar_json_atomico, cargar_json_seguro
 from core.autostart import habilitar_autostart, deshabilitar_autostart, autostart_activo
 from core.i18n import t, establecer_idioma, obtener_idioma, IDIOMAS, MAPEO_FRECUENCIA, MAPEO_TEMAS
 
@@ -26,8 +27,7 @@ SETTINGS_FILE = os.path.join(BASE_DIR, "data", "settings.json")
 def cargar_ajustes():
     if os.path.exists(SETTINGS_FILE):
         try:
-            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+            return cargar_json_seguro(SETTINGS_FILE, valor_por_defecto={})
         except Exception:
             return {}
     return {}
@@ -36,8 +36,7 @@ def cargar_ajustes():
 def guardar_ajustes(data):
     os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
     try:
-        with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        guardar_json_atomico(SETTINGS_FILE, data)
     except Exception:
         pass
 

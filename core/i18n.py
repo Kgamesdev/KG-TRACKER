@@ -1,8 +1,9 @@
-"""Motor de internacionalizacion (i18n) para textos de KG Tracker."""
+﻿"""Motor de internacionalizacion (i18n) para textos de KG Tracker."""
 
 import os
 import json
 from config import BASE_DIR
+from core.storage import cargar_json_seguro
 
 SETTINGS_FILE = os.path.join(BASE_DIR, "data", "settings.json")
 
@@ -162,16 +163,15 @@ def obtener_idioma() -> str:
     global _idioma_actual
     if os.path.exists(SETTINGS_FILE):
         try:
-            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                lang_raw = str(data.get("idioma", "es")).lower()
-                lang_code = str(data.get("idioma_codigo", "")).lower()
-                if lang_code in ("en", "es"):
-                    _idioma_actual = lang_code
-                elif "en" in lang_raw or "english" in lang_raw:
-                    _idioma_actual = "en"
-                else:
-                    _idioma_actual = "es"
+            data = cargar_json_seguro(SETTINGS_FILE, valor_por_defecto={})
+            lang_raw = str(data.get("idioma", "es")).lower()
+            lang_code = str(data.get("idioma_codigo", "")).lower()
+            if lang_code in ("en", "es"):
+                _idioma_actual = lang_code
+            elif "en" in lang_raw or "english" in lang_raw:
+                _idioma_actual = "en"
+            else:
+                _idioma_actual = "es"
         except Exception:
             _idioma_actual = "es"
     return _idioma_actual

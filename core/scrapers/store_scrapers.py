@@ -1,4 +1,4 @@
-from core.storage import guardar_json_atomico
+﻿from core.storage import guardar_json_atomico, cargar_json_seguro
 import urllib.parse
 """Módulo centralizado de scrapers y consultas directas a tiendas de videojuegos."""
 
