@@ -46,11 +46,12 @@ def _ajustar_ventana_por_estado(self, expandida):
     content_layout = self.content.layout()
     ancho_actual = self.width()
 
-    alto_objetivo = 640 if expandida else 360
+    # Expandimos el alto un ~11% (de 640 a 710px) para evitar el corte abrupto de las tarjetas
+    alto_objetivo = 710 if expandida else 360
     ancho_objetivo = max(ancho_actual, 1120)
 
     if expandida:
-        self.setMinimumSize(980, 540)
+        self.setMinimumSize(980, 580)
         self.container.show()
         content_layout.setStretch(4, 1)
         self.content.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
