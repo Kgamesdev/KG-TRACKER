@@ -97,7 +97,7 @@ class DesktopToast(QWidget):
         # Temporizador de permanencia (7.0 segundos)
         self._timer_permanencia = QTimer(self)
         self._timer_permanencia.setSingleShot(True)
-        self._timer_permanencia.setInterval(7000)
+        self._timer_permanencia.setInterval(3600)
         self._timer_permanencia.timeout.connect(self._iniciar_salida)
 
         self._anim_pos = None
@@ -133,7 +133,7 @@ class DesktopToast(QWidget):
 
     def leaveEvent(self, event):
         # Reanudar con 3 segundos restantes al quitar el cursor
-        self._timer_permanencia.setInterval(3000)
+        self._timer_permanencia.setInterval(3600)
         self._timer_permanencia.start()
         super().leaveEvent(event)
 
@@ -166,7 +166,7 @@ class DesktopToast(QWidget):
 
         # Animación pausada de entrada hacia arriba (650 ms)
         self._anim_pos = QPropertyAnimation(self, b"pos")
-        self._anim_pos.setDuration(650)
+        self._anim_pos.setDuration(500)
         self._anim_pos.setStartValue(QPoint(target_x, start_y))
         self._anim_pos.setEndValue(QPoint(target_x, target_y))
         self._anim_pos.setEasingCurve(QEasingCurve.Type.OutCubic)
@@ -182,7 +182,7 @@ class DesktopToast(QWidget):
         dest_y = geo.bottom() + 15
 
         self._anim_salida = QPropertyAnimation(self, b"pos")
-        self._anim_salida.setDuration(420)
+        self._anim_salida.setDuration(400)
         self._anim_salida.setStartValue(self.pos())
         self._anim_salida.setEndValue(QPoint(self.x(), dest_y))
         self._anim_salida.setEasingCurve(QEasingCurve.Type.InCubic)
