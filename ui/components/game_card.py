@@ -723,10 +723,53 @@ class NeonFrame(QFrame):
         self._border_width = border_width
         self._ang = 0.0
         self._conectado_clock = False
+        self._bloquear_neon = False
 
     def _on_clock_tick(self, ang):
+        # OPTIMIZACION EXTREMA: Detener calculos de neon mientras se anima la entrada
+        if getattr(self, "_bloquear_neon", False):
+            return
         self._ang = ang
         self.update()
+
+    def preparar_animacion_cascada(self):
+        from PySide6.QtWidgets import QGraphicsOpacityEffect
+        from PySide6.QtCore import QSequentialAnimationGroup
+        
+        self._bloquear_neon = True
+        
+        if not hasattr(self, "_efecto_opacidad") or self.graphicsEffect() is None:
+            self._efecto_opacidad = QGraphicsOpacityEffect(self)
+            self.setGraphicsEffect(self._efecto_opacidad)
+            
+        if hasattr(self, "_anim_group") and self._anim_group.state() != 0:
+            self._anim_group.stop()
+            
+        self._efecto_opacidad.setOpacity(0.0)
+
+    def animar_entrada(self, delay=0):
+        from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QSequentialAnimationGroup, QPauseAnimation
+        
+        self._anim_group = QSequentialAnimationGroup(self)
+        
+        if delay > 0:
+            pause = QPauseAnimation(delay, self)
+            self._anim_group.addAnimation(pause)
+            
+        anim_fade = QPropertyAnimation(self._efecto_opacidad, b"opacity", self)
+        anim_fade.setDuration(350)
+        anim_fade.setStartValue(0.0)
+        anim_fade.setEndValue(1.0)
+        anim_fade.setEasingCurve(QEasingCurve.Type.OutQuad)
+        
+        self._anim_group.addAnimation(anim_fade)
+        
+        def _on_finish():
+            self._bloquear_neon = False
+            self.update()
+            
+        self._anim_group.finished.connect(_on_finish)
+        self._anim_group.start()
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -768,36 +811,6 @@ class NeonFrame(QFrame):
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.drawRoundedRect(r, float(self._radius), float(self._radius))
         p.end()
-
-    def preparar_animacion_cascada(self):
-        from PySide6.QtWidgets import QGraphicsOpacityEffect
-        if not hasattr(self, "_efecto_opacidad") or self.graphicsEffect() is None:
-            self._efecto_opacidad = QGraphicsOpacityEffect(self)
-            self.setGraphicsEffect(self._efecto_opacidad)
-        self._efecto_opacidad.setOpacity(0.0)
-
-    def animar_entrada(self, delay=0):
-        from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QSequentialAnimationGroup, QPauseAnimation
-        self.preparar_animacion_cascada()
-        
-        if hasattr(self, "_anim_group") and self._anim_group.state() == QSequentialAnimationGroup.State.Running:
-            self._anim_group.stop()
-            
-        self._anim_group = QSequentialAnimationGroup(self)
-        
-        if delay > 0:
-            pause = QPauseAnimation(delay, self)
-            self._anim_group.addAnimation(pause)
-            
-        anim_fade = QPropertyAnimation(self._efecto_opacidad, b"opacity", self)
-        anim_fade.setDuration(850)
-        anim_fade.setStartValue(0.0)
-        anim_fade.setEndValue(1.0)
-        anim_fade.setEasingCurve(QEasingCurve.Type.InOutSine)
-        
-        self._anim_group.addAnimation(anim_fade)
-        self._anim_group.start()
-
 
 class StoreHeaderBanner(NeonFrame):
     """Banner de cabecera con efecto cristal (glassmorphism) y contorno neón resplandeciente."""

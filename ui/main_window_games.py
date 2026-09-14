@@ -355,7 +355,6 @@ def _actualizar_vista_juegos(self):
                 if self._asignar_tienda(j) in tiendas_activas and not self._esta_reclamado(j)
             ]
             
-            # Banner centrado y resplandeciente
             if len(tiendas_activas) == 1:
                 tienda_nombre = tiendas_activas[0]
                 clave_banner = f"banner_{tienda_nombre}"
@@ -374,7 +373,6 @@ def _actualizar_vista_juegos(self):
                     'titulo': f"🌐  TODAS LAS TIENDAS  ·  {conteo_texto}",
                 }
 
-            # Ordenar directamente por tienda y título de juego
             for juego in sorted(juegos_filtrados, key=lambda j: (self._asignar_tienda(j), j.get('title', ''))):
                 clave = self._clave_juego(juego)
                 tienda = self._asignar_tienda(juego)
@@ -384,47 +382,30 @@ def _actualizar_vista_juegos(self):
         widgets_actuales = set(self.game_widgets_map.keys())
         widgets_necesarios = set(juegos_visibles_ordenados)
 
-        # Destruir widgets que ya no son visibles
+        # 1. Destruir los que ya no sirven
         for clave in widgets_actuales - widgets_necesarios:
             widget = self.game_widgets_map.pop(clave)
             widget.setParent(None)
             widget.deleteLater()
 
-        # 1. Crear e inicializar TODAS las tarjetas a opacidad 0.0 ANTES de insertarlas
-        # Esto evita el "parpadeo de 1 frame" abrupto de Qt.
-        for clave in juegos_visibles_ordenados:
+        # 2. Crear y preparar opacidad a 0.0 ANTES de mostrar (Elimina Flicker)
+        for i, clave in enumerate(juegos_visibles_ordenados):
             if clave not in self.game_widgets_map:
                 data = juegos_a_mostrar_map[clave]
                 if data.get('tipo') == 'banner':
+                    from ui.components.game_card import StoreHeaderBanner
                     widget = StoreHeaderBanner(self.frame_lista, data['titulo'])
                 else:
+                    from ui.components.game_card import GameCard
                     widget = GameCard(self, data['juego'], data['tienda'])
                 self.game_widgets_map[clave] = widget
-            
-            if hasattr(self.game_widgets_map[clave], "preparar_animacion_cascada"):
-                self.game_widgets_map[clave].preparar_animacion_cascada()
 
-        # 2. Insertar en el layout pero sin animar todavia
-        for i, clave in enumerate(juegos_visibles_ordenados):
             widget = self.game_widgets_map[clave]
-            self.frame_lista_layout.insertWidget(i, widget)
             
-        # 3. Forzar el calculo de geometrias en la CPU ANTES de la animacion
-        # Esto elimina por completo los tirones y hace que la ola sea perfecta
-        from PySide6.QtWidgets import QApplication
-        QApplication.processEvents()
-        
-        # 4. Lanzar la ola asincrona
-        retraso_cascada = 0
-        for clave in juegos_visibles_ordenados:
-            widget = self.game_widgets_map[clave]
-            if hasattr(widget, "animar_entrada"):
-                widget.animar_entrada(retraso_cascada)
-                retraso_cascada += 65
+            if hasattr(widget, "preparar_animacion_cascada"):
+                widget.preparar_animacion_cascada()
                 
-        # 5. Reiniciar el scrollbar para ver la ola desde arriba
-        if self.canvas and self.canvas.verticalScrollBar():
-            self.canvas.verticalScrollBar().setValue(0)
+            self.frame_lista_layout.insertWidget(i, widget)
         
         while self.frame_lista_layout.count() > len(juegos_visibles_ordenados):
             item = self.frame_lista_layout.takeAt(len(juegos_visibles_ordenados))
@@ -438,6 +419,19 @@ def _actualizar_vista_juegos(self):
             root.setUpdatesEnabled(True)
             root.update()
 
+    # 3. Forzar calculos de GPU/CPU en vacio y lanzar la ola sincronizada
+    from PySide6.QtWidgets import QApplication
+    QApplication.processEvents()
+    
+    retraso_cascada = 0
+    for clave in juegos_visibles_ordenados:
+        widget = self.game_widgets_map[clave]
+        if hasattr(widget, "animar_entrada"):
+            widget.animar_entrada(retraso_cascada)
+            retraso_cascada += 35
+            
+    if self.canvas and self.canvas.verticalScrollBar():
+        self.canvas.verticalScrollBar().setValue(0)
 
 def instalar_metodos(cls):
     cls.game_widgets_map = {}
