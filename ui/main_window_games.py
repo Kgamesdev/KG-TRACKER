@@ -384,24 +384,27 @@ def _actualizar_vista_juegos(self):
                 juegos_visibles_ordenados.append(clave)
                 juegos_a_mostrar_map[clave] = {'tipo': 'juego', 'juego': juego, 'tienda': tienda}
 
-        # 1. Liberar memoria de los que no están
+        # 1. Liberar memoria y limpiar el Layout correctamente
         widgets_actuales = set(self.game_widgets_map.keys())
         widgets_necesarios = set(juegos_visibles_ordenados)
 
         for clave in widgets_actuales - widgets_necesarios:
             widget = self.game_widgets_map.pop(clave)
+            self.frame_lista_layout.removeWidget(widget) # Desenlace seguro del motor de UI
             widget.setParent(None)
             widget.deleteLater()
 
-        # 2. Retirar el espaciador elástico
-        if self.frame_lista_layout.count() > 0:
+        # 2. Retirar TODOS los espaciadores elásticos (Evita acumulación de basura en el scroll)
+        while self.frame_lista_layout.count() > 0:
             last_item = self.frame_lista_layout.itemAt(self.frame_lista_layout.count() - 1)
             if last_item.spacerItem():
                 self.frame_lista_layout.removeItem(last_item)
+            else:
+                break
 
         widgets_to_animate = []
 
-        # 3. Instanciar y preparar opacidad en cero
+        # 3. Insertar y garantizar visualización
         for i, clave in enumerate(juegos_visibles_ordenados):
             es_nuevo = False
             if clave not in self.game_widgets_map:
@@ -417,28 +420,35 @@ def _actualizar_vista_juegos(self):
 
             widget = self.game_widgets_map[clave]
             
-            if es_nuevo and hasattr(widget, "preparar_animacion_cascada"):
-                widget.preparar_animacion_cascada()
-                widgets_to_animate.append(widget)
-
+            if es_nuevo:
+                if hasattr(widget, "preparar_animacion_cascada"):
+                    widget.preparar_animacion_cascada()
+                    widgets_to_animate.append(widget)
+            else:
+                # RESCATE: Si el usuario clica rápido, la opacidad puede quedarse atascada en el limbo. 
+                # La forzamos al 100% para que reaparezca sin problemas.
+                if hasattr(widget, "graphicsEffect") and widget.graphicsEffect():
+                    widget.graphicsEffect().setOpacity(1.0)
+                    
             self.frame_lista_layout.insertWidget(i, widget)
+            widget.show() # <- FUNDAMENTAL: Obliga a Qt a pintarlo incluso si fue reciclado
 
-        # 4. Restaurar espaciador elástico
+        # 4. Restaurar 1 solo espaciador al final
         self.frame_lista_layout.addStretch(1)
 
-        # 5. Fuerza bruta para calcular la geometría estricta del motor de Qt
+        # 5. Fuerza bruta para Qt
         self.frame_lista_layout.activate()
         QApplication.processEvents()
 
     finally:
-        # 6. Descongelar interfaz gráfica (para que se pinten las animaciones)
         if root is not None:
             root.setUpdatesEnabled(True)
 
-    # 7. Ejecutar Motor Nativo de Animación C++ (Sin QTimer de Python)
+    # 6. Despachar Animaciones con total seguridad
     if widgets_to_animate:
         if hasattr(self, "_master_anim_group") and self._master_anim_group.state() != 0:
             self._master_anim_group.stop()
+            self._master_anim_group.deleteLater() # Limpiar punteros en memoria
 
         self._master_anim_group = QParallelAnimationGroup(self)
         
@@ -447,9 +457,6 @@ def _actualizar_vista_juegos(self):
                 anim = widget.obtener_animacion_baraja()
                 if anim:
                     seq = QSequentialAnimationGroup(self._master_anim_group)
-                    
-                    # Ráfaga sincronizada: 30ms x carta. Si hay 10 cartas, 
-                    # la última sale a los 300ms, persiguiendo exacto al contenedor.
                     if index > 0:
                         seq.addAnimation(QPauseAnimation(index * 30)) 
                     
@@ -457,7 +464,6 @@ def _actualizar_vista_juegos(self):
                     self._master_anim_group.addAnimation(seq)
                     
         self._master_anim_group.start()
-
 
 def instalar_metodos(cls):
     cls.game_widgets_map = {}
