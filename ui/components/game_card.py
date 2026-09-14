@@ -743,45 +743,42 @@ class NeonFrame(QFrame):
         self._efecto_opacidad.setEnabled(True)
         self._efecto_opacidad.setOpacity(0.0)
 
-    def animar_entrada_baraja(self):
-        """Ejecuta el efecto de carta repartida: Deslizamiento (Translate Y) + Fade In."""
+    def obtener_animacion_baraja(self):
+        """Devuelve un grupo de animación nativo C++ de alta fluidez."""
         from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPoint
         
         if not hasattr(self, "_efecto_opacidad"):
-            return
-            
-        if hasattr(self, "_anim_group") and self._anim_group.state() != 0:
-            self._anim_group.stop()
+            return None
 
-        # Asegurar que la carta en movimiento se dibuje sobre las demás
+        # Asegurar elevación Z-Index
         self.raise_()
             
-        # Posición final dictada por el layout
+        # Geometría calculada por el layout
         final_pos = self.pos()
-        # Posición de inicio desplazada 65px hacia abajo
-        start_pos = QPoint(final_pos.x(), final_pos.y() + 65)
+        # Caída extendida a 80px para mayor espectacularidad
+        start_pos = QPoint(final_pos.x(), final_pos.y() + 80)
         
-        # Saltamos físicamente a la posición de inicio
+        # Teletransporte inmediato al punto de origen
         self.move(start_pos)
 
-        # Animación de Traslación (Y)
-        anim_pos = QPropertyAnimation(self, b"pos")
-        anim_pos.setDuration(450)
+        # Animación de Traslación (Y) con OutQuint (Frenado extremadamente suave)
+        anim_pos = QPropertyAnimation(self, b"pos", self)
+        anim_pos.setDuration(550) 
         anim_pos.setStartValue(start_pos)
         anim_pos.setEndValue(final_pos)
-        anim_pos.setEasingCurve(QEasingCurve.Type.OutQuart) # Frenado suave al encajar
+        anim_pos.setEasingCurve(QEasingCurve.Type.OutQuint) 
 
         # Animación de Opacidad (Fade)
-        anim_fade = QPropertyAnimation(self._efecto_opacidad, b"opacity")
-        anim_fade.setDuration(350)
+        anim_fade = QPropertyAnimation(self._efecto_opacidad, b"opacity", self)
+        anim_fade.setDuration(400)
         anim_fade.setStartValue(0.0)
         anim_fade.setEndValue(1.0)
         anim_fade.setEasingCurve(QEasingCurve.Type.OutCubic)
 
-        # Ejecución paralela
-        self._anim_group = QParallelAnimationGroup(self)
-        self._anim_group.addAnimation(anim_pos)
-        self._anim_group.addAnimation(anim_fade)
+        # Empaquetado Paralelo
+        grupo = QParallelAnimationGroup(self)
+        grupo.addAnimation(anim_pos)
+        grupo.addAnimation(anim_fade)
         
         def _on_finish():
             self._bloquear_neon = False
@@ -789,8 +786,8 @@ class NeonFrame(QFrame):
                 self._efecto_opacidad.setEnabled(False)
             self.update()
             
-        self._anim_group.finished.connect(_on_finish)
-        self._anim_group.start()
+        grupo.finished.connect(_on_finish)
+        return grupo
 
     def showEvent(self, event):
         super().showEvent(event)

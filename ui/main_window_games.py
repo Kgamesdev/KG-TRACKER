@@ -328,9 +328,13 @@ def _actualizar_visibilidad_contenedor_juegos(self):
 
 def _actualizar_vista_juegos(self):
     from core.i18n import t
+    from PySide6.QtWidgets import QApplication
+    from PySide6.QtCore import QParallelAnimationGroup, QSequentialAnimationGroup, QPauseAnimation
+
     root = self.centralWidget()
     if root is not None:
         root.setUpdatesEnabled(False)
+        
     try:
         self._actualizar_visibilidad_contenedor_juegos()
 
@@ -380,7 +384,7 @@ def _actualizar_vista_juegos(self):
                 juegos_visibles_ordenados.append(clave)
                 juegos_a_mostrar_map[clave] = {'tipo': 'juego', 'juego': juego, 'tienda': tienda}
 
-        # 1. Recuperar memoria
+        # 1. Liberar memoria de los que no están
         widgets_actuales = set(self.game_widgets_map.keys())
         widgets_necesarios = set(juegos_visibles_ordenados)
 
@@ -389,7 +393,7 @@ def _actualizar_vista_juegos(self):
             widget.setParent(None)
             widget.deleteLater()
 
-        # 2. Retirar el espaciador final temporalmente
+        # 2. Retirar el espaciador elástico
         if self.frame_lista_layout.count() > 0:
             last_item = self.frame_lista_layout.itemAt(self.frame_lista_layout.count() - 1)
             if last_item.spacerItem():
@@ -397,7 +401,7 @@ def _actualizar_vista_juegos(self):
 
         widgets_to_animate = []
 
-        # 3. Insertar tarjetas
+        # 3. Instanciar y preparar opacidad en cero
         for i, clave in enumerate(juegos_visibles_ordenados):
             es_nuevo = False
             if clave not in self.game_widgets_map:
@@ -419,42 +423,41 @@ def _actualizar_vista_juegos(self):
 
             self.frame_lista_layout.insertWidget(i, widget)
 
-        # 4. Restaurar espaciador
+        # 4. Restaurar espaciador elástico
         self.frame_lista_layout.addStretch(1)
 
-        # ¡CRÍTICO PARA EL EFECTO BARAJA!
-        # Obligamos a Qt a renderizar internamente el Layout antes de mostrar la pantalla.
-        # Esto asegura que self.pos() tenga los valores finales listos para ser animados.
-        from PySide6.QtWidgets import QApplication
+        # 5. Fuerza bruta para calcular la geometría estricta del motor de Qt
         self.frame_lista_layout.activate()
         QApplication.processEvents()
 
     finally:
+        # 6. Descongelar interfaz gráfica (para que se pinten las animaciones)
         if root is not None:
             root.setUpdatesEnabled(True)
 
-    # 5. Despachador de Ola estilo "Crupier" (Reparto rápido)
+    # 7. Ejecutar Motor Nativo de Animación C++ (Sin QTimer de Python)
     if widgets_to_animate:
-        if hasattr(self, "_stagger_timer") and self._stagger_timer.isActive():
-            self._stagger_timer.stop()
-            
-        from PySide6.QtCore import QTimer
-        self._stagger_timer = QTimer(self)
-        self._stagger_timer.setInterval(32) # Intervalo extremadamente veloz
-        self._stagger_queue = widgets_to_animate
-        self._stagger_index = 0
+        # Limpiar grupo anterior si el usuario spamea clics
+        if hasattr(self, "_master_anim_group") and self._master_anim_group.state() != 0:
+            self._master_anim_group.stop()
+
+        self._master_anim_group = QParallelAnimationGroup(self)
         
-        def _tick():
-            if self._stagger_index < len(self._stagger_queue):
-                w = self._stagger_queue[self._stagger_index]
-                if hasattr(w, "animar_entrada_baraja"):
-                    w.animar_entrada_baraja()
-                self._stagger_index += 1
-            else:
-                self._stagger_timer.stop()
-                
-        self._stagger_timer.timeout.connect(_tick)
-        QTimer.singleShot(10, self._stagger_timer.start)
+        for index, widget in enumerate(widgets_to_animate):
+            if hasattr(widget, "obtener_animacion_baraja"):
+                anim = widget.obtener_animacion_baraja()
+                if anim:
+                    # Empaquetamos la animación de la carta en una secuencia con una Pausa inicial
+                    seq = QSequentialAnimationGroup(self._master_anim_group)
+                    
+                    # 25ms es ~1.5 frames a 60Hz. Es un offset matemáticamente perfecto para stagger visual.
+                    seq.addAnimation(QPauseAnimation(index * 25)) 
+                    seq.addAnimation(anim)
+                    
+                    self._master_anim_group.addAnimation(seq)
+                    
+        # Iniciar todas las animaciones simultáneamente en el motor de C++
+        self._master_anim_group.start()
 
 
 def instalar_metodos(cls):
