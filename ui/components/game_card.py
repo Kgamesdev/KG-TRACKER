@@ -726,7 +726,6 @@ class NeonFrame(QFrame):
         self._bloquear_neon = False
 
     def _on_clock_tick(self, ang):
-        # OPTIMIZACION: Detener calculos de neon mientras se anima la entrada
         if getattr(self, "_bloquear_neon", False):
             return
         self._ang = ang
@@ -740,37 +739,28 @@ class NeonFrame(QFrame):
             self._efecto_opacidad = QGraphicsOpacityEffect(self)
             self.setGraphicsEffect(self._efecto_opacidad)
             
-        if hasattr(self, "_anim_group") and self._anim_group.state() != 0:
-            self._anim_group.stop()
-            
         self._efecto_opacidad.setEnabled(True)
         self._efecto_opacidad.setOpacity(0.0)
 
-    def animar_entrada(self, delay=0):
-        from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QSequentialAnimationGroup, QPauseAnimation
+    def animar_opacidad(self):
+        from PySide6.QtCore import QPropertyAnimation, QEasingCurve
         
-        self._anim_group = QSequentialAnimationGroup(self)
-        
-        if delay > 0:
-            pause = QPauseAnimation(delay, self)
-            self._anim_group.addAnimation(pause)
+        if hasattr(self, "_anim_fade") and self._anim_fade.state() != 0:
+            self._anim_fade.stop()
             
-        anim_fade = QPropertyAnimation(self._efecto_opacidad, b"opacity", self)
-        anim_fade.setDuration(450)
-        anim_fade.setStartValue(0.0)
-        anim_fade.setEndValue(1.0)
-        anim_fade.setEasingCurve(QEasingCurve.Type.InOutSine)
-        
-        self._anim_group.addAnimation(anim_fade)
+        self._anim_fade = QPropertyAnimation(self._efecto_opacidad, b"opacity", self)
+        self._anim_fade.setDuration(550)  # Duración perfecta para OutCubic
+        self._anim_fade.setStartValue(0.0)
+        self._anim_fade.setEndValue(1.0)
+        self._anim_fade.setEasingCurve(QEasingCurve.Type.OutCubic)
         
         def _on_finish():
             self._bloquear_neon = False
-            # OPTIMIZACION MASIVA: Apagar el efecto de opacidad al terminar para ahorrar GPU
             self._efecto_opacidad.setEnabled(False)
             self.update()
             
-        self._anim_group.finished.connect(_on_finish)
-        self._anim_group.start()
+        self._anim_fade.finished.connect(_on_finish)
+        self._anim_fade.start()
 
     def showEvent(self, event):
         super().showEvent(event)

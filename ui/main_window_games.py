@@ -379,13 +379,17 @@ def _actualizar_vista_juegos(self):
                 juegos_visibles_ordenados.append(clave)
                 juegos_a_mostrar_map[clave] = {'tipo': 'juego', 'juego': juego, 'tienda': tienda}
 
-        # 1. Limpiar layout SIN DESTRUIR widgets (Caché de UI para cero lag)
+        # 1. Ocultar el contenedor para evitar los lagazos del Layout Engine de Qt
+        self.frame_lista.hide()
+
+        # 2. Desenganchar los viejos
         while self.frame_lista_layout.count():
             item = self.frame_lista_layout.takeAt(0)
             if item.widget():
                 item.widget().hide()
 
-        # 2. Preparar e insertar widgets
+        # 3. Preparar e insertar los nuevos (en la sombra)
+        widgets_to_animate = []
         for i, clave in enumerate(juegos_visibles_ordenados):
             if clave not in self.game_widgets_map:
                 data = juegos_a_mostrar_map[clave]
@@ -398,30 +402,49 @@ def _actualizar_vista_juegos(self):
                 self.game_widgets_map[clave] = widget
 
             widget = self.game_widgets_map[clave]
-            
-            # Garantiza opacidad cero antes de volver al motor de Qt
             if hasattr(widget, "preparar_animacion_cascada"):
                 widget.preparar_animacion_cascada()
                 
             self.frame_lista_layout.insertWidget(i, widget)
             widget.show()
+            widgets_to_animate.append(widget)
             
         self.frame_lista_layout.addStretch(1)
+        
+        # 4. Mostrar de golpe el contenedor (Calcula todo 1 sola vez)
+        self.frame_lista.show()
 
     finally:
         if root is not None:
             root.setUpdatesEnabled(True)
 
-    # Lanzar la ola asíncrona (SIN processEvents que cause stuttering)
-    retraso_cascada = 0
-    for clave in juegos_visibles_ordenados:
-        widget = self.game_widgets_map[clave]
-        if hasattr(widget, "animar_entrada"):
-            widget.animar_entrada(retraso_cascada)
-            retraso_cascada += 40
-            
+    # 5. Reiniciar Scroll
     if self.canvas and self.canvas.verticalScrollBar():
         self.canvas.verticalScrollBar().setValue(0)
+
+    # 6. Despachador de Ola Controlado (Cero Colapsos de CPU)
+    if hasattr(self, "_stagger_timer") and self._stagger_timer.isActive():
+        self._stagger_timer.stop()
+        
+    from PySide6.QtCore import QTimer
+    self._stagger_timer = QTimer(self)
+    self._stagger_timer.setInterval(40) # Disparo cada 40ms exactos
+    self._stagger_queue = widgets_to_animate
+    self._stagger_index = 0
+    
+    def _tick():
+        if self._stagger_index < len(self._stagger_queue):
+            w = self._stagger_queue[self._stagger_index]
+            if hasattr(w, "animar_opacidad"):
+                w.animar_opacidad()
+            self._stagger_index += 1
+        else:
+            self._stagger_timer.stop()
+            
+    self._stagger_timer.timeout.connect(_tick)
+    
+    # Le damos 20ms a Windows para que pinte la pantalla vacía antes de lanzar la ola
+    QTimer.singleShot(20, self._stagger_timer.start)
 
 def instalar_metodos(cls):
     cls.game_widgets_map = {}
