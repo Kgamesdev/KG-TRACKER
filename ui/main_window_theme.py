@@ -1,4 +1,4 @@
-"""Tema QSS y sincronización visual de la ventana principal."""
+﻿"""Tema QSS y sincronización visual de la ventana principal."""
 
 import config
 from PySide6.QtCore import QSize
@@ -280,30 +280,21 @@ def _apply_theme_qss(self):
     border: none;
   }}
 
-  /* BANNER ELEGANTE DE CABECERA DE TIENDA */
-  QFrame#storeHeader {{
+  /* BANNER INFORMATIVO FIJO DE CONTEXTO DE TIENDA */
+  QFrame#storeContextBanner {{
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #25263A, stop:1 #1B1C2A);
     border: 1px solid #3A3B52;
     border-left: 3px solid {c("COLOR_ACCENT_LIGHT")};
     border-radius: 8px;
   }}
 
-  QPushButton#storeHeaderButton {{
-    background: transparent;
+  QLabel#storeContextTitle {{
     color: #FFFFFF;
-    border: none;
-    text-align: left;
+    font: bold 9.5pt "Segoe UI";
     padding: 6px 10px;
-    font: bold 9pt "Segoe UI";
-    border-radius: 6px;
   }}
 
-  QPushButton#storeHeaderButton:hover {{
-    color: {c("COLOR_ACCENT_LIGHT")};
-  }}
-
-  /* PÍLDORA BRILLANTE DE CONTEO DE OFERTAS */
-  QLabel#offerCount {{
+  QLabel#storeContextCount {{
     background: rgba(99, 102, 241, 0.22);
     color: #A5B4FC;
     border: 1px solid rgba(129, 140, 248, 0.5);
@@ -365,7 +356,7 @@ def _actualizar_estilo_botones(self):
   self._set_button_role(self.btn_reclamados, "secondary")
   if hasattr(self, "ahorro_pill") and self.ahorro_pill is not None:
       self.ahorro_pill.setProperty("role", "saved_pill")
-      self.ahorro_pill.setStyleSheet("QPushButton { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E5A93C, stop:1 #C8861E); color: #FFFFFF; border: 1.5px solid #FAD06C; border-radius: 12px; padding: 0 8px; font-weight: bold; }")
+      self.ahorro_pill.setStyleSheet("QPushButton { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #E5A93C, stop:1 #C8861E); color: #FFFFFF; border: 1.5px solid #FAD06C; border-radius: 12px; padding: 0 8px; font-weight: bold; }")
       self.ahorro_pill.style().unpolish(self.ahorro_pill)
       self.ahorro_pill.style().polish(self.ahorro_pill)
   self._set_button_role(self.btn_mute, "secondary")

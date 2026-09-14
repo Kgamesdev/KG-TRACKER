@@ -326,23 +326,49 @@ def _actualizar_vista_juegos(self):
 
         if getattr(self, "mostrando_reclamados", False):
             lista_reclamados = sorted(self.reclamados.values(), key=lambda j: j.get('title', ''))
+            clave_banner = "banner_reclamados"
+            juegos_visibles_ordenados.append(clave_banner)
+            juegos_a_mostrar_map[clave_banner] = {
+                'tipo': 'banner',
+                'titulo': t("claimed.title", count=len(lista_reclamados)),
+                'count': len(lista_reclamados),
+            }
             for juego in lista_reclamados:
                 clave = self._clave_juego(juego)
                 juegos_visibles_ordenados.append(clave)
-                juegos_a_mostrar_map[clave] = {'juego': juego, 'tienda': "Reclamados"}
+                juegos_a_mostrar_map[clave] = {'tipo': 'juego', 'juego': juego, 'tienda': "Reclamados"}
         else:
-            tiendas_activas = {s for s, a in self.active_filters.items() if a}
+            tiendas_activas = [s for s, a in self.active_filters.items() if a]
             juegos_filtrados = [
                 j for j in self.juegos_cache_global
                 if self._asignar_tienda(j) in tiendas_activas and not self._esta_reclamado(j)
             ]
             
-            # Ordenar directamente por tienda y título de juego para despliegue directo
+            # Banner informativo estático de contexto de tienda
+            if len(tiendas_activas) == 1:
+                tienda_nombre = tiendas_activas[0]
+                clave_banner = f"banner_{tienda_nombre}"
+                juegos_visibles_ordenados.append(clave_banner)
+                juegos_a_mostrar_map[clave_banner] = {
+                    'tipo': 'banner',
+                    'titulo': f"🏷️ {tienda_nombre.upper()}",
+                    'count': len(juegos_filtrados),
+                }
+            elif len(tiendas_activas) > 1:
+                clave_banner = "banner_todas"
+                juegos_visibles_ordenados.append(clave_banner)
+                juegos_a_mostrar_map[clave_banner] = {
+                    'tipo': 'banner',
+                    'titulo': "🌐 TODAS LAS TIENDAS",
+                    'count': len(juegos_filtrados),
+                }
+
+            # Ordenar directamente por tienda y título de juego
             for juego in sorted(juegos_filtrados, key=lambda j: (self._asignar_tienda(j), j.get('title', ''))):
                 clave = self._clave_juego(juego)
                 tienda = self._asignar_tienda(juego)
                 juegos_visibles_ordenados.append(clave)
-                juegos_a_mostrar_map[clave] = {'juego': juego, 'tienda': tienda}
+                juegos_a_mostrar_map[clave] = {'tipo': 'juego', 'juego': juego, 'tienda': tienda}
 
         widgets_actuales = set(self.game_widgets_map.keys())
         widgets_necesarios = set(juegos_visibles_ordenados)
@@ -353,11 +379,30 @@ def _actualizar_vista_juegos(self):
             widget.setParent(None)
             widget.deleteLater()
 
-        # Insertar o actualizar directamente las tarjetas sin cajones intermedios
+        # Insertar banner estático y tarjetas directamente
         for i, clave in enumerate(juegos_visibles_ordenados):
             if clave not in self.game_widgets_map:
                 data = juegos_a_mostrar_map[clave]
-                widget = GameCard(self, data['juego'], data['tienda'])
+                if data.get('tipo') == 'banner':
+                    banner = QFrame()
+                    banner.setObjectName("storeContextBanner")
+                    banner_layout = QHBoxLayout(banner)
+                    banner_layout.setContentsMargins(12, 6, 14, 6)
+                    banner_layout.setSpacing(10)
+
+                    titulo = QLabel(data['titulo'])
+                    titulo.setObjectName("storeContextTitle")
+                    banner_layout.addWidget(titulo, 1)
+
+                    count_text = t("store.offers_count", count=data['count'])
+                    conteo = QLabel(count_text)
+                    conteo.setObjectName("storeContextCount")
+                    conteo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    banner_layout.addWidget(conteo, 0)
+
+                    widget = banner
+                else:
+                    widget = GameCard(self, data['juego'], data['tienda'])
                 self.game_widgets_map[clave] = widget
 
             widget = self.game_widgets_map[clave]
