@@ -3,6 +3,7 @@
 import os
 import re
 import config
+import datetime
 
 from PySide6.QtCore import (
     QObject, Signal,
@@ -940,6 +941,59 @@ class GameCard(NeonFrame):
                     }
                 """)
             meta_row.addWidget(worth)
+
+        # -- NUEVO: CHIP DE TIEMPO RESTANTE --
+        end_date_str = juego.get("end_date")
+        if end_date_str and end_date_str.upper() != "N/A":
+            try:
+                dt_str = end_date_str.split("+")[0].strip()
+                if "T" in dt_str:
+                    dt_str = dt_str.replace("T", " ")
+                if len(dt_str) == 10:
+                    dt_str += " 23:59:59"
+                    
+                end_dt = datetime.datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+                now = datetime.datetime.now()
+                
+                if end_dt > now:
+                    diff = end_dt - now
+                    if diff.days > 0:
+                        txt_time = t("card.ends_in_days", d=diff.days)
+                    elif diff.seconds > 3600:
+                        txt_time = t("card.ends_in_hours", h=diff.seconds // 3600)
+                    else:
+                        txt_time = t("card.ends_today")
+                        
+                    time_label = QLabel(txt_time)
+                    time_label.setObjectName("gameTimeLeft")
+                    es_oscuro_chip = (config.CURRENT_THEME == "dark")
+                    
+                    if es_oscuro_chip:
+                        time_label.setStyleSheet("""
+                            QLabel#gameTimeLeft {
+                                background-color: rgba(236, 72, 153, 0.18);
+                                color: #F472B6;
+                                border: 1px solid #EC4899;
+                                border-radius: 6px;
+                                padding: 2px 8px;
+                                font: bold 7.5pt "Segoe UI";
+                            }
+                        """)
+                    else:
+                        time_label.setStyleSheet("""
+                            QLabel#gameTimeLeft {
+                                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FCE7F3, stop:1 #FBCFE8);
+                                color: #9D174D;
+                                border: 1.2px solid #EC4899;
+                                border-radius: 6px;
+                                padding: 2px 8px;
+                                font: bold 7.5pt "Segoe UI";
+                            }
+                        """)
+                    meta_row.addWidget(time_label)
+            except Exception:
+                pass
+        # ------------------------------------
 
         meta_row.addStretch()
         info.addLayout(meta_row)

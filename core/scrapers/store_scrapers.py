@@ -105,6 +105,7 @@ def obtener_epic_directo(session=None):
             promotions = el.get("promotions") or {}
             promo_offers = promotions.get("promotionalOffers") or []
             activa_hoy = False
+            fecha_fin = ""
 
             for group in promo_offers:
                 for off in group.get("promotionalOffers", []):
@@ -114,6 +115,7 @@ def obtener_epic_directo(session=None):
                             end = datetime.datetime.fromisoformat(off["endDate"].replace("Z", "+00:00"))
                             if start <= ahora_utc <= end:
                                 activa_hoy = True
+                                fecha_fin = end.strftime("%Y-%m-%d %H:%M:%S")
                                 break
                         except Exception:
                             pass
@@ -160,6 +162,7 @@ def obtener_epic_directo(session=None):
                 "description": desc,
                 "instructions": "Reclama el juego gratis en la tienda de Epic Games.",
                 "open_giveaway_url": giveaway_url,
+                "end_date": fecha_fin,
                 "published_date": "",
                 "type": "Game",
                 "platforms": "PC",
