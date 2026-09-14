@@ -18,7 +18,6 @@ def _apply_theme_qss(self):
     return tema[name]
 
   qss = f"""
-  
   QToolTip {{
     background: {c("COLOR_BG_CARD")};
     color: {c("COLOR_TEXT_PRIMARY")};
@@ -56,20 +55,20 @@ def _apply_theme_qss(self):
     border-radius: 0px;
   }}
 
-  /* Fondo azul eliminado para hover limpio */;
-  }}
-
   QLabel#storeLabel {{
     color: {c("COLOR_TEXT_PRIMARY")};
     background: transparent;
     font: bold 8pt "Segoe UI";
   }}
+
   QFrame#storeBubble[hovering="true"] QLabel#storeLabel {{
     color: {c("COLOR_ACCENT_LIGHT")};
   }}
+
   QFrame#storeBubble[active="true"] QLabel#storeLabel {{
     color: {c("COLOR_SUCCESS")};
   }}
+
   QLabel#storeBadge {{
     background: {c("COLOR_ERROR")};
     color: white;
@@ -81,36 +80,50 @@ def _apply_theme_qss(self):
     font: bold 8pt "Segoe UI";
   }}
 
+  /* TARJETA DE JUEGO (GAME CARD) GAMING MODERNA */
   QFrame#gameCard {{
-    background: {c("COLOR_BG_CARD")};
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 {c("COLOR_BG_CARD")}, stop:1 #1C1D2E);
     border: 1px solid {c("COLOR_BORDER")};
-    border-radius: 0px;
+    border-radius: 12px;
   }}
 
   QLabel#gameImage {{
     background: {c("COLOR_BG_DESC")};
     color: {c("COLOR_TEXT_MUTED")};
     font: bold 8pt "Segoe UI";
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }}
 
   QLabel#gameTitle {{
-    color: {c("COLOR_TEXT_PRIMARY")};
-    font: bold 11pt "Segoe UI";
+    color: #FFFFFF;
+    font: bold 11.5pt "Segoe UI";
+    padding-bottom: 1px;
   }}
 
   QLabel#gameDescription {{
     color: {c("COLOR_TEXT_SECONDARY")};
-    font: 8pt "Segoe UI";
+    font: 8.5pt "Segoe UI";
+    line-height: 1.2;
   }}
 
+  /* CHIPS / BADGES MODERNOS DE LA TARJETA */
   QLabel#gameStore {{
+    background: rgba(99, 102, 241, 0.15);
     color: {c("COLOR_ACCENT_LIGHT")};
-    font: bold 7pt "Segoe UI";
+    border: 1px solid rgba(129, 140, 248, 0.35);
+    border-radius: 6px;
+    padding: 2px 7px;
+    font: bold 7.5pt "Segoe UI";
   }}
 
   QLabel#gameWorth {{
+    background: rgba(16, 185, 129, 0.14);
     color: {c("COLOR_SUCCESS")};
-    font: bold 7pt "Segoe UI";
+    border: 1px solid rgba(52, 211, 153, 0.35);
+    border-radius: 6px;
+    padding: 2px 7px;
+    font: bold 7.5pt "Segoe UI";
   }}
 
   QLabel#statusPill {{
@@ -131,6 +144,7 @@ def _apply_theme_qss(self):
     color: {c("COLOR_WARNING")};
     border: 1px solid {c("COLOR_BORDER")};
   }}
+
   QPushButton[role="saving"]:hover {{
     background: {c("COLOR_HOVER")};
   }}
@@ -139,19 +153,20 @@ def _apply_theme_qss(self):
     font-family: "Segoe UI";
   }}
 
-  /* BOTONES DE LA BARRA LATERAL (Con relieve y pulsado) */
+  /* BOTONES DE LA BARRA LATERAL */
   QPushButton[role="sidebar"] {{
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {c("COLOR_SIDEBAR_HOVER")}, stop:1 {c("COLOR_SIDEBAR")});
     color: {c("COLOR_TEXT_PRIMARY")};
     border: 1px solid {c("COLOR_BORDER")};
-    border: 1px solid {c('COLOR_BORDER')};
     border-radius: 12px;
   }}
+
   QPushButton[role="sidebar"]:hover {{
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {c("COLOR_ACCENT_LIGHT")}, stop:1 {c("COLOR_ACCENT")});
     border: 1px solid {c("COLOR_ACCENT_LIGHT")};
     border-bottom: 2px solid {c("COLOR_ACCENT_HOVER")};
   }}
+
   QPushButton[role="sidebar"]:pressed {{
     background: {c("COLOR_ACCENT_HOVER")};
     border: 1px solid {c("COLOR_ACCENT")};
@@ -159,27 +174,29 @@ def _apply_theme_qss(self):
     padding-top: 3px;
   }}
 
-  /* BOTÓN PRINCIPAL / ACENTO (Buscar Juegos, etc.) */
+  /* BOTÓN PRINCIPAL (BUSCAR JUEGOS GRATUITOS) */
   QPushButton[role="accent"] {{
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {c("COLOR_ACCENT_LIGHT")}, stop:1 {c("COLOR_ACCENT")});
-    color: white;
-    border: 1px solid {c("COLOR_ACCENT_LIGHT")};
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6366F1, stop:1 #4F46E5);
+    color: #FFFFFF;
+    border: 1.2px solid #818CF8;
+    border-radius: 12px;
     font-weight: bold;
-  }}
-  QPushButton[role="accent"]:hover {{
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {c("COLOR_ACCENT")}, stop:1 {c("COLOR_ACCENT_HOVER")});
-    border: 1px solid {c("COLOR_ACCENT")};
-    border: 1px solid rgba(255, 255, 255, 0.35);
-  }}
-  QPushButton[role="accent"]:pressed {{
-    background: {c("COLOR_ACCENT_HOVER")};
-    border-top: 2px solid rgba(0, 0, 0, 0.4);
-    border-bottom: 1px solid transparent;
-    padding-top: 3px;
+    font-size: 9.5pt;
+    letter-spacing: 0.5px;
   }}
 
-    /* BOTÓN RECLAMAR: Relleno verde sólido con volumen y luz */
+  QPushButton[role="accent"]:hover {{
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #818CF8, stop:1 #6366F1);
+    border: 1.2px solid #00F3FF;
+  }}
+
+  QPushButton[role="accent"]:pressed {{
+    background: #4338CA;
+    border-top: 2px solid rgba(0, 0, 0, 0.4);
+    padding-top: 2px;
+  }}
+
+  /* BOTÓN RECLAMAR */
   QPushButton[role="success"] {{
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #10B981, stop:1 #059669);
     color: #FFFFFF;
@@ -188,72 +205,111 @@ def _apply_theme_qss(self):
     font-weight: bold;
     font-size: 8pt;
   }}
+
   QPushButton[role="success"]:hover {{
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #34D399, stop:1 #10B981);
     border: 1px solid #6EE7B7;
   }}
+
   QPushButton[role="success"]:pressed {{
     background: #047857;
     border: 1px solid #065F46;
     padding-top: 2px;
   }}
 
-  /* BOTONES SECUNDARIOS [ ✔ ] y [ 🔗 ]: Relleno sólido pizarra con brillo */
+  /* BOTONES SECUNDARIOS [ ✔ ] y [ 🔗 ] */
   QPushButton[role="secondary"] {{
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3A3B52, stop:1 #262738);
     color: #FFFFFF;
     border: 1px solid #4E506B;
     border-radius: 10px;
     font-weight: bold;
-    font-size: 8pt;
+    font-size: 8.5pt;
   }}
+
   QPushButton[role="secondary"]:hover {{
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E506B, stop:1 #3A3B52);
     border: 1px solid #818CF8;
     color: #818CF8;
   }}
+
   QPushButton[role="secondary"]:pressed {{
     background: #1E1F2E;
     border: 1px solid #3A3B52;
     padding-top: 2px;
   }}
 
-QScrollArea {{
+  QScrollArea {{
     background: transparent;
     border: none;
   }}
+
   QScrollBar:vertical {{
-    background: {c("COLOR_BG")};
+    background: rgba(23, 24, 39, 0.45);
     width: 10px;
-    margin: 0;
-  }}
-  QScrollBar::handle:vertical {{
-    background: {c("COLOR_BORDER")};
-    min-height: 30px;
+    margin: 2px 2px 2px 2px;
     border-radius: 5px;
   }}
-  QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
-    height: 0px;
+
+  QScrollBar::handle:vertical {{
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {c("COLOR_ACCENT")}, stop:1 {c("COLOR_ACCENT_LIGHT")});
+    min-height: 32px;
+    border-radius: 4px;
+    border: 1px solid rgba(129, 140, 248, 0.35);
   }}
 
+  QScrollBar::handle:vertical:hover {{
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {c("COLOR_ACCENT_LIGHT")}, stop:1 #00F3FF);
+    border: 1.5px solid #00F3FF;
+  }}
+
+  QScrollBar::handle:vertical:pressed {{
+    background: #00F3FF;
+    border: 1.5px solid #FFFFFF;
+  }}
+
+  QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+    height: 0px;
+    width: 0px;
+    background: transparent;
+    border: none;
+  }}
+
+  QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+    background: transparent;
+    border: none;
+  }}
+
+  /* BANNER ELEGANTE DE CABECERA DE TIENDA */
   QFrame#storeHeader {{
-    background: {c("COLOR_BG_CARD")};
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #25263A, stop:1 #1B1C2A);
+    border: 1px solid #3A3B52;
+    border-left: 3px solid {c("COLOR_ACCENT_LIGHT")};
+    border-radius: 8px;
   }}
 
   QPushButton#storeHeaderButton {{
     background: transparent;
-    color: {c("COLOR_TEXT_PRIMARY")};
+    color: #FFFFFF;
     border: none;
     text-align: left;
-    padding: 10px 14px;
-    font: bold 10pt "Segoe UI";
+    padding: 6px 10px;
+    font: bold 9pt "Segoe UI";
+    border-radius: 6px;
   }}
 
-  QLabel#offerCount {{
+  QPushButton#storeHeaderButton:hover {{
     color: {c("COLOR_ACCENT_LIGHT")};
-    background: transparent;
-    font: bold 8pt "Segoe UI";
-    padding: 0 14px;
+  }}
+
+  /* PÍLDORA BRILLANTE DE CONTEO DE OFERTAS */
+  QLabel#offerCount {{
+    background: rgba(99, 102, 241, 0.22);
+    color: #A5B4FC;
+    border: 1px solid rgba(129, 140, 248, 0.5);
+    border-radius: 9px;
+    font: bold 7.5pt "Segoe UI";
+    padding: 2px 9px;
   }}
 
   QLabel#emptyLabel {{
@@ -271,13 +327,10 @@ QScrollArea {{
   QSlider {{
     background: transparent;
     border: none;
-  }};
-    border: 2px solid {c("COLOR_ACCENT")};
   }}
   """
   self.setStyleSheet(qss)
   self._sync_theme_properties()
-
 
 
 def _sync_theme_properties(self):
@@ -285,7 +338,6 @@ def _sync_theme_properties(self):
     widget.setProperty("active", bool(self.active_filters.get(store, False)))
     widget.style().unpolish(widget)
     widget.style().polish(widget)
-
 
 
 def alternar_tema(self):
@@ -300,10 +352,7 @@ def alternar_tema(self):
   self.btn_side_theme.setIcon(QIcon(icon_path))
   self.btn_side_theme.setIconSize(QSize(28, 28))
 
-  # QSS actualiza todos los widgets existentes. No se reconstruye
-  # rootFrame, no se elimina el árbol y no se vuelve a consultar la API.
   self._actualizar_estilo_botones()
-
 
 
 def _actualizar_estilo_botones(self):
@@ -322,7 +371,6 @@ def _actualizar_estilo_botones(self):
   self._set_button_role(self.btn_mute, "secondary")
 
 
-
 def _set_button_role(self, button, role):
   if button is None:
     return
@@ -331,16 +379,9 @@ def _set_button_role(self, button, role):
   button.style().polish(button)
 
 
-
 def instalar_metodos(cls):
-
   cls._apply_theme_qss = _apply_theme_qss
-
   cls._sync_theme_properties = _sync_theme_properties
-
   cls.alternar_tema = alternar_tema
-
   cls._actualizar_estilo_botones = _actualizar_estilo_botones
-
   cls._set_button_role = _set_button_role
-

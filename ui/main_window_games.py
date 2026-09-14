@@ -47,7 +47,6 @@ class _BusquedaWorker(QObject):
 
     def run(self):
         import requests
-        # 1. Ruta Primaria (GamerPower) con timeout ultra-ágil de 1.2s (Constitución II)
         try:
             response = requests.get(API_URL, headers=API_HEADERS, timeout=1.2)
             response.raise_for_status()
@@ -55,12 +54,11 @@ class _BusquedaWorker(QObject):
             if isinstance(giveaways, list) and len(giveaways) > 0:
                 _guardar_en_cache_disco(giveaways)
                 self.terminado.emit(giveaways, "gamerpower")
-                return  # Cierre atómico: impidiendo la activación de la Ruta 2
+                return
         except Exception as e:
             log_warning(f"GamerPower inaccesible o timeout 1.2s ({e}).")
             log_info("Activando motor autónomo de tiendas directas...")
 
-        # 2. Ruta Autónoma: Concurrencia multitienda (Epic, Itch.io, GOG, Steam)
         try:
             juegos_hibridos = []
 
@@ -128,7 +126,6 @@ def _actualizar_animacion_busqueda(self):
     fase = (time.monotonic() - getattr(self, "_busqueda_neon_inicio", time.monotonic())) * 6.5
     pulso = (1.0 + math.sin(fase)) / 2.0
     
-    # Relleno naranja completo pulsante y vivo
     color_arriba = "#FFA726" if pulso > 0.5 else "#FB8C00"
     color_abajo = "#E65100" if pulso > 0.5 else "#BF360C"
     
@@ -256,7 +253,6 @@ def buscar_juegos(self):
     worker.terminado.connect(self._recibir_resultados_busqueda)
     worker.error.connect(self._buscar_juegos_error)
     
-    # Destrucción limpia y silenciosa del ciclo de vida del hilo (Constitución II)
     worker.terminado.connect(thread.quit)
     worker.error.connect(thread.quit)
     thread.finished.connect(worker.deleteLater)
@@ -375,16 +371,22 @@ def _actualizar_vista_juegos(self):
                     header = QFrame()
                     header.setObjectName("storeHeader")
                     header_layout = QHBoxLayout(header)
-                    header_layout.setContentsMargins(0, 0, 0, 0)
-                    header_layout.setSpacing(0)
-                    arrow = "▼" if open_ else "▶"
-                    header_button = QPushButton(f"{arrow}  {tienda.upper()}")
+                    header_layout.setContentsMargins(12, 6, 14, 6)
+                    header_layout.setSpacing(10)
+
+                    arrow = "▾" if open_ else "▸"
+                    header_button = QPushButton(f"{arrow}   {tienda.upper()}")
                     header_button.setObjectName("storeHeaderButton")
+                    header_button.setCursor(Qt.CursorShape.PointingHandCursor)
                     header_button.clicked.connect(lambda checked=False, s=tienda: self._toggle_acordeon(s))
-                    header_layout.addWidget(header_button)
-                    count_label = QLabel(f"{data['juegos_count']} ofertas")
+                    header_layout.addWidget(header_button, 1)
+
+                    count_text = t("store.offers_count", count=data['juegos_count'])
+                    count_label = QLabel(count_text)
                     count_label.setObjectName("offerCount")
-                    header_layout.addWidget(count_label)
+                    count_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    header_layout.addWidget(count_label, 0)
+
                     widget = header
                 else:
                     widget = GameCard(self, data['juego'], data['tienda'])

@@ -1,11 +1,15 @@
 import os
+import re
 import config
 
-from PySide6.QtCore import Qt, QSize, QVariantAnimation, QTimer
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtCore import Qt, QSize, QVariantAnimation, QTimer, QRectF
+from PySide6.QtGui import (
+  QIcon, QPixmap, QPainter, QPainterPath, QColor, QPen,
+  QLinearGradient, QFont, QConicalGradient
+)
 from PySide6.QtWidgets import (
   QApplication, QFrame, QHBoxLayout, QLabel, QPushButton,
-  QSizePolicy, QSlider, QScrollBar, QVBoxLayout,
+  QSizePolicy, QSlider, QScrollBar, QVBoxLayout, QWidget,
 )
 
 from config import (
@@ -16,6 +20,40 @@ from config import (
 from core.i18n import t, obtener_idioma
 from core.translator import GameTranslator
 from core.steam_enricher import SteamEnricher
+
+
+def _limpiar_titulo_visual(titulo: str) -> str:
+    """Limpia sufijos feos de giveaway o tienda dejando el título limpio y profesional."""
+    t_str = str(titulo or "").strip()
+    t_str = re.sub(
+        r"\s*[\(\[](?:epic games|epic|steam|gog|itch\.io|itch|amazon prime|amazon|prime|pc|free|gratis|giveaway)[\)\]]",
+        "", t_str, flags=re.IGNORECASE
+    )
+    for sufijo in (
+        " - giveaway", " : giveaway", " giveaway",
+        " free steam key", " steam key", " free key",
+        " free on steam", " free on epic games", " free on gog",
+        " free download", " free",
+    ):
+        if t_str.lower().endswith(sufijo):
+            t_str = t_str[:-len(sufijo)].strip()
+    return " ".join(t_str.split()).strip() or str(titulo)
+
+
+def _redondear_pixmap(pixmap: QPixmap, radio: int = 8) -> QPixmap:
+    """Recorta suavemente las esquinas de una carátula para un acabado moderno."""
+    if pixmap.isNull():
+        return pixmap
+    out = QPixmap(pixmap.size())
+    out.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(out)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+    path = QPainterPath()
+    path.addRoundedRect(0, 0, pixmap.width(), pixmap.height(), radio, radio)
+    painter.setClipPath(path)
+    painter.drawPixmap(0, 0, pixmap)
+    painter.end()
+    return out
 
 
 class RoundedButton(QPushButton):
@@ -39,7 +77,6 @@ class RoundedButton(QPushButton):
 
     if 'AHORRADO' in text.upper() or 'SAVED' in text.upper():
       try:
-        import re
         self._current_val = float(re.sub(r'[^0-9.-]', '', text.replace(',', '')))
         self._target_val = self._current_val
       except Exception:
@@ -52,10 +89,8 @@ class RoundedButton(QPushButton):
     self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
     self.setProperty('role', role)
 
-    from PySide6.QtGui import QFont
     self.setFont(QFont('Segoe UI', 8, QFont.Weight.Bold) if role != 'secondary' else QFont('Segoe UI', 7, QFont.Weight.Bold))
 
-    from PySide6.QtCore import QVariantAnimation, QTimer
     self._anim = QVariantAnimation(self)
     self._anim.setStartValue(0.0)
     self._anim.setEndValue(360.0)
@@ -80,7 +115,6 @@ class RoundedButton(QPushButton):
     else:
         self.setStyleSheet(f'QPushButton {{ background: {self._bg}; color: {self._fg}; border: 1px solid {self._border}; border-radius: {self._radius}px; padding: 0 8px; }}')
 
-
     self.set_icon(icon_path)
     if callable(command):
       self.clicked.connect(command)
@@ -88,11 +122,9 @@ class RoundedButton(QPushButton):
   def set_icon(self, p):
     self._icon_path = p
     if p and os.path.exists(p):
-      from PySide6.QtGui import QIcon
       self.setIcon(QIcon(p))
       self.setIconSize(QSize(*self._icon_size))
     else:
-      from PySide6.QtGui import QIcon
       self.setIcon(QIcon())
 
   def set_colors(self, bg=None, hover=None, fg=None, border=None):
@@ -138,12 +170,8 @@ class RoundedButton(QPushButton):
         else:
           self._anim.start()
 
-
   def paintEvent(self, e):
-    from PySide6.QtGui import QPainter, QConicalGradient, QColor, QPen, QLinearGradient
-    from PySide6.QtCore import Qt
     import math
-
     t_up = self.text().upper()
     if 'AHORRADO' in t_up or 'SAVED' in t_up:
       p = QPainter(self)
@@ -180,7 +208,6 @@ class RoundedButton(QPushButton):
       p.setPen(QPen(QColor('#FFFFFF')))
       p.setFont(self.font())
       p.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self.text())
-
       p.end()
       return
 
@@ -191,12 +218,8 @@ class RoundedButton(QPushButton):
     pulso = (math.sin(math.radians(self._ang * 2)) + 1.0) / 2.0
     ab = (2.0 + (pulso * 1.2)) if self._is_hover else float(self._border_width)
     
-    # Margen interior de seguridad: evita que la línea inferior se corte
     desplazamiento_y = 1.5 if self.isDown() else 0.0
     r.adjust(1.0, 1.0 + desplazamiento_y, -1.0, -1.0)
-
-    tema = config.THEMES.get(config.CURRENT_THEME, {})
-    accent_light = tema.get("COLOR_ACCENT_LIGHT", COLOR_ACCENT_LIGHT)
 
     if self._is_hover:
       g = QConicalGradient(r.center(), self._ang)
@@ -218,7 +241,6 @@ class RoundedButton(QPushButton):
     t_str = str(text).upper()
     if ('AHORRADO' in t_str or 'SAVED' in t_str) and not getattr(self, '_bloqueo_recursivo', False):
       try:
-        import re
         nv = float(re.sub(r'[^0-9.-]', '', str(text).replace(',', '')))
       except Exception:
         nv = 0.0
@@ -252,10 +274,7 @@ class RoundedButton(QPushButton):
     self._bloqueo_recursivo = False
 
 
-
 class NeonScrollBar(QScrollBar):
-  """Scrollbar vertical con la misma física, halo incandescente y animación de VolumeSlider."""
-
   def __init__(self, orientation=Qt.Orientation.Vertical, parent=None):
     super().__init__(orientation, parent)
     self.setFixedWidth(14)
@@ -267,7 +286,7 @@ class NeonScrollBar(QScrollBar):
     self._is_hover = False
     self._is_dragging = False
 
-    from PySide6.QtCore import QVariantAnimation, QEasingCurve
+    from PySide6.QtCore import QEasingCurve
     self._anim_hover = QVariantAnimation(self)
     self._anim_hover.setDuration(160)
     self._anim_hover.setEasingCurve(QEasingCurve.Type.OutCubic)
@@ -310,9 +329,6 @@ class NeonScrollBar(QScrollBar):
     super().mouseReleaseEvent(event)
 
   def paintEvent(self, event):
-    from PySide6.QtGui import QPainter, QColor, QLinearGradient, QPen
-    from PySide6.QtCore import QRectF
-
     p = QPainter(self)
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
 
@@ -321,42 +337,36 @@ class NeonScrollBar(QScrollBar):
     val = self.value()
     page = self.pageStep()
 
-    # Si no hay scroll necesario, no pintar
     if max_v <= min_v:
       p.end()
       return
 
     centro_x = self.width() / 2.0
-    altura_disp = self.height() - 16.0  # Márgenes superior e inferior de 8px
+    altura_disp = self.height() - 16.0
 
-    # 1. Pista vertical centrada (Groove)
     groove_rect = QRectF(centro_x - 2.5, 8.0, 5.0, altura_disp)
     p.setPen(Qt.PenStyle.NoPen)
     p.setBrush(QColor(58, 58, 80, 160))
     p.drawRoundedRect(groove_rect, 2.5, 2.5)
 
-    # 2. Cálculo del tirador (Handle)
     total_range = (max_v - min_v) + page
     thumb_h = max(32.0, min(altura_disp * 0.75, (page / float(total_range or 1)) * altura_disp))
     recorrido_disp = altura_disp - thumb_h
     ratio = (val - min_v) / float(max_v - min_v or 1)
     thumb_y = 8.0 + (ratio * recorrido_disp)
 
-    # Expansión elástica en hover (de 6px a 10px de ancho)
     ancho_base, ancho_hover = 6.0, 10.0
     ancho_actual = ancho_base + (self._hover_progress * (ancho_hover - ancho_base))
     radio_esquina = ancho_actual / 2.0
 
     thumb_rect = QRectF(centro_x - (ancho_actual / 2.0), thumb_y, ancho_actual, thumb_h)
 
-    # 3. Halo exterior incandescente cian
     if self._hover_progress > 0.05:
       halo_alpha = int(self._hover_progress * 55)
       p.setBrush(QColor(0, 243, 255, halo_alpha))
       p.setPen(Qt.PenStyle.NoPen)
       p.drawRoundedRect(thumb_rect.adjusted(-3, -2, 3, 2), radio_esquina + 2, radio_esquina + 2)
 
-    # 4. Tirador con gradiente idéntico al control de volumen
     grad = QLinearGradient(0, thumb_y, 0, thumb_y + thumb_h)
     if self._hover_progress > 0.4:
       grad.setColorAt(0.0, QColor('#818CF8'))
@@ -370,8 +380,8 @@ class NeonScrollBar(QScrollBar):
     p.setBrush(grad)
     p.setPen(QPen(border_color, 1.2))
     p.drawRoundedRect(thumb_rect, radio_esquina, radio_esquina)
-
     p.end()
+
 
 class VolumeSlider(QSlider):
   def __init__(self, parent=None, from_=0, to=100, length=120, command=None, **kwargs):
@@ -384,16 +394,15 @@ class VolumeSlider(QSlider):
     self.setMouseTracking(True)
     self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
 
-    self._hover_progress = 0.0  # 0.0 a 1.0
+    self._hover_progress = 0.0
     self._is_hover = False
     self._is_dragging = False
 
-    from PySide6.QtCore import QVariantAnimation, QEasingCurve
+    from PySide6.QtCore import QEasingCurve
     self._anim_hover = QVariantAnimation(self)
     self._anim_hover.setDuration(160)
     self._anim_hover.setEasingCurve(QEasingCurve.Type.OutCubic)
     self._anim_hover.valueChanged.connect(self._on_hover_step)
-
     self.valueChanged.connect(self._on_value_changed)
 
   def _on_hover_step(self, val):
@@ -457,24 +466,19 @@ class VolumeSlider(QSlider):
       self.setValue(nuevo_val)
 
   def paintEvent(self, event):
-    from PySide6.QtGui import QPainter, QColor, QLinearGradient, QPen, QFont
-    from PySide6.QtCore import QRectF
-
     p = QPainter(self)
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
 
     ancho_util = self.width() - 16
     ratio = (self.value() - self.minimum()) / float(self.maximum() - self.minimum() or 1)
     handle_x = 8 + (ratio * ancho_util)
-    centro_y = self.height() / 2.0  # Exactamente centrado en 19px
+    centro_y = self.height() / 2.0
 
-    # 1. Pista de fondo (Groove centrado)
     groove_rect = QRectF(8, centro_y - 2.5, ancho_util, 5)
     p.setPen(Qt.PenStyle.NoPen)
     p.setBrush(QColor(58, 58, 80, 180))
     p.drawRoundedRect(groove_rect, 2.5, 2.5)
 
-    # 2. Relleno activo (Progress)
     if ratio > 0.001:
       prog_w = ratio * ancho_util
       prog_rect = QRectF(8, centro_y - 2.5, prog_w, 5)
@@ -484,25 +488,21 @@ class VolumeSlider(QSlider):
       p.setBrush(grad)
       p.drawRoundedRect(prog_rect, 2.5, 2.5)
 
-    # 3. Tirador interactivo (Píldora expandible con % integrado en hover)
     rx_base, ry_base = 6.0, 6.0
-    rx_hover, ry_hover = 16.0, 9.0  # Se expande a píldora en hover/drag
+    rx_hover, ry_hover = 16.0, 9.0
 
     rx = rx_base + (self._hover_progress * (rx_hover - rx_base))
     ry = ry_base + (self._hover_progress * (ry_hover - ry_base))
 
-    # Limitar posición X para no salirse de los bordes laterales
     handle_cx = max(rx + 2.0, min(self.width() - rx - 2.0, handle_x))
     handle_rect = QRectF(handle_cx - rx, centro_y - ry, rx * 2.0, ry * 2.0)
 
-    # Halo exterior incandescente
     if self._hover_progress > 0.05:
       halo_alpha = int(self._hover_progress * 55)
       p.setBrush(QColor(0, 243, 255, halo_alpha))
       p.setPen(Qt.PenStyle.NoPen)
       p.drawRoundedRect(handle_rect.adjusted(-3, -3, 3, 3), ry + 3, ry + 3)
 
-    # Fondo del tirador (Blanco en reposo, pizarra/índigo con luz en hover)
     if self._hover_progress < 0.2:
       p.setBrush(QColor('#FFFFFF'))
       p.setPen(QPen(QColor('#818CF8'), 1.8))
@@ -513,7 +513,6 @@ class VolumeSlider(QSlider):
 
     p.drawRoundedRect(handle_rect, ry, ry)
 
-    # Texto del porcentaje integrado (%) visible durante hover/arrastre
     if self._hover_progress > 0.25:
       txt_alpha = int(((self._hover_progress - 0.25) / 0.75) * 255)
       p.setPen(QColor(255, 255, 255, txt_alpha))
@@ -521,6 +520,7 @@ class VolumeSlider(QSlider):
       p.drawText(handle_rect, Qt.AlignmentFlag.AlignCenter, f"{self.value()}%")
 
     p.end()
+
 
 class NeonFrame(QFrame):
     """QFrame con un haz de luz neón blanco autónomo animado que recorre el perímetro."""
@@ -554,20 +554,19 @@ class NeonFrame(QFrame):
 
     def paintEvent(self, event):
         super().paintEvent(event)
-        from PySide6.QtGui import QPainter, QConicalGradient, QColor, QPen
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         r = self.rect().toRectF()
         r.adjust(0.75, 0.75, -0.75, -0.75)
 
         g = QConicalGradient(r.center(), self._ang)
-        g.setColorAt(0.0, QColor("#FFFFFF"))          # Haz neón blanco puro
-        g.setColorAt(0.05, QColor("#00F3FF"))         # Estela cian eléctrica
-        g.setColorAt(0.12, QColor(129, 140, 248, 50)) # Halo índigo suave
-        g.setColorAt(0.22, QColor(0, 0, 0, 0))         # Fondo transparente
+        g.setColorAt(0.0, QColor("#FFFFFF"))
+        g.setColorAt(0.05, QColor("#00F3FF"))
+        g.setColorAt(0.12, QColor(129, 140, 248, 50))
+        g.setColorAt(0.22, QColor(0, 0, 0, 0))
         g.setColorAt(0.82, QColor(0, 0, 0, 0))
-        g.setColorAt(0.95, QColor(0, 243, 255, 120))  # Destello frontal
-        g.setColorAt(1.0, QColor("#FFFFFF"))          # Cierre incandescente
+        g.setColorAt(0.95, QColor(0, 243, 255, 120))
+        g.setColorAt(1.0, QColor("#FFFFFF"))
 
         pen = QPen(g, float(self._border_width))
         p.setPen(pen)
@@ -575,7 +574,10 @@ class NeonFrame(QFrame):
         p.drawRoundedRect(r, float(self._radius), float(self._radius))
         p.end()
 
+
 class GameCard(NeonFrame):
+  """Tarjeta de juego rediseñada con micro-chips, carátula HD y tipografía de alto nivel."""
+
   def __init__(self, owner, juego, nombre_tienda):
     super().__init__(owner.frame_lista, radius=12, border_width=1.5, speed_ms=5500)
     self.owner = owner
@@ -588,20 +590,23 @@ class GameCard(NeonFrame):
     self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
     layout = QHBoxLayout(self)
-    layout.setContentsMargins(10, 10, 12, 10)
-    layout.setSpacing(10)
+    layout.setContentsMargins(12, 10, 14, 10)
+    layout.setSpacing(14)
 
+    # 1. Carátula del juego con marco y esquinas redondeadas
     image_box = QLabel()
     image_box.setObjectName("gameImage")
-    image_box.setFixedSize(190, 104)
+    image_box.setFixedSize(184, 104)
     image_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
     self._image_label = image_box
     layout.addWidget(image_box)
 
+    # 2. Información central
     info = QVBoxLayout()
-    info.setSpacing(4)
+    info.setSpacing(5)
 
-    title = QLabel(str(juego.get("title", "Elemento sin título")))
+    titulo_limpio = _limpiar_titulo_visual(juego.get("title", "Elemento sin título"))
+    title = QLabel(titulo_limpio)
     title.setObjectName("gameTitle")
     title.setWordWrap(True)
     info.addWidget(title)
@@ -609,38 +614,44 @@ class GameCard(NeonFrame):
     desc_raw = str(juego.get("description") or "").strip()
     self._desc_original = desc_raw
     texto_inicial = desc_raw if desc_raw else t("card.no_desc")
-    self._desc_label = QLabel(texto_inicial[:167] + ("..." if len(texto_inicial) > 170 else ""))
+    self._desc_label = QLabel(texto_inicial[:145] + ("..." if len(texto_inicial) > 148 else ""))
     self._desc_label.setObjectName("gameDescription")
     self._desc_label.setWordWrap(True)
     info.addWidget(self._desc_label)
 
+    # Fila horizontal de Chips / Badges Gaming
     meta_row = QHBoxLayout()
-    meta_row.setSpacing(8)
-    meta_row.setContentsMargins(0, 0, 0, 0)
+    meta_row.setSpacing(6)
+    meta_row.setContentsMargins(0, 2, 0, 0)
 
-    store = QLabel(nombre_tienda.upper())
+    # Chip de Tienda
+    store = QLabel(f"🏷️ {nombre_tienda.upper()}")
     store.setObjectName("gameStore")
     meta_row.addWidget(store)
 
+    # Chip de Steam (oculto inicialmente hasta consultar)
     self._steam_badge = QLabel("")
     self._steam_badge.setObjectName("steamBadge")
     self._steam_badge.hide()
     meta_row.addWidget(self._steam_badge)
-    meta_row.addStretch()
 
-    info.addLayout(meta_row)
-
+    # Chip de Valor / Precio
     valor = owner._valor_juego(juego)
     if valor > 0:
-      worth = QLabel(t("card.estimated_worth", worth=f"{valor:,.2f}"))
+      worth = QLabel(f"💰 Antes: ${valor:,.2f}")
       worth.setObjectName("gameWorth")
-      info.addWidget(worth)
+      meta_row.addWidget(worth)
+
+    meta_row.addStretch()
+    info.addLayout(meta_row)
 
     info.addStretch()
     layout.addLayout(info, 1)
 
+    # 3. Columna de botones de acción
     actions = QVBoxLayout()
     actions.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+    actions.setSpacing(6)
 
     tema = config.THEMES.get(config.CURRENT_THEME, {})
     c_bg_card = tema.get("COLOR_BG_CARD", COLOR_BG_CARD)
@@ -685,7 +696,6 @@ class GameCard(NeonFrame):
       btn_reclamar.setToolTip(t("tooltip.claim"))
       actions.addWidget(btn_reclamar)
 
-      # Fila inferior simétrica: [ ✔ ] (62px) + [ 🔗 ] (62px) = 128px exactos
       sub_row = QHBoxLayout()
       sub_row.setContentsMargins(0, 0, 0, 0)
       sub_row.setSpacing(4)
@@ -721,10 +731,6 @@ class GameCard(NeonFrame):
     self._consultar_steam()
 
   def _compartir_oferta(self):
-    """Copia al portapapeles los datos de la oferta en formato Markdown para Discord/Redes."""
-    from PySide6.QtWidgets import QApplication
-    from PySide6.QtCore import QTimer
-
     titulo = str(self.juego.get("title", "Juego gratuito"))
     tienda = str(self.nombre_tienda or "PC")
     url = str(self.juego.get("open_giveaway_url") or "")
@@ -751,7 +757,6 @@ class GameCard(NeonFrame):
       ))
 
   def _mostrar_placeholder_tienda(self):
-    """Muestra el nombre de la tienda en texto tipográfico limpio sin logotipos comerciales."""
     self._image_label.setPixmap(QPixmap())
     self._image_label.setText(str(self.nombre_tienda).upper())
 
@@ -776,7 +781,8 @@ class GameCard(NeonFrame):
     if pixmap is not None and not pixmap.isNull():
       self._imagen_cargada_con_exito = True
       self._image_label.setText("")
-      self._image_label.setPixmap(pixmap)
+      redondeado = _redondear_pixmap(pixmap, 8)
+      self._image_label.setPixmap(redondeado)
     else:
       self._imagen_cargada_con_exito = False
       self._mostrar_placeholder_tienda()
@@ -796,8 +802,8 @@ class GameCard(NeonFrame):
     if not texto_traducido or texto_traducido == self._desc_original:
       return
     desc = " ".join(texto_traducido.split())
-    if len(desc) > 170:
-      desc = desc[:167] + "..."
+    if len(desc) > 148:
+      desc = desc[:145] + "..."
     self._desc_label.setText(desc)
 
   def _consultar_steam(self):
@@ -814,7 +820,6 @@ class GameCard(NeonFrame):
     if not datos:
       return
 
-    # Si la foto original de la tienda falló y Steam tiene carátula oficial de respaldo:
     banner = datos.get("banner_url")
     if banner and not getattr(self, "_imagen_cargada_con_exito", False):
       self._load_image(banner)
@@ -828,23 +833,23 @@ class GameCard(NeonFrame):
 
     if percent >= 80:
       color_accent = "#10B981"
-      bg_color = "rgba(16, 185, 129, 0.15)"
+      bg_color = "rgba(16, 185, 129, 0.16)"
     elif percent >= 70:
       color_accent = "#38BDF8"
-      bg_color = "rgba(56, 189, 248, 0.15)"
+      bg_color = "rgba(56, 189, 248, 0.16)"
     else:
       color_accent = "#F59E0B"
-      bg_color = "rgba(245, 158, 11, 0.15)"
+      bg_color = "rgba(245, 158, 11, 0.16)"
 
-    self._steam_badge.setText(f" Steam: {percent}% ({desc})")
+    self._steam_badge.setText(f"★ Steam: {percent}% ({desc})")
     self._steam_badge.setStyleSheet(f"""
       QLabel#steamBadge {{
         background-color: {bg_color};
         color: {color_accent};
         border: 1px solid {color_accent};
-        border-radius: 4px;
-        padding: 1px 6px;
-        font: bold 7pt "Segoe UI";
+        border-radius: 6px;
+        padding: 2px 8px;
+        font: bold 7.5pt "Segoe UI";
       }}
     """)
     self._steam_badge.show()
