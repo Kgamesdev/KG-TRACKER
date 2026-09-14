@@ -80,7 +80,7 @@ def _apply_theme_qss(self):
     font: bold 8pt "Segoe UI";
   }}
 
-  /* TARJETA DE JUEGO (GAME CARD) GAMING MODERNA */
+  /* TARJETA DE JUEGO GAMING */
   QFrame#gameCard {{
     background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 {c("COLOR_BG_CARD")}, stop:1 #1C1D2E);
     border: 1px solid {c("COLOR_BORDER")};
@@ -107,22 +107,22 @@ def _apply_theme_qss(self):
     line-height: 1.2;
   }}
 
-  /* CHIPS / BADGES MODERNOS DE LA TARJETA */
+  /* CHIPS / CÁPSULAS UNIFORMES */
   QLabel#gameStore {{
-    background: rgba(99, 102, 241, 0.15);
-    color: {c("COLOR_ACCENT_LIGHT")};
-    border: 1px solid rgba(129, 140, 248, 0.35);
+    background-color: rgba(99, 102, 241, 0.18);
+    color: #A5B4FC;
+    border: 1px solid #818CF8;
     border-radius: 6px;
-    padding: 2px 7px;
+    padding: 2px 8px;
     font: bold 7.5pt "Segoe UI";
   }}
 
   QLabel#gameWorth {{
-    background: rgba(16, 185, 129, 0.14);
-    color: {c("COLOR_SUCCESS")};
-    border: 1px solid rgba(52, 211, 153, 0.35);
+    background-color: rgba(245, 158, 11, 0.18);
+    color: #FCD34D;
+    border: 1px solid #F59E0B;
     border-radius: 6px;
-    padding: 2px 7px;
+    padding: 2px 8px;
     font: bold 7.5pt "Segoe UI";
   }}
 
@@ -174,7 +174,7 @@ def _apply_theme_qss(self):
     padding-top: 3px;
   }}
 
-  /* BOTÓN PRINCIPAL (BUSCAR JUEGOS GRATUITOS) */
+  /* BOTÓN PRINCIPAL */
   QPushButton[role="accent"] {{
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6366F1, stop:1 #4F46E5);
     color: #FFFFFF;

@@ -1,9 +1,9 @@
 {
   "aviso_bandeja_mostrado": true,
-  "frecuencia_busqueda": "Cada 4 horas",
-  "idioma": "English (EN)",
-  "tema": "Neón Cyberpunk (Oscuro)",
+  "frecuencia_busqueda": "Every 4 hours",
+  "idioma": "Español (ES)",
+  "tema": "Neon Cyberpunk (Dark)",
   "notificaciones_activas": true,
   "tema_clave": "dark",
-  "idioma_codigo": "en"
+  "idioma_codigo": "es"
 }
