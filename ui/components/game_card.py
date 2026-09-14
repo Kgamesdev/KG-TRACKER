@@ -726,7 +726,7 @@ class NeonFrame(QFrame):
         self._bloquear_neon = False
 
     def _on_clock_tick(self, ang):
-        # OPTIMIZACION EXTREMA: Detener calculos de neon mientras se anima la entrada
+        # OPTIMIZACION: Detener calculos de neon mientras se anima la entrada
         if getattr(self, "_bloquear_neon", False):
             return
         self._ang = ang
@@ -734,8 +734,6 @@ class NeonFrame(QFrame):
 
     def preparar_animacion_cascada(self):
         from PySide6.QtWidgets import QGraphicsOpacityEffect
-        from PySide6.QtCore import QSequentialAnimationGroup
-        
         self._bloquear_neon = True
         
         if not hasattr(self, "_efecto_opacidad") or self.graphicsEffect() is None:
@@ -745,6 +743,7 @@ class NeonFrame(QFrame):
         if hasattr(self, "_anim_group") and self._anim_group.state() != 0:
             self._anim_group.stop()
             
+        self._efecto_opacidad.setEnabled(True)
         self._efecto_opacidad.setOpacity(0.0)
 
     def animar_entrada(self, delay=0):
@@ -757,15 +756,17 @@ class NeonFrame(QFrame):
             self._anim_group.addAnimation(pause)
             
         anim_fade = QPropertyAnimation(self._efecto_opacidad, b"opacity", self)
-        anim_fade.setDuration(350)
+        anim_fade.setDuration(450)
         anim_fade.setStartValue(0.0)
         anim_fade.setEndValue(1.0)
-        anim_fade.setEasingCurve(QEasingCurve.Type.OutQuad)
+        anim_fade.setEasingCurve(QEasingCurve.Type.InOutSine)
         
         self._anim_group.addAnimation(anim_fade)
         
         def _on_finish():
             self._bloquear_neon = False
+            # OPTIMIZACION MASIVA: Apagar el efecto de opacidad al terminar para ahorrar GPU
+            self._efecto_opacidad.setEnabled(False)
             self.update()
             
         self._anim_group.finished.connect(_on_finish)

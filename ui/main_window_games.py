@@ -379,16 +379,13 @@ def _actualizar_vista_juegos(self):
                 juegos_visibles_ordenados.append(clave)
                 juegos_a_mostrar_map[clave] = {'tipo': 'juego', 'juego': juego, 'tienda': tienda}
 
-        widgets_actuales = set(self.game_widgets_map.keys())
-        widgets_necesarios = set(juegos_visibles_ordenados)
+        # 1. Limpiar layout SIN DESTRUIR widgets (Caché de UI para cero lag)
+        while self.frame_lista_layout.count():
+            item = self.frame_lista_layout.takeAt(0)
+            if item.widget():
+                item.widget().hide()
 
-        # 1. Destruir los que ya no sirven
-        for clave in widgets_actuales - widgets_necesarios:
-            widget = self.game_widgets_map.pop(clave)
-            widget.setParent(None)
-            widget.deleteLater()
-
-        # 2. Crear y preparar opacidad a 0.0 ANTES de mostrar (Elimina Flicker)
+        # 2. Preparar e insertar widgets
         for i, clave in enumerate(juegos_visibles_ordenados):
             if clave not in self.game_widgets_map:
                 data = juegos_a_mostrar_map[clave]
@@ -402,33 +399,26 @@ def _actualizar_vista_juegos(self):
 
             widget = self.game_widgets_map[clave]
             
+            # Garantiza opacidad cero antes de volver al motor de Qt
             if hasattr(widget, "preparar_animacion_cascada"):
                 widget.preparar_animacion_cascada()
                 
             self.frame_lista_layout.insertWidget(i, widget)
-        
-        while self.frame_lista_layout.count() > len(juegos_visibles_ordenados):
-            item = self.frame_lista_layout.takeAt(len(juegos_visibles_ordenados))
-            if item.widget():
-                item.widget().deleteLater()
-
+            widget.show()
+            
         self.frame_lista_layout.addStretch(1)
 
     finally:
         if root is not None:
             root.setUpdatesEnabled(True)
-            root.update()
 
-    # 3. Forzar calculos de GPU/CPU en vacio y lanzar la ola sincronizada
-    from PySide6.QtWidgets import QApplication
-    QApplication.processEvents()
-    
+    # Lanzar la ola asíncrona (SIN processEvents que cause stuttering)
     retraso_cascada = 0
     for clave in juegos_visibles_ordenados:
         widget = self.game_widgets_map[clave]
         if hasattr(widget, "animar_entrada"):
             widget.animar_entrada(retraso_cascada)
-            retraso_cascada += 35
+            retraso_cascada += 40
             
     if self.canvas and self.canvas.verticalScrollBar():
         self.canvas.verticalScrollBar().setValue(0)
