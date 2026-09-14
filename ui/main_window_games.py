@@ -327,6 +327,7 @@ def _actualizar_visibilidad_contenedor_juegos(self):
 
 
 def _actualizar_vista_juegos(self):
+    from core.i18n import t
     root = self.centralWidget()
     if root is not None:
         root.setUpdatesEnabled(False)
@@ -379,18 +380,26 @@ def _actualizar_vista_juegos(self):
                 juegos_visibles_ordenados.append(clave)
                 juegos_a_mostrar_map[clave] = {'tipo': 'juego', 'juego': juego, 'tienda': tienda}
 
-        # 1. Ocultar el contenedor para evitar los lagazos del Layout Engine de Qt
-        self.frame_lista.hide()
+        # 1. Recuperar memoria y destruir widgets que ya no se muestran
+        widgets_actuales = set(self.game_widgets_map.keys())
+        widgets_necesarios = set(juegos_visibles_ordenados)
 
-        # 2. Desenganchar los viejos
-        while self.frame_lista_layout.count():
-            item = self.frame_lista_layout.takeAt(0)
-            if item.widget():
-                item.widget().hide()
+        for clave in widgets_actuales - widgets_necesarios:
+            widget = self.game_widgets_map.pop(clave)
+            widget.setParent(None)
+            widget.deleteLater()
 
-        # 3. Preparar e insertar los nuevos (en la sombra)
+        # 2. Eliminar el espacio elástico (stretch) al final temporalmente
+        if self.frame_lista_layout.count() > 0:
+            last_item = self.frame_lista_layout.itemAt(self.frame_lista_layout.count() - 1)
+            if last_item.spacerItem():
+                self.frame_lista_layout.removeItem(last_item)
+
         widgets_to_animate = []
+
+        # 3. Posicionar tarjetas. Solo preparamos animación para las NUEVAS.
         for i, clave in enumerate(juegos_visibles_ordenados):
+            es_nuevo = False
             if clave not in self.game_widgets_map:
                 data = juegos_a_mostrar_map[clave]
                 if data.get('tipo') == 'banner':
@@ -400,51 +409,46 @@ def _actualizar_vista_juegos(self):
                     from ui.components.game_card import GameCard
                     widget = GameCard(self, data['juego'], data['tienda'])
                 self.game_widgets_map[clave] = widget
+                es_nuevo = True
 
             widget = self.game_widgets_map[clave]
-            if hasattr(widget, "preparar_animacion_cascada"):
-                widget.preparar_animacion_cascada()
-                
-            self.frame_lista_layout.insertWidget(i, widget)
-            widget.show()
-            widgets_to_animate.append(widget)
             
+            if es_nuevo and hasattr(widget, "preparar_animacion_cascada"):
+                widget.preparar_animacion_cascada()
+                widgets_to_animate.append(widget)
+
+            self.frame_lista_layout.insertWidget(i, widget)
+
+        # 4. Restaurar espacio elástico
         self.frame_lista_layout.addStretch(1)
-        
-        # 4. Mostrar de golpe el contenedor (Calcula todo 1 sola vez)
-        self.frame_lista.show()
 
     finally:
         if root is not None:
             root.setUpdatesEnabled(True)
 
-    # 5. Reiniciar Scroll
-    if self.canvas and self.canvas.verticalScrollBar():
-        self.canvas.verticalScrollBar().setValue(0)
-
-    # 6. Despachador de Ola Controlado (Cero Colapsos de CPU)
-    if hasattr(self, "_stagger_timer") and self._stagger_timer.isActive():
-        self._stagger_timer.stop()
-        
-    from PySide6.QtCore import QTimer
-    self._stagger_timer = QTimer(self)
-    self._stagger_timer.setInterval(40) # Disparo cada 40ms exactos
-    self._stagger_queue = widgets_to_animate
-    self._stagger_index = 0
-    
-    def _tick():
-        if self._stagger_index < len(self._stagger_queue):
-            w = self._stagger_queue[self._stagger_index]
-            if hasattr(w, "animar_opacidad"):
-                w.animar_opacidad()
-            self._stagger_index += 1
-        else:
+    # 5. Despachador en ola SOLO para elementos nuevos (evita flickering al reclamar)
+    if widgets_to_animate:
+        if hasattr(self, "_stagger_timer") and self._stagger_timer.isActive():
             self._stagger_timer.stop()
             
-    self._stagger_timer.timeout.connect(_tick)
-    
-    # Le damos 20ms a Windows para que pinte la pantalla vacía antes de lanzar la ola
-    QTimer.singleShot(20, self._stagger_timer.start)
+        from PySide6.QtCore import QTimer
+        self._stagger_timer = QTimer(self)
+        self._stagger_timer.setInterval(40) # Disparo rápido y suave
+        self._stagger_queue = widgets_to_animate
+        self._stagger_index = 0
+        
+        def _tick():
+            if self._stagger_index < len(self._stagger_queue):
+                w = self._stagger_queue[self._stagger_index]
+                if hasattr(w, "animar_opacidad"):
+                    w.animar_opacidad()
+                self._stagger_index += 1
+            else:
+                self._stagger_timer.stop()
+                
+        self._stagger_timer.timeout.connect(_tick)
+        QTimer.singleShot(10, self._stagger_timer.start)
+
 
 def instalar_metodos(cls):
     cls.game_widgets_map = {}

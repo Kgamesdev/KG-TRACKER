@@ -745,18 +745,22 @@ class NeonFrame(QFrame):
     def animar_opacidad(self):
         from PySide6.QtCore import QPropertyAnimation, QEasingCurve
         
+        if not hasattr(self, "_efecto_opacidad"):
+            return
+            
         if hasattr(self, "_anim_fade") and self._anim_fade.state() != 0:
             self._anim_fade.stop()
             
         self._anim_fade = QPropertyAnimation(self._efecto_opacidad, b"opacity", self)
-        self._anim_fade.setDuration(550)  # Duración perfecta para OutCubic
+        self._anim_fade.setDuration(450)
         self._anim_fade.setStartValue(0.0)
         self._anim_fade.setEndValue(1.0)
         self._anim_fade.setEasingCurve(QEasingCurve.Type.OutCubic)
         
         def _on_finish():
             self._bloquear_neon = False
-            self._efecto_opacidad.setEnabled(False)
+            if hasattr(self, "_efecto_opacidad"):
+                self._efecto_opacidad.setEnabled(False)
             self.update()
             
         self._anim_fade.finished.connect(_on_finish)
