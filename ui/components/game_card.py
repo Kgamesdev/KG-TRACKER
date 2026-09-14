@@ -916,20 +916,29 @@ class GameCard(NeonFrame):
         if valor > 0:
             worth = QLabel(f"💰 Antes: ${valor:,.2f}")
             worth.setObjectName("gameWorth")
-            es_oscuro_w = (config.CURRENT_THEME == "dark")
-            w_bg = "rgba(245, 158, 11, 0.18)" if es_oscuro_w else "#FEF3C7"
-            w_fg = "#FCD34D" if es_oscuro_w else "#92400E"
-            w_bd = "#F59E0B"
-            worth.setStyleSheet(f"""
-                QLabel#gameWorth {{
-                    background-color: {w_bg};
-                    color: {w_fg};
-                    border: 1.2px solid {w_bd};
-                    border-radius: 6px;
-                    padding: 2px 8px;
-                    font: bold 7.5pt "Segoe UI";
-                }}
-            """)
+            es_oscuro_chip = (config.CURRENT_THEME == "dark")
+            if es_oscuro_chip:
+                worth.setStyleSheet("""
+                    QLabel#gameWorth {
+                        background-color: rgba(245, 158, 11, 0.18);
+                        color: #FCD34D;
+                        border: 1px solid #F59E0B;
+                        border-radius: 6px;
+                        padding: 2px 8px;
+                        font: bold 7.5pt "Segoe UI";
+                    }
+                """)
+            else:
+                worth.setStyleSheet("""
+                    QLabel#gameWorth {
+                        background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FEF3C7, stop:1 #FDE68A);
+                        color: #92400E;
+                        border: 1.2px solid #F59E0B;
+                        border-radius: 6px;
+                        padding: 2px 8px;
+                        font: bold 7.5pt "Segoe UI";
+                    }
+                """)
             meta_row.addWidget(worth)
 
         meta_row.addStretch()
