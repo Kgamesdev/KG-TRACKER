@@ -1,4 +1,4 @@
-﻿"""Componentes visuales y tarjetas de juego para KG Tracker."""
+"""Componentes visuales y tarjetas de juego para KG Tracker."""
 
 import os
 import re
