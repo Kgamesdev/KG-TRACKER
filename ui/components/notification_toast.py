@@ -94,10 +94,10 @@ class DesktopToast(QWidget):
         self.btn_close.clicked.connect(self._iniciar_salida)
         layout.addWidget(self.btn_close, 0, Qt.AlignmentFlag.AlignTop)
 
-        # Temporizador de permanencia (8.5 segundos)
+        # Temporizador de permanencia (7.0 segundos)
         self._timer_permanencia = QTimer(self)
         self._timer_permanencia.setSingleShot(True)
-        self._timer_permanencia.setInterval(8500)
+        self._timer_permanencia.setInterval(7000)
         self._timer_permanencia.timeout.connect(self._iniciar_salida)
 
         self._anim_pos = None
