@@ -162,12 +162,32 @@ class RoundedButton(QPushButton):
 
         if 'AHORRADO' in text.upper() or 'SAVED' in text.upper():
             self._anim.start()
+        self._role = role
+        self.aplicar_estilo_segun_rol()
+
+    def aplicar_estilo_segun_rol(self):
+        es_oscuro = (config.CURRENT_THEME == "dark")
+        role = self.property("role") or getattr(self, "_role", "default")
+
         if role == 'success':
             self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {self._bg}, stop:1 {self._hover}); color: {self._fg}; border: 1px solid #34D399; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #34D399, stop:1 {self._bg}); }} QPushButton:pressed {{ background: #047857; padding-top: 2px; }}')
         elif role == 'secondary':
-            self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3A3B52, stop:1 #262738); color: {self._fg}; border: 1px solid #4E506B; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E506B, stop:1 #3A3B52); border: 1px solid #818CF8; color: #818CF8; }} QPushButton:pressed {{ background: #1E1F2E; padding-top: 2px; }}')
+            if es_oscuro:
+                self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3A3B52, stop:1 #262738); color: {self._fg}; border: 1px solid #4E506B; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E506B, stop:1 #3A3B52); border: 1px solid #818CF8; color: #818CF8; }} QPushButton:pressed {{ background: #1E1F2E; padding-top: 2px; }}')
+            else:
+                self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #F1F5F9); color: #4F46E5; border: 1px solid #CBD5E1; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #EEF2FF, stop:1 #E0E7FF); border: 1px solid #818CF8; color: #4338CA; }} QPushButton:pressed {{ background: #E2E8F0; padding-top: 2px; }}')
+        elif role == 'sidebar':
+            if es_oscuro:
+                self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #25263A, stop:1 #171827); color: #F3F4F6; border: 1px solid #3A3A50; border-radius: {self._radius}px; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #818CF8, stop:1 #6366F1); border: 1px solid #818CF8; color: #FFFFFF; }} QPushButton:pressed {{ background: #4F46E5; padding-top: 2px; }}')
+            else:
+                self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #E2E8F0); color: #0F172A; border: 1px solid #CBD5E1; border-radius: {self._radius}px; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #EEF2FF, stop:1 #E0E7FF); border: 1px solid #818CF8; color: #4F46E5; }} QPushButton:pressed {{ background: #CBD5E1; padding-top: 2px; }}')
+        elif role == 'accent':
+            self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6366F1, stop:1 #4F46E5); color: #FFFFFF; border: 1.2px solid #818CF8; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #818CF8, stop:1 #6366F1); border: 1.2px solid #00F3FF; }} QPushButton:pressed {{ background: #4338CA; padding-top: 2px; }}')
         else:
-            self.setStyleSheet(f'QPushButton {{ background: {self._bg}; color: {self._fg}; border: 1px solid {self._border}; border-radius: {self._radius}px; padding: 0 8px; }}')
+            b_bg = "#FFFFFF" if (not es_oscuro and self._bg == COLOR_BG_CARD) else self._bg
+            b_fg = "#0F172A" if (not es_oscuro and self._fg in ("white", COLOR_TEXT_PRIMARY)) else self._fg
+            b_border = "#CBD5E1" if not es_oscuro else self._border
+            self.setStyleSheet(f'QPushButton {{ background: {b_bg}; color: {b_fg}; border: 1px solid {b_border}; border-radius: {self._radius}px; padding: 0 8px; }}')
 
         self.set_icon(icon_path)
         if callable(command):

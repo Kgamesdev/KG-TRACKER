@@ -101,7 +101,7 @@ def _apply_theme_qss(self):
   }}
 
   QLabel#gameTitle {{
-    color: #FFFFFF;
+    color: {c("COLOR_TEXT_PRIMARY")};
     font: bold 11.5pt "Segoe UI";
     padding-bottom: 1px;
   }}
@@ -223,10 +223,10 @@ def _apply_theme_qss(self):
   }}
 
   /* BOTONES SECUNDARIOS [ ✔ ] y [ 🔗 ] */
-  QPushButton[role="secondary"] {{
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3A3B52, stop:1 #262738);
-    color: #FFFFFF;
-    border: 1px solid #4E506B;
+    QPushButton[role="secondary"] {{
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {c("COLOR_BG_CARD")}, stop:1 {c("COLOR_BG_DESC")});
+    color: {c("COLOR_TEXT_PRIMARY")};
+    border: 1px solid {c("COLOR_BORDER")};
     border-radius: 10px;
     font-weight: bold;
     font-size: 8.5pt;
@@ -286,14 +286,14 @@ def _apply_theme_qss(self):
   }}
 
   /* BANNER INFORMATIVO CENTRADO RESPLANDECIENTE DE CONTEXTO DE TIENDA */
-  QFrame#storeContextBanner {{
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 rgba(31, 32, 51, 0.95), stop:0.5 rgba(42, 43, 69, 0.95), stop:1 rgba(31, 32, 51, 0.95));
-    border: 1px solid rgba(129, 140, 248, 0.45);
+    QFrame#storeContextBanner {{
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {c("COLOR_BG_CARD")}, stop:0.5 {c("COLOR_BG_DESC")}, stop:1 {c("COLOR_BG_CARD")});
+    border: 1px solid {c("COLOR_BORDER")};
     border-radius: 10px;
   }}
 
   QLabel#storeContextTitle {{
-    color: #FFFFFF;
+    color: {c("COLOR_TEXT_PRIMARY")};
     font: bold 9.5pt "Segoe UI";
     letter-spacing: 0.8px;
     background: transparent;
@@ -362,6 +362,8 @@ def _set_button_role(self, button, role):
   if button is None:
     return
   button.setProperty("role", role)
+  if hasattr(button, "aplicar_estilo_segun_rol"):
+      button.aplicar_estilo_segun_rol()
   button.style().unpolish(button)
   button.style().polish(button)
 
