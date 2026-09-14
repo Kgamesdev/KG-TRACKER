@@ -1,4 +1,4 @@
-﻿# 🎮 K GAME TRACKER (KG Tracker)
+# 🎮 K GAME TRACKER (KG Tracker)
 
 <p align="center">
   <img src="assets/LogoKG_transparente.png" alt="KG Tracker Logo" width="130"/>
@@ -9,11 +9,11 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.1.34--stable-blue?style=for-the-badge&logo=git" alt="Version"/>
+  <img src="https://img.shields.io/badge/version-v0.2.26-blue?style=for-the-badge&logo=git" alt="Version"/>
   <img src="https://img.shields.io/badge/python-3.14+-yellow?style=for-the-badge&logo=python" alt="Python Version"/>
   <img src="https://img.shields.io/badge/framework-PySide6%20(Qt%206)-41CD52?style=for-the-badge&logo=qt" alt="PySide6"/>
   <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=for-the-badge&logo=windows" alt="Platform"/>
-  <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License"/>
+  <img src="https://img.shields.io/badge/license-Non--Commercial-orange?style=for-the-badge" alt="License"/>
 </p>
 
 ---
@@ -121,5 +121,5 @@ KG Tracker es software libre desarrollado y mantenido con dedicación. Si te res
 
 ## 📄 Licencia
 
-Este proyecto está bajo la licencia **MIT**. Consulta el archivo [LICENSE](LICENSE) para más información.
+Este proyecto está bajo una **Licencia No Comercial** (Non-Commercial License). Consulta el archivo [LICENSE](LICENSE) para más información. Consulta el archivo [LICENSE](LICENSE) para más información.
 

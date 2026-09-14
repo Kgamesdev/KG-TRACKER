@@ -1,3 +1,4 @@
+from core.storage import guardar_json_atomico
 import threading
 """Motor de traduccion asincrono para KG Tracker con concurrencia controlada y precarga."""
 

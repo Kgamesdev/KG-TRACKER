@@ -1,3 +1,4 @@
+from core.storage import guardar_json_atomico
 import threading
 """Modulo para enriquecer ofertas con resenas de la comunidad de Steam."""
 
@@ -58,7 +59,7 @@ def limpiar_titulo(titulo: str) -> str:
     return " ".join(t.split()).strip()
 
 
-def _consultar_steam_red(session: requests.Session, titulo_limpio: str) -> dict:
+def _consultar_steam_red(session, titulo_limpio: str) -> dict:
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         "Accept-Language": "es,en;q=0.9",
@@ -117,7 +118,9 @@ class _SteamWorker(QRunnable):
         self.enricher = enricher
 
     def run(self):
-        datos = self.enricher._obtener_resenas_sincrono(self.titulo)
+        # Crear sesión HTTP local e independiente por hilo para evitar condiciones de carrera
+        with requests.Session() as session:
+            datos = self.enricher._obtener_resenas_sincrono(self.titulo, session=session)
         self.enricher.signals.resultado.emit(self.titulo, datos, self.callback)
 
 
@@ -131,7 +134,6 @@ class SteamEnricher:
     def __init__(self):
         self._lock = threading.Lock()
         self.cache = _cargar_cache()
-        self.session = requests.Session()
         self.signals = _SteamSignals()
         self.signals.resultado.connect(self._al_emitir_resultado)
 
@@ -141,7 +143,7 @@ class SteamEnricher:
             cls._instance = SteamEnricher()
         return cls._instance
 
-    def _obtener_resenas_sincrono(self, titulo: str) -> dict:
+    def _obtener_resenas_sincrono(self, titulo: str, session: requests.Session = None) -> dict:
         t_limpio = limpiar_titulo(titulo)
         if not t_limpio:
             return {"found": False}
@@ -154,7 +156,8 @@ class SteamEnricher:
                     cached["banner_url"] = f"https://cdn.akamai.steamstatic.com/steam/apps/{cached['appid']}/header.jpg"
                 return cached
 
-        res = _consultar_steam_red(self.session, t_limpio)
+        s = session or requests
+        res = _consultar_steam_red(s, t_limpio)
         if res.get("found"):
             with self._lock:
                 self.cache[clave] = res

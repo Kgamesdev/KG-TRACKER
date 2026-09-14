@@ -1,3 +1,4 @@
+from core.storage import guardar_json_atomico
 import urllib.parse
 """Módulo centralizado de scrapers y consultas directas a tiendas de videojuegos."""
 
@@ -7,22 +8,25 @@ import datetime
 import requests
 import re
 import html
+import threading
 from config import BASE_DIR
 from logger import log_info, log_warning, log_error
 
 CACHE_GIVEAWAYS_FILE = os.path.join(BASE_DIR, "data", "giveaways_cache.json")
 
 _session_scrapers = None
+_scrapers_lock = threading.Lock()
 
 def _obtener_sesion_scrapers():
     global _session_scrapers
     if _session_scrapers is None:
-        _session_scrapers = requests.Session()
-        adapter = requests.adapters.HTTPAdapter(pool_connections=8, pool_maxsize=8)
-        _session_scrapers.mount("https://", adapter)
-        _session_scrapers.mount("http://", adapter)
+        with _scrapers_lock:
+            if _session_scrapers is None:
+                _session_scrapers = requests.Session()
+                adapter = requests.adapters.HTTPAdapter(pool_connections=8, pool_maxsize=8)
+                _session_scrapers.mount("https://", adapter)
+                _session_scrapers.mount("http://", adapter)
     return _session_scrapers
-
 
 
 def guardar_en_cache_disco(giveaways):
@@ -230,14 +234,12 @@ def obtener_itch_directo(session=None):
 
             game_id = chunk.split('"')[0]
 
-            # Extracción tolerante a etiquetas internas (b, span, etc.)
             title_m = re.search(r'<div class="game_title">\s*<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', chunk, re.DOTALL)
             if not title_m:
                 continue
             url_raw = title_m.group(1).strip()
             url_juego = urllib.parse.urljoin("https://itch.io", url_raw)
 
-            # Limpiar etiquetas HTML del título
             titulo_raw = re.sub(r'<[^>]+>', '', title_m.group(2))
             titulo = html.unescape(titulo_raw).strip()
             if not titulo:
