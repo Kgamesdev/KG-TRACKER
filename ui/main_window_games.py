@@ -437,7 +437,6 @@ def _actualizar_vista_juegos(self):
 
     # 7. Ejecutar Motor Nativo de Animación C++ (Sin QTimer de Python)
     if widgets_to_animate:
-        # Limpiar grupo anterior si el usuario spamea clics
         if hasattr(self, "_master_anim_group") and self._master_anim_group.state() != 0:
             self._master_anim_group.stop()
 
@@ -447,16 +446,16 @@ def _actualizar_vista_juegos(self):
             if hasattr(widget, "obtener_animacion_baraja"):
                 anim = widget.obtener_animacion_baraja()
                 if anim:
-                    # Empaquetamos la animación de la carta en una secuencia con una Pausa inicial
                     seq = QSequentialAnimationGroup(self._master_anim_group)
                     
-                    # 25ms es ~1.5 frames a 60Hz. Es un offset matemáticamente perfecto para stagger visual.
-                    seq.addAnimation(QPauseAnimation(index * 25)) 
-                    seq.addAnimation(anim)
+                    # MAGIA AQUÍ: 70ms es suficiente para que el ojo humano note perfectamente 
+                    # el retraso entre carta y carta (efecto dominó/cascada).
+                    if index > 0:
+                        seq.addAnimation(QPauseAnimation(index * 70)) 
                     
+                    seq.addAnimation(anim)
                     self._master_anim_group.addAnimation(seq)
                     
-        # Iniciar todas las animaciones simultáneamente en el motor de C++
         self._master_anim_group.start()
 
 

@@ -732,48 +732,43 @@ class NeonFrame(QFrame):
         self.update()
 
     def preparar_animacion_cascada(self):
-        """Prepara el widget dejándolo invisible para la animación."""
+        """Prepara el widget con opacidad 0 absoluto para garantizar el Fade-In."""
         from PySide6.QtWidgets import QGraphicsOpacityEffect
         self._bloquear_neon = True
         
-        if not hasattr(self, "_efecto_opacidad") or self.graphicsEffect() is None:
-            self._efecto_opacidad = QGraphicsOpacityEffect(self)
-            self.setGraphicsEffect(self._efecto_opacidad)
-            
-        self._efecto_opacidad.setEnabled(True)
+        # Siempre forzar un efecto limpio y nuevo
+        self._efecto_opacidad = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(self._efecto_opacidad)
         self._efecto_opacidad.setOpacity(0.0)
 
     def obtener_animacion_baraja(self):
-        """Devuelve un grupo de animación nativo C++ de alta fluidez."""
+        """Genera el efecto desplegado: Fade In lento + Deslizamiento dramático."""
         from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPoint
         
         if not hasattr(self, "_efecto_opacidad"):
             return None
 
-        # Asegurar elevación Z-Index
+        # Elevación Z-Index para solapamiento correcto
         self.raise_()
             
-        # Geometría calculada por el layout
         final_pos = self.pos()
-        # Caída extendida a 80px para mayor espectacularidad
-        start_pos = QPoint(final_pos.x(), final_pos.y() + 80)
-        
-        # Teletransporte inmediato al punto de origen
+        # Aumentamos la caída a 100px para enfatizar el recorrido visual
+        start_pos = QPoint(final_pos.x(), final_pos.y() + 100)
         self.move(start_pos)
 
-        # Animación de Traslación (Y) con OutQuint (Frenado extremadamente suave)
+        # Animación de Traslación (Y) con OutExpo (Frenado muy prolongado)
         anim_pos = QPropertyAnimation(self, b"pos", self)
-        anim_pos.setDuration(550) 
+        anim_pos.setDuration(850) 
         anim_pos.setStartValue(start_pos)
         anim_pos.setEndValue(final_pos)
-        anim_pos.setEasingCurve(QEasingCurve.Type.OutQuint) 
+        anim_pos.setEasingCurve(QEasingCurve.Type.OutExpo) 
 
-        # Animación de Opacidad (Fade)
+        # Animación de Opacidad (Fade In bien pronunciado)
         anim_fade = QPropertyAnimation(self._efecto_opacidad, b"opacity", self)
-        anim_fade.setDuration(400)
+        anim_fade.setDuration(650)
         anim_fade.setStartValue(0.0)
         anim_fade.setEndValue(1.0)
-        anim_fade.setEasingCurve(QEasingCurve.Type.OutCubic)
+        anim_fade.setEasingCurve(QEasingCurve.Type.InOutSine)
 
         # Empaquetado Paralelo
         grupo = QParallelAnimationGroup(self)
@@ -782,8 +777,9 @@ class NeonFrame(QFrame):
         
         def _on_finish():
             self._bloquear_neon = False
+            # Mantenemos el efecto en 1.0 para evitar flashes de redibujado en Qt
             if hasattr(self, "_efecto_opacidad"):
-                self._efecto_opacidad.setEnabled(False)
+                self._efecto_opacidad.setOpacity(1.0)
             self.update()
             
         grupo.finished.connect(_on_finish)
