@@ -380,7 +380,7 @@ def _actualizar_vista_juegos(self):
                 juegos_visibles_ordenados.append(clave)
                 juegos_a_mostrar_map[clave] = {'tipo': 'juego', 'juego': juego, 'tienda': tienda}
 
-        # 1. Recuperar memoria y destruir widgets que ya no se muestran
+        # 1. Recuperar memoria
         widgets_actuales = set(self.game_widgets_map.keys())
         widgets_necesarios = set(juegos_visibles_ordenados)
 
@@ -389,7 +389,7 @@ def _actualizar_vista_juegos(self):
             widget.setParent(None)
             widget.deleteLater()
 
-        # 2. Eliminar el espacio elástico (stretch) al final temporalmente
+        # 2. Retirar el espaciador final temporalmente
         if self.frame_lista_layout.count() > 0:
             last_item = self.frame_lista_layout.itemAt(self.frame_lista_layout.count() - 1)
             if last_item.spacerItem():
@@ -397,7 +397,7 @@ def _actualizar_vista_juegos(self):
 
         widgets_to_animate = []
 
-        # 3. Posicionar tarjetas. Solo preparamos animación para las NUEVAS.
+        # 3. Insertar tarjetas
         for i, clave in enumerate(juegos_visibles_ordenados):
             es_nuevo = False
             if clave not in self.game_widgets_map:
@@ -419,29 +419,36 @@ def _actualizar_vista_juegos(self):
 
             self.frame_lista_layout.insertWidget(i, widget)
 
-        # 4. Restaurar espacio elástico
+        # 4. Restaurar espaciador
         self.frame_lista_layout.addStretch(1)
+
+        # ¡CRÍTICO PARA EL EFECTO BARAJA!
+        # Obligamos a Qt a renderizar internamente el Layout antes de mostrar la pantalla.
+        # Esto asegura que self.pos() tenga los valores finales listos para ser animados.
+        from PySide6.QtWidgets import QApplication
+        self.frame_lista_layout.activate()
+        QApplication.processEvents()
 
     finally:
         if root is not None:
             root.setUpdatesEnabled(True)
 
-    # 5. Despachador en ola SOLO para elementos nuevos (evita flickering al reclamar)
+    # 5. Despachador de Ola estilo "Crupier" (Reparto rápido)
     if widgets_to_animate:
         if hasattr(self, "_stagger_timer") and self._stagger_timer.isActive():
             self._stagger_timer.stop()
             
         from PySide6.QtCore import QTimer
         self._stagger_timer = QTimer(self)
-        self._stagger_timer.setInterval(40) # Disparo rápido y suave
+        self._stagger_timer.setInterval(32) # Intervalo extremadamente veloz
         self._stagger_queue = widgets_to_animate
         self._stagger_index = 0
         
         def _tick():
             if self._stagger_index < len(self._stagger_queue):
                 w = self._stagger_queue[self._stagger_index]
-                if hasattr(w, "animar_opacidad"):
-                    w.animar_opacidad()
+                if hasattr(w, "animar_entrada_baraja"):
+                    w.animar_entrada_baraja()
                 self._stagger_index += 1
             else:
                 self._stagger_timer.stop()
