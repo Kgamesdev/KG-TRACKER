@@ -186,19 +186,15 @@ class RoundedButton(QPushButton):
             else:
                 self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #10B981, stop:1 #34D399); color: #FFFFFF; border: 1.2px solid #6EE7B7; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #34D399, stop:1 #6EE7B7); color: #064E3B; border: 1.2px solid #A7F3D0; }} QPushButton:pressed {{ background: #059669; padding-top: 2px; }}')
 
-        elif role == 'secondary':
-            # Botones secundarios [✔], [🔗], [★ RECLAMADOS], [MUTE]: Acabado Hielo-Índigo satinado claro
+        elif role in ('secondary', 'sidebar'):
+            # Botones de sidebar y de tarjetas: Color del tema oscuro pero aclarado para correlación
             if es_oscuro:
-                self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3A3B52, stop:1 #262738); color: #FFFFFF; border: 1px solid #4E506B; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E506B, stop:1 #3A3B52); border: 1px solid #818CF8; color: #818CF8; }} QPushButton:pressed {{ background: #1E1F2E; padding-top: 2px; }}')
+                bg_dark = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3A3B52, stop:1 #262738)" if role == 'secondary' else "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #25263A, stop:1 #171827)"
+                bd_dark = "#4E506B" if role == 'secondary' else "#3A3A50"
+                self.setStyleSheet(f'QPushButton {{ background: {bg_dark}; color: #FFFFFF; border: 1px solid {bd_dark}; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E506B, stop:1 #3A3B52); border: 1px solid #818CF8; color: #818CF8; }} QPushButton:pressed {{ background: #1E1F2E; padding-top: 2px; }}')
             else:
-                self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F0F3FF, stop:1 #E2E8FD); color: #4338CA; border: 1.2px solid #C7D2FE; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6366F1, stop:1 #4F46E5); color: #FFFFFF; border: 1.2px solid #818CF8; }} QPushButton:pressed {{ background: #C7D2FE; padding-top: 2px; }}')
-
-        elif role == 'sidebar':
-            # Botones de barra lateral: Relieve cristalino satinado con acento claro
-            if es_oscuro:
-                self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #25263A, stop:1 #171827); color: #F3F4F6; border: 1px solid #3A3A50; border-radius: {self._radius}px; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #818CF8, stop:1 #6366F1); border: 1px solid #818CF8; color: #FFFFFF; }} QPushButton:pressed {{ background: #4F46E5; padding-top: 2px; }}')
-            else:
-                self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #E8EEF5); color: #334155; border: 1.2px solid #CBD5E1; border-radius: {self._radius}px; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #EEF2FF, stop:1 #E0E7FF); border: 1.2px solid #818CF8; color: #4F46E5; }} QPushButton:pressed {{ background: #CBD5E1; padding-top: 2px; }}')
+                # Versión aclarada del azul noche grafito con borde sutil e iconos blancos
+                self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3D4160, stop:1 #2C2F46); color: #FFFFFF; border: 1px solid #565C85; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6366F1, stop:1 #4F46E5); border: 1px solid #818CF8; color: #FFFFFF; }} QPushButton:pressed {{ background: #1E2033; padding-top: 2px; }}')
 
         else:
             b_bg = "#FFFFFF" if not es_oscuro else self._bg
