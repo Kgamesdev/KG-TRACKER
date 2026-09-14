@@ -777,28 +777,26 @@ class NeonFrame(QFrame):
         self._efecto_opacidad.setOpacity(0.0)
 
     def animar_entrada(self, delay=0):
-        from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QTimer
+        from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QSequentialAnimationGroup, QPauseAnimation
         self.preparar_animacion_cascada()
         
-        if hasattr(self, "_anim_entrada") and self._anim_entrada.state() == QPropertyAnimation.State.Running:
-            self._anim_entrada.stop()
+        if hasattr(self, "_anim_group") and self._anim_group.state() == QSequentialAnimationGroup.State.Running:
+            self._anim_group.stop()
             
-        self._anim_entrada = QPropertyAnimation(self._efecto_opacidad, b"opacity", self)
-        self._anim_entrada.setDuration(700)
-        self._anim_entrada.setStartValue(0.0)
-        self._anim_entrada.setEndValue(1.0)
-        self._anim_entrada.setEasingCurve(QEasingCurve.Type.OutQuart)
+        self._anim_group = QSequentialAnimationGroup(self)
         
         if delay > 0:
-            if hasattr(self, "_timer_entrada") and self._timer_entrada.isActive():
-                self._timer_entrada.stop()
-            self._timer_entrada = QTimer(self)
-            self._timer_entrada.setSingleShot(True)
-            self._timer_entrada.setInterval(delay)
-            self._timer_entrada.timeout.connect(self._anim_entrada.start)
-            self._timer_entrada.start()
-        else:
-            self._anim_entrada.start()
+            pause = QPauseAnimation(delay, self)
+            self._anim_group.addAnimation(pause)
+            
+        anim_fade = QPropertyAnimation(self._efecto_opacidad, b"opacity", self)
+        anim_fade.setDuration(850)
+        anim_fade.setStartValue(0.0)
+        anim_fade.setEndValue(1.0)
+        anim_fade.setEasingCurve(QEasingCurve.Type.InOutSine)
+        
+        self._anim_group.addAnimation(anim_fade)
+        self._anim_group.start()
 
 
 class StoreHeaderBanner(NeonFrame):

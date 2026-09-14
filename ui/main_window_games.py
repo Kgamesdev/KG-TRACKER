@@ -404,15 +404,27 @@ def _actualizar_vista_juegos(self):
             if hasattr(self.game_widgets_map[clave], "preparar_animacion_cascada"):
                 self.game_widgets_map[clave].preparar_animacion_cascada()
 
-        # 2. Insertar en el layout y lanzar animaciones con cascada suave
-        retraso_cascada = 0
+        # 2. Insertar en el layout pero sin animar todavia
         for i, clave in enumerate(juegos_visibles_ordenados):
             widget = self.game_widgets_map[clave]
             self.frame_lista_layout.insertWidget(i, widget)
             
+        # 3. Forzar el calculo de geometrias en la CPU ANTES de la animacion
+        # Esto elimina por completo los tirones y hace que la ola sea perfecta
+        from PySide6.QtWidgets import QApplication
+        QApplication.processEvents()
+        
+        # 4. Lanzar la ola asincrona
+        retraso_cascada = 0
+        for clave in juegos_visibles_ordenados:
+            widget = self.game_widgets_map[clave]
             if hasattr(widget, "animar_entrada"):
                 widget.animar_entrada(retraso_cascada)
-                retraso_cascada += 45
+                retraso_cascada += 65
+                
+        # 5. Reiniciar el scrollbar para ver la ola desde arriba
+        if self.canvas and self.canvas.verticalScrollBar():
+            self.canvas.verticalScrollBar().setValue(0)
         
         while self.frame_lista_layout.count() > len(juegos_visibles_ordenados):
             item = self.frame_lista_layout.takeAt(len(juegos_visibles_ordenados))
