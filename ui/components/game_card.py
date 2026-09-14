@@ -626,12 +626,13 @@ class NeonFrame(QFrame):
 
 
 class StoreHeaderBanner(NeonFrame):
-    """Banner de cabecera con texto centrado y contorno neón animado resplandeciente."""
+    """Banner de cabecera con efecto cristal (glassmorphism) y contorno neón resplandeciente."""
 
     def __init__(self, parent=None, text=""):
-        super().__init__(parent, radius=10, border_width=1.5, speed_ms=3800)
+        super().__init__(parent, radius=11, border_width=1.5, speed_ms=3800)
         self.setObjectName("storeContextBanner")
-        self.setFixedHeight(42)
+        self.setFixedHeight(44)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(16, 0, 16, 0)
         
@@ -639,6 +640,56 @@ class StoreHeaderBanner(NeonFrame):
         self.label.setObjectName("storeContextTitle")
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.label)
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        r = self.rect().toRectF().adjusted(0.75, 0.75, -0.75, -0.75)
+        radius = float(self._radius)
+
+        # 1. Fondo base de cristal translúcido ahumado
+        es_oscuro = config.CURRENT_THEME == "dark"
+        bg_gradient = QLinearGradient(0, 0, 0, self.height())
+        if es_oscuro:
+            bg_gradient.setColorAt(0.0, QColor(42, 45, 72, 185))
+            bg_gradient.setColorAt(1.0, QColor(22, 23, 38, 215))
+        else:
+            bg_gradient.setColorAt(0.0, QColor(255, 255, 255, 210))
+            bg_gradient.setColorAt(1.0, QColor(215, 228, 245, 190))
+
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(bg_gradient)
+        p.drawRoundedRect(r, radius, radius)
+
+        # 2. Reflejo especular superior de vidrio (sheen)
+        sheen_h = self.height() * 0.48
+        sheen_rect = QRectF(r.left(), r.top(), r.width(), sheen_h)
+        sheen_grad = QLinearGradient(0, r.top(), 0, r.top() + sheen_h)
+        if es_oscuro:
+            sheen_grad.setColorAt(0.0, QColor(255, 255, 255, 45))
+            sheen_grad.setColorAt(1.0, QColor(255, 255, 255, 0))
+        else:
+            sheen_grad.setColorAt(0.0, QColor(255, 255, 255, 120))
+            sheen_grad.setColorAt(1.0, QColor(255, 255, 255, 0))
+
+        path = QPainterPath()
+        path.addRoundedRect(r, radius, radius)
+        p.save()
+        p.setClipPath(path)
+        p.setBrush(sheen_grad)
+        p.setPen(Qt.PenStyle.NoPen)
+        p.drawRect(sheen_rect)
+        p.restore()
+
+        # 3. Bisel de cristal (borde fino interior)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        c_border = QColor(255, 255, 255, 55 if es_oscuro else 140)
+        p.setPen(QPen(c_border, 1.0))
+        p.drawRoundedRect(r.adjusted(0.5, 0.5, -0.5, -0.5), radius - 0.5, radius - 0.5)
+        p.end()
+
+        # 4. Superponer el haz neón perimetral animado heredado
+        super().paintEvent(event)
 
 
 class GameCard(NeonFrame):
