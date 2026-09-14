@@ -448,10 +448,10 @@ def _actualizar_vista_juegos(self):
                 if anim:
                     seq = QSequentialAnimationGroup(self._master_anim_group)
                     
-                    # MAGIA AQUÍ: 70ms es suficiente para que el ojo humano note perfectamente 
-                    # el retraso entre carta y carta (efecto dominó/cascada).
+                    # Ráfaga sincronizada: 30ms x carta. Si hay 10 cartas, 
+                    # la última sale a los 300ms, persiguiendo exacto al contenedor.
                     if index > 0:
-                        seq.addAnimation(QPauseAnimation(index * 70)) 
+                        seq.addAnimation(QPauseAnimation(index * 30)) 
                     
                     seq.addAnimation(anim)
                     self._master_anim_group.addAnimation(seq)
