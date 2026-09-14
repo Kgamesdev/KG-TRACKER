@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $AuditFolder = Join-Path $PSScriptRoot "Auditoria"
@@ -142,45 +142,19 @@ $structure
 
 CONTEXTO DE TRABAJO
 -------------------
-Se utilizan dos contextos para Google AI Studio.
+Se utilizan dos contextos para Google AI Studio:
+Studio Reducido: Contexto habitual sintetizado.
+Studio Completo: Contexto tecnico con codigo fuente para auditorias.
 
-Studio Reducido:
-Contexto habitual. No contiene el codigo fuente completo.
+DIRECTRICES OBLIGATORIAS DE ENTREGA (REGLA MAESTRA)
+----------------------------------------------------
+1. CONVENCION DE COMMITS GIT:
+   - Todo commit DEBE seguir estrictamente el formato de versiones de la app:
+     "v0.1.XX: <descripcion clara y profesional en espanol>"
+     Ejemplo: "v0.1.38: microinteraccion de ahorro flotante al reclamar y feedback instantaneo"
 
-Studio Completo:
-Contexto tecnico para auditorias, debugging y analisis profundo.
-
-AUDITORIA ANTERIOR - HIPOTESIS
-------------------------------
-P0:
-- cache/thread-safety en core/steam_enricher.py / GameTranslator
-- construccion de comandos PowerShell/audio en core/audio.py
-- escritura no atomica de reclamados.json
-- duplicacion de _actualizar_textos_idioma
-
-P1:
-- monkey-patching mediante instalar_metodos(cls)
-- requests.Session compartida
-- parsing HTML de Itch.io mediante regex
-
-P2:
-- recreacion de GameCard
-- bucle de animacion de RoundedButton
-
-P3:
-- print frente a logger.py
-
-P4:
-- discrepancia README/LICENSE
-
-Tambien:
-- cobertura de tests baja
-- posibles dependencias residuales
-- restos relacionados con Node/@google/genai
-
-IMPORTANTE:
-Ningun punto anterior es un bug confirmado.
-Verificar siempre el codigo actual antes de proponer correcciones.
+2. ENTORNO DE TERMINAL Y COMANDOS:
+   - TODO comando, bloque de instalacion, ejecucion de scripts o pruebas unitarias DEBE entregarse SIEMPRE y de forma exclusiva en sintaxis nativa de Windows PowerShell.
 
 FIN DEL CONTEXTO
 ================
@@ -195,6 +169,6 @@ if ($bytes.Length -gt 120KB) {
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($OutputFile,$content,$utf8)
 
-Write-Host "OK - Studio Reducido generado."
+Write-Host "OK - Studio Reducido generado." -ForegroundColor Green
 Write-Host "Archivo: $OutputFile"
 Write-Host ("Tamano: {0:N0} bytes" -f (Get-Item $OutputFile).Length)

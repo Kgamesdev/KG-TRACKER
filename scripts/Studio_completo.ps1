@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Stop"
 
 $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $AuditFolder = Join-Path $PSScriptRoot "Auditoria"
@@ -129,19 +129,15 @@ $ordered = $candidates | Sort-Object `
     }}, Relative
 
 foreach ($file in $ordered) {
-
     if ($selected.Count -ge $maxFiles) {
         break
     }
-
     if ($file.Length -gt $maxFileBytes) {
         continue
     }
-
     if (($totalBytes + $file.Length) -gt $maxTotalBytes) {
         break
     }
-
     $selected.Add($file)
     $totalBytes += $file.Length
 }
@@ -161,11 +157,9 @@ $builder = New-Object System.Text.StringBuilder
 [void]$builder.AppendLine()
 [void]$builder.AppendLine("Generado: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')")
 [void]$builder.AppendLine()
-
 [void]$builder.AppendLine("OBJETIVO")
 [void]$builder.AppendLine("KG Tracker es una aplicacion nativa Windows para agregar, filtrar y notificar ofertas de juegos gratuitos para PC.")
 [void]$builder.AppendLine()
-
 [void]$builder.AppendLine("STACK")
 [void]$builder.AppendLine("- Python 3.14+")
 [void]$builder.AppendLine("- PySide6 / Qt 6")
@@ -173,7 +167,6 @@ $builder = New-Object System.Text.StringBuilder
 [void]$builder.AppendLine("- VS Code + PowerShell")
 [void]$builder.AppendLine("- Git/GitHub")
 [void]$builder.AppendLine()
-
 [void]$builder.AppendLine("REGLAS PARA GEMINI")
 [void]$builder.AppendLine("- No modificar ni borrar archivos sin autorizacion explicita.")
 [void]$builder.AppendLine("- No ejecutar acciones destructivas.")
@@ -181,7 +174,6 @@ $builder = New-Object System.Text.StringBuilder
 [void]$builder.AppendLine("- Verificar las auditorias anteriores contra el codigo actual.")
 [void]$builder.AppendLine("- No asumir que una dependencia o funcion es innecesaria sin comprobar referencias.")
 [void]$builder.AppendLine()
-
 [void]$builder.AppendLine("ESTADO GIT")
 [void]$builder.AppendLine("Rama: $branch")
 [void]$builder.AppendLine("Version/tag: $version")
@@ -192,7 +184,6 @@ $builder = New-Object System.Text.StringBuilder
 [void]$builder.AppendLine("ULTIMOS COMMITS")
 [void]$builder.AppendLine($commits)
 [void]$builder.AppendLine()
-
 [void]$builder.AppendLine("ARCHIVOS INCLUIDOS")
 
 foreach ($file in $selected) {
@@ -212,24 +203,12 @@ foreach ($file in ($skipped | Select-Object -First 120)) {
 
 [void]$builder.AppendLine()
 [void]$builder.AppendLine("AUDITORIA ANTERIOR - HIPOTESIS A VERIFICAR")
-[void]$builder.AppendLine("- cache/thread-safety")
-[void]$builder.AppendLine("- construccion de comandos en audio")
-[void]$builder.AppendLine("- escritura no atomica de reclamados.json")
-[void]$builder.AppendLine("- duplicacion de metodos de idioma")
-[void]$builder.AppendLine("- monkey-patching instalar_metodos(cls)")
-[void]$builder.AppendLine("- requests.Session compartida")
-[void]$builder.AppendLine("- parsing HTML de Itch.io")
-[void]$builder.AppendLine("- recreacion de GameCard")
-[void]$builder.AppendLine("- animacion de RoundedButton")
-[void]$builder.AppendLine("- print frente a logger")
-[void]$builder.AppendLine("- discrepancia README/LICENSE")
-[void]$builder.AppendLine("- cobertura de tests baja")
-[void]$builder.AppendLine("- posibles dependencias residuales")
-[void]$builder.AppendLine("Ningun punto anterior es un bug confirmado sin verificar el codigo actual.")
+[void]$builder.AppendLine("- persistencia atomica / concurrencia")
+[void]$builder.AppendLine("- manejo robusto de sesiones HTTP")
+[void]$builder.AppendLine("- ciclo de vida y limpieza de recursos en UI")
 [void]$builder.AppendLine()
 
 foreach ($file in $selected) {
-
     [void]$builder.AppendLine(("=" * 90))
     [void]$builder.AppendLine("FILE: $($file.Relative)")
     [void]$builder.AppendLine(("=" * 90))
@@ -239,7 +218,6 @@ foreach ($file in $selected) {
             $file.FullPath,
             [Text.Encoding]::UTF8
         )
-
         [void]$builder.AppendLine($text)
     }
     catch {
@@ -247,9 +225,22 @@ foreach ($file in $selected) {
             "[No se pudo leer este archivo]"
         )
     }
-
     [void]$builder.AppendLine()
 }
+
+[void]$builder.AppendLine(("=" * 90))
+[void]$builder.AppendLine("DIRECTRICES OBLIGATORIAS PARA GEMINI (REGLA MAESTRA)")
+[void]$builder.AppendLine("==========================================================================================")
+[void]$builder.AppendLine("1. CONVENCION DE COMMITS GIT:")
+[void]$builder.AppendLine("   - Todo commit DEBE seguir estrictamente el formato de versiones de la app:")
+[void]$builder.AppendLine("     'v0.1.XX: <descripcion clara y profesional en espanol>'")
+[void]$builder.AppendLine("     Ejemplo: 'v0.1.38: microinteraccion de ahorro flotante al reclamar con animacion suave y feedback instantaneo'")
+[void]$builder.AppendLine()
+[void]$builder.AppendLine("2. ENTORNO DE TERMINAL Y COMANDOS:")
+[void]$builder.AppendLine("   - TODO comando, bloque de codigo, ejecucion o script DEBE entregarse SIEMPRE y exclusivamente en sintaxis nativa de Windows PowerShell.")
+[void]$builder.AppendLine()
+[void]$builder.AppendLine("FIN DEL CONTEXTO")
+[void]$builder.AppendLine("=================")
 
 $content = $builder.ToString()
 $bytes = [Text.Encoding]::UTF8.GetBytes($content)
@@ -259,14 +250,9 @@ if ($bytes.Length -gt $maxTotalBytes) {
 }
 
 $utf8 = New-Object System.Text.UTF8Encoding($false)
+[IO.File]::WriteAllText($OutputFile, $content, $utf8)
 
-[IO.File]::WriteAllText(
-    $OutputFile,
-    $content,
-    $utf8
-)
-
-Write-Host "OK - Studio Completo generado."
+Write-Host "OK - Studio Completo generado." -ForegroundColor Green
 Write-Host "Archivo: $OutputFile"
 Write-Host ("Tamano: {0:N0} bytes" -f (Get-Item $OutputFile).Length)
 Write-Host ("Archivos incluidos: {0}" -f $selected.Count)
