@@ -57,29 +57,11 @@ def autostart_activo():
 
 
 def mostrar_notificacion(titulo, mensaje, duracion=5):
-    """Muestra una notificación nativa del sistema usando plyer.
-
-    Antes esto se hacía lanzando un script de PowerShell que construía un
-    Toast XML a mano. Ese script tenía un bug real: el here-string de
-    PowerShell (@"..."@) se cerraba con "@ indentado, y PowerShell exige
-    que el cierre esté al principio de la línea, así que el script nunca
-    llegaba a ejecutarse correctamente (el error quedaba oculto porque
-    stdout/stderr se mandaban a DEVNULL). plyer ya estaba en
-    requirements.txt sin usarse en ningún sitio: es la vía más simple y
-    fiable de mostrar una notificación nativa en Windows.
-    """
+    """Muestra una notificación nativa silenciosa y extendida."""
     try:
-        from plyer import notification
-        notification.notify(
-            title=titulo,
-            message=mensaje,
-            app_name="K GAME TRACKER",
-            timeout=duracion
-        )
-        log_info(f"📢 Notificación: {titulo}")
+        from core.tray import enviar_notificacion_windows
+        enviar_notificacion_windows(titulo, mensaje, duracion_larga=True)
         return True
-
-    except Exception as e:
-        log_error(f"Error mostrando notificación: {e}")
-        return False
+    except Exception:
+        pass
 

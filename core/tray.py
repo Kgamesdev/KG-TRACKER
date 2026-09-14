@@ -50,6 +50,79 @@ def _obtener_dict_reclamados():
     return {}
 
 
+import html
+import subprocess
+import threading
+
+def enviar_notificacion_windows(titulo: str, mensaje: str, icono_path: str = None, duracion_larga: bool = True):
+    """Envía una notificación push nativa de Windows 10/11:
+    - 100% Silenciosa (sin ding de Windows: <audio silent='true' />).
+    - Duración pausada y extendida ('long') para lectura tranquila.
+    - Con carátula circular oficial de KG Tracker.
+    """
+    def _worker():
+        try:
+            t_xml = html.escape(str(titulo or "K GAME TRACKER"))
+            m_xml = html.escape(str(mensaje or ""))
+
+            ruta_img = icono_path or os.path.join(BASE_DIR, "assets", "branding", "KG LOGO.png")
+            if not os.path.exists(ruta_img):
+                ruta_img = os.path.join(BASE_DIR, "assets", "icons", "KGLogo.png")
+
+            img_tag = ""
+            if os.path.exists(ruta_img):
+                uri_icono = os.path.abspath(ruta_img).replace("\\", "/")
+                img_tag = f'<image placement="appLogoOverride" hint-crop="circle" src="file:///{uri_icono}" />'
+
+            duracion_attr = 'duration="long"' if duracion_larga else 'duration="short"'
+
+            ps_script = f"""
+[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
+[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlCommands, ContentType = WindowsRuntime] | Out-Null
+
+$xmlTemplate = @"
+<toast {duracion_attr}>
+    <visual>
+        <binding template="ToastGeneric">
+            <text>{t_xml}</text>
+            <text>{m_xml}</text>
+            {img_tag}
+        </binding>
+    </visual>
+    <audio silent="true" />
+</toast>
+"@
+
+$xml = New-Object Windows.Data.Xml.Dom.XmlDocument
+$xml.LoadXml($xmlTemplate)
+$toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
+[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("K GAME TRACKER").Show($toast)
+"""
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+
+            subprocess.run(
+                [
+                    "powershell.exe",
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-WindowStyle", "Hidden",
+                    "-Command", ps_script,
+                ],
+                startupinfo=startupinfo,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=5,
+            )
+            log_info(f"📢 Notificación push silenciosa: {titulo}")
+        except Exception as e:
+            log_error(f"Error en notificación push silenciosa: {e}")
+
+    threading.Thread(target=_worker, daemon=True).start()
+
+
 class GameTrackerTray:
     def __init__(self, ventana_principal):
         self.ventana = ventana_principal
@@ -171,13 +244,11 @@ class GameTrackerTray:
         else:
             cuerpo = t("tray.minimized_body_uptodate")
 
-        if self.tray_icon and self.tray_icon.isVisible():
-            self.tray_icon.showMessage(
-                t("tray.minimized_title"),
-                cuerpo,
-                self.icono_app,
-                4000
-            )
+        enviar_notificacion_windows(
+            titulo=t("tray.minimized_title"),
+            mensaje=cuerpo,
+            duracion_larga=True
+        )
 
     def ejecutar_barrido_manual(self):
         log_info("[TRAY] Barrido manual solicitado por el usuario...")
@@ -212,13 +283,11 @@ class GameTrackerTray:
         else:
             cuerpo = t("tray.sweep_body_none")
 
-        if self.tray_icon and self.tray_icon.isVisible():
-            self.tray_icon.showMessage(
-                titulo,
-                cuerpo,
-                self.icono_app,
-                4500
-            )
+        enviar_notificacion_windows(
+            titulo=titulo,
+            mensaje=cuerpo,
+            duracion_larga=True
+        )
 
     def salir_definitivo(self):
         if self.tray_icon:
