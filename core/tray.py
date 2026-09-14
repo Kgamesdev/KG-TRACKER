@@ -1,19 +1,28 @@
-import os
+﻿import os
+import sys
 import json
+import html
+import subprocess
+import threading
 from PySide6.QtWidgets import QSystemTrayIcon, QMenu, QApplication
 from PySide6.QtGui import QIcon, QPixmap, QColor, QPainter, QAction
 from PySide6.QtCore import Qt, QTimer
-from config import ICON_PATH, BASE_DIR
+
+from core.paths import (
+    RESOURCE_DIR,
+    ASSETS_DIR,
+    SETTINGS_FILE,
+    RECLAMADOS_FILE
+)
+
 from core.i18n import t
 from logger import log_info, log_warning, log_error
 
-CONFIG_TRAY_PATH = os.path.join(BASE_DIR, "data", "settings.json")
-RECLAMADOS_PATH = os.path.join(BASE_DIR, "data", "reclamados.json")
-
 
 def _obtener_icono_seguro():
-    if os.path.exists(ICON_PATH):
-        icono = QIcon(ICON_PATH)
+    icon_path = str(ASSETS_DIR / "logo.ico")
+    if os.path.exists(icon_path):
+        icono = QIcon(icon_path)
         if not icono.isNull():
             return icono
 
@@ -28,9 +37,9 @@ def _obtener_icono_seguro():
 
 
 def _obtener_config():
-    if os.path.exists(CONFIG_TRAY_PATH):
+    if SETTINGS_FILE.exists():
         try:
-            with open(CONFIG_TRAY_PATH, "r", encoding="utf-8") as f:
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             return {}
@@ -38,10 +47,10 @@ def _obtener_config():
 
 
 def _obtener_dict_reclamados():
-    if not os.path.exists(RECLAMADOS_PATH):
+    if not RECLAMADOS_FILE.exists():
         return {}
     try:
-        with open(RECLAMADOS_PATH, "r", encoding="utf-8") as f:
+        with open(RECLAMADOS_FILE, "r", encoding="utf-8") as f:
             d = json.load(f)
             if isinstance(d, dict):
                 return d
@@ -50,50 +59,60 @@ def _obtener_dict_reclamados():
     return {}
 
 
-import html
-import subprocess
-import threading
-
 def enviar_notificacion_windows(titulo: str, mensaje: str, icono_path: str = None, duracion_larga: bool = True):
-    """Envía una notificación push nativa de Windows 10/11:
-    - 100% Silenciosa (sin ding de Windows: <audio silent='true' />).
-    - Duración pausada y extendida ('long') para lectura tranquila.
-    - Con carátula circular oficial de KG Tracker.
+    """Envía una notificación push nativa de Windows 10/11 sin inyección de código (SEC-01 fix):
+    - Transmite el payload en JSON a través de STDIN a un script PowerShell estático.
+    - 100% Silenciosa (sin ding de Windows).
+    - Duración pausada y extendida para lectura tranquila.
     """
     def _worker():
         try:
             t_str = str(titulo or "K GAME TRACKER")
             m_str = str(mensaje or "")
 
-            # Escapar comillas y caracteres reservados de PowerShell ($ y `) para evitar fallos de evaluación
-            t_ps = t_str.replace("`", "``").replace("$", "`$")
-            m_ps = m_str.replace("`", "``").replace("$", "`$")
-
-            t_xml = html.escape(t_ps)
-            m_xml = html.escape(m_ps)
-
-            ruta_img = icono_path or os.path.join(BASE_DIR, "assets", "branding", "KG LOGO.png")
+            ruta_img = icono_path or str(ASSETS_DIR / "branding" / "KG LOGO.png")
             if not os.path.exists(ruta_img):
-                ruta_img = os.path.join(BASE_DIR, "assets", "icons", "KGLogo.png")
+                ruta_img = str(ASSETS_DIR / "icons" / "KGLogo.png")
 
-            img_tag = ""
+            uri_icono = ""
             if os.path.exists(ruta_img):
-                uri_icono = os.path.abspath(ruta_img).replace("\\", "/")
-                img_tag = f'<image placement="appLogoOverride" hint-crop="circle" src="file:///{uri_icono}" />'
+                uri_icono = "file:///" + os.path.abspath(ruta_img).replace("\\", "/")
 
-            duracion_attr = 'duration="long"' if duracion_larga else 'duration="short"'
+            # Payload JSON seguro para STDIN
+            payload = json.dumps({
+                "titulo": t_str,
+                "mensaje": m_str,
+                "icono_uri": uri_icono,
+                "duracion_larga": bool(duracion_larga)
+            }, ensure_ascii=False)
 
-            ps_script = f"""
+            # Script PowerShell 100% estático - No contiene f-strings ni interpolaciones de usuario
+            ps_script = r"""
+$ErrorActionPreference = 'Stop'
+$rawInput = [Console]::In.ReadLine()
+if (-not $rawInput) { exit 0 }
+
+$data = $rawInput | ConvertFrom-Json
+$t_xml = [System.Security.SecurityElement]::Escape($data.titulo)
+$m_xml = [System.Security.SecurityElement]::Escape($data.mensaje)
+
+$imgTag = ""
+if ($data.icono_uri) {
+    $imgTag = "<image placement=`"appLogoOverride`" hint-crop=`"circle`" src=`"$($data.icono_uri)`" />"
+}
+
+$durAttr = if ($data.duracion_larga) { 'duration="long"' } else { 'duration="short"' }
+
 [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
 [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlCommands, ContentType = WindowsRuntime] | Out-Null
 
 $xmlTemplate = @"
-<toast {duracion_attr}>
+<toast $durAttr>
     <visual>
         <binding template="ToastGeneric">
-            <text>{t_xml}</text>
-            <text>{m_xml}</text>
-            {img_tag}
+            <text>$t_xml</text>
+            <text>$m_xml</text>
+            $imgTag
         </binding>
     </visual>
     <audio silent="true" />
@@ -109,7 +128,7 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             startupinfo.wShowWindow = subprocess.SW_HIDE
 
-            subprocess.run(
+            proc = subprocess.Popen(
                 [
                     "powershell.exe",
                     "-NoProfile",
@@ -117,13 +136,17 @@ $toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
                     "-WindowStyle", "Hidden",
                     "-Command", ps_script,
                 ],
-                startupinfo=startupinfo,
-                creationflags=subprocess.CREATE_NO_WINDOW,
+                stdin=subprocess.PIPE,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-                timeout=5,
+                startupinfo=startupinfo,
+                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
+                text=True,
+                encoding="utf-8"
             )
-            log_info(f"📢 Notificación push silenciosa: {titulo}")
+            
+            proc.communicate(input=payload, timeout=5)
+            log_info(f"📢 Notificación push silenciosa enviada de forma segura: {titulo}")
         except Exception as e:
             log_error(f"Error en notificación push silenciosa: {e}")
 
@@ -187,7 +210,7 @@ class GameTrackerTray:
         self.tray_icon.show()
 
     def actualizar_textos_menu(self):
-        """Actualiza tooltip y opciones del menu de la bandeja en caliente."""
+        """Actualiza tooltip y opciones del menú de la bandeja en caliente."""
         if not self.tray_icon:
             return
         self.tray_icon.setToolTip(t("tray.tooltip"))

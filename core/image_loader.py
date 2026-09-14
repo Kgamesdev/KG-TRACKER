@@ -1,14 +1,12 @@
-"""Gestor de descarga y caché asíncrona de miniaturas para KG Tracker."""
+﻿"""Gestor de descarga y caché asíncrona de miniaturas para KG Tracker con seguridad de red (SEC-03)."""
 
 import os
 import hashlib
-import requests
-from PySide6.QtCore import QObject, Signal, QRunnable, QThreadPool, Qt, QSize
+from PySide6.QtCore import QObject, Signal, QRunnable, QThreadPool, Qt
 from PySide6.QtGui import QImage, QPixmap
 
-from config import BASE_DIR
-
-CACHE_DIR = os.path.join(BASE_DIR, "cache")
+from core.paths import CACHE_DIR
+from core.network import descargar_contenido_seguro
 
 
 class _ImageWorkerSignals(QObject):
@@ -16,44 +14,34 @@ class _ImageWorkerSignals(QObject):
 
 
 class _ImageDownloadWorker(QRunnable):
-    """Worker que descarga y cachea la imagen en un hilo secundario."""
+    """Worker que descarga y cachea la imagen en un hilo secundario de forma aislada e independiente."""
 
-    def __init__(self, url: str, ruta_disco: str, target_size: tuple = (190, 104), session: requests.Session = None):
+    def __init__(self, url: str, ruta_disco: str, target_size: tuple = (190, 104)):
         super().__init__()
         self.url = url
         self.ruta_disco = ruta_disco
         self.target_size = target_size
-        self.session = session
         self.signals = _ImageWorkerSignals()
 
     def run(self):
-        headers = {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            )
-        }
-        try:
-            requester = self.session if self.session is not None else requests
-            resp = requester.get(self.url, headers=headers, timeout=8)
-            if resp.status_code == 200:
-                img = QImage()
-                if img.loadFromData(resp.content):
-                    try:
-                        img.save(self.ruta_disco, "PNG")
-                    except Exception:
-                        pass
+        # Descarga segura con timeouts, límites de tamaño e hilo aislado (NET-01 & SEC-03 fix)
+        contenido = descargar_contenido_seguro(self.url)
+        if contenido:
+            img = QImage()
+            if img.loadFromData(contenido):
+                try:
+                    img.save(self.ruta_disco, "PNG")
+                except Exception:
+                    pass
 
-                    scaled = img.scaled(
-                        self.target_size[0],
-                        self.target_size[1],
-                        Qt.AspectRatioMode.KeepAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation,
-                    )
-                    self.signals.completado.emit(self.url, scaled)
-                    return
-        except Exception:
-            pass
+                scaled = img.scaled(
+                    self.target_size[0],
+                    self.target_size[1],
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+                self.signals.completado.emit(self.url, scaled)
+                return
 
         self.signals.completado.emit(self.url, QImage())
 
@@ -75,10 +63,6 @@ class ImageLoader(QObject):
         self._ram_cache = {}          
         self._descargas_en_curso = {}  
         self._pool = QThreadPool.globalInstance()
-        self._session = requests.Session()
-        adapter = requests.adapters.HTTPAdapter(pool_connections=12, pool_maxsize=12)
-        self._session.mount("https://", adapter)
-        self._session.mount("http://", adapter)
 
     def _ruta_cache(self, url: str) -> str:
         hash_url = hashlib.sha256(url.encode("utf-8")).hexdigest()
@@ -89,12 +73,10 @@ class ImageLoader(QObject):
             callback(url, None)
             return
 
-        # 1. Comprobar RAM (Instantáneo)
         if url in self._ram_cache:
             callback(url, self._ram_cache[url])
             return
 
-        # 2. Comprobar Disco (Instantáneo local sin saturar hilos)
         ruta = self._ruta_cache(url)
         if os.path.exists(ruta):
             pixmap = QPixmap(ruta)
@@ -109,15 +91,13 @@ class ImageLoader(QObject):
                 callback(url, scaled)
                 return
 
-        # 3. Deduplicación
         if url in self._descargas_en_curso:
             self._descargas_en_curso[url].append(callback)
             return
 
         self._descargas_en_curso[url] = [callback]
 
-        # 4. Descarga asíncrona solo si no existe en disco
-        worker = _ImageDownloadWorker(url, ruta, target_size, session=self._session)
+        worker = _ImageDownloadWorker(url, ruta, target_size)
         worker.signals.completado.connect(self._al_terminar_descarga)
         self._pool.start(worker)
 

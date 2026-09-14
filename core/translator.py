@@ -1,6 +1,6 @@
 ﻿from core.storage import guardar_json_atomico, cargar_json_seguro
 import threading
-"""Motor de traduccion asincrono para KG Tracker con concurrencia controlada y precarga."""
+"""Motor de traducción asíncrono para KG Tracker con concurrencia controlada y precarga."""
 
 import os
 import json
@@ -12,38 +12,22 @@ import queue
 import urllib.parse
 import requests
 from PySide6.QtCore import QObject, Signal, QThread
-from config import BASE_DIR
-
-CACHE_FILE = os.path.join(BASE_DIR, "data", "translations_cache.json")
+from core.paths import CACHE_TRANSLATIONS_FILE as CACHE_FILE
 
 
 def _cargar_cache():
-    if os.path.exists(CACHE_FILE):
-        try:
-            with open(CACHE_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return {}
-    return {}
+    return cargar_json_seguro(CACHE_FILE, valor_por_defecto={})
 
 
 def _guardar_cache(cache):
-    os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
-    tmp = CACHE_FILE + ".tmp"
     try:
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(cache, f, ensure_ascii=False, indent=2)
-        os.replace(tmp, CACHE_FILE)
+        guardar_json_atomico(CACHE_FILE, cache)
     except Exception:
-        if os.path.exists(tmp):
-            try:
-                os.remove(tmp)
-            except Exception:
-                pass
+        pass
 
 
 def _consultar_traduccion_red(session: requests.Session, texto: str, target_lang: str) -> str:
-    # 1. Google Translate Mobile Web Endpoint (100% publico)
+    # 1. Google Translate Mobile Web Endpoint
     try:
         url_google = f"https://translate.google.com/m?sl=auto&tl={target_lang}&q={urllib.parse.quote(texto)}"
         headers_mobile = {
@@ -77,7 +61,7 @@ def _consultar_traduccion_red(session: requests.Session, texto: str, target_lang
 
 
 class _TranslationWorkerThread(QThread):
-    traducido_signal = Signal(str, str, str)  # clave, texto_orig, texto_traducido
+    traducido_signal = Signal(str, str, str)
 
     def __init__(self, cola: queue.Queue):
         super().__init__()
@@ -123,7 +107,6 @@ class GameTranslator(QObject):
         self._pendientes = {}
         self._cola = queue.Queue()
 
-        # Pool de 3 hilos paralelos para acelerar la velocidad x3
         self._workers = []
         for _ in range(3):
             w = _TranslationWorkerThread(self._cola)
@@ -156,7 +139,6 @@ class GameTranslator(QObject):
         self._cola.put((clave, texto_limpio, target_lang))
 
     def precargar_async(self, lista_textos: list, target_lang: str):
-        """Permite precargar de forma masiva en segundo plano para que esten listos de antemano."""
         if target_lang == "en":
             return
         for t in lista_textos:
@@ -179,7 +161,6 @@ class GameTranslator(QObject):
                 pass
 
     def detener(self):
-        """Detiene de forma limpia los hilos de traduccion al cerrar la app."""
         for w in self._workers:
             w.stop()
         for _ in self._workers:

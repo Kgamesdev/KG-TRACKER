@@ -1,6 +1,6 @@
 ﻿from core.storage import guardar_json_atomico, cargar_json_seguro
 import threading
-"""Modulo para enriquecer ofertas con resenas de la comunidad de Steam."""
+"""Módulo para enriquecer ofertas con reseñas de la comunidad de Steam."""
 
 import json
 import os
@@ -8,9 +8,7 @@ import re
 import urllib.parse
 from PySide6.QtCore import QObject, Signal, QThreadPool, QRunnable
 import requests
-from config import BASE_DIR
-
-CACHE_FILE = os.path.join(BASE_DIR, "data", "steam_cache.json")
+from core.paths import CACHE_STEAM_FILE as CACHE_FILE
 
 RESENAS_ES = {
     "overwhelmingly positive": "Extremadamente positivas",
@@ -26,28 +24,14 @@ RESENAS_ES = {
 
 
 def _cargar_cache():
-    if os.path.exists(CACHE_FILE):
-        try:
-            with open(CACHE_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return {}
-    return {}
+    return cargar_json_seguro(CACHE_FILE, valor_por_defecto={})
 
 
 def _guardar_cache(cache):
-    os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
-    tmp = CACHE_FILE + ".tmp"
     try:
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(cache, f, ensure_ascii=False, indent=2)
-        os.replace(tmp, CACHE_FILE)
+        guardar_json_atomico(CACHE_FILE, cache)
     except Exception:
-        if os.path.exists(tmp):
-            try:
-                os.remove(tmp)
-            except Exception:
-                pass
+        pass
 
 
 def limpiar_titulo(titulo: str) -> str:
@@ -118,7 +102,6 @@ class _SteamWorker(QRunnable):
         self.enricher = enricher
 
     def run(self):
-        # Crear sesión HTTP local e independiente por hilo para evitar condiciones de carrera
         with requests.Session() as session:
             datos = self.enricher._obtener_resenas_sincrono(self.titulo, session=session)
         self.enricher.signals.resultado.emit(self.titulo, datos, self.callback)
@@ -140,7 +123,7 @@ class SteamEnricher:
     @classmethod
     def get_instance(cls):
         if cls._instance is None:
-            cls._instance = SteamEnricher()
+            cls._instance = cls()
         return cls._instance
 
     def _obtener_resenas_sincrono(self, titulo: str, session: requests.Session = None) -> dict:

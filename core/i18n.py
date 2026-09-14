@@ -1,11 +1,9 @@
-﻿"""Motor de internacionalizacion (i18n) para textos de KG Tracker."""
+﻿"""Motor de internacionalización (i18n) para textos de KG Tracker."""
 
 import os
 import json
-from config import BASE_DIR
+from core.paths import SETTINGS_FILE
 from core.storage import cargar_json_seguro
-
-SETTINGS_FILE = os.path.join(BASE_DIR, "data", "settings.json")
 
 IDIOMAS = {
     "es": "Español (ES)",
@@ -26,14 +24,14 @@ TRADUCCIONES = {
     "es": {
         "app.title": "K GAME TRACKER",
         "search.button": "BUSCAR JUEGOS GRATUITOS",
-        "status.ready": "\u25CF LISTO",
-        "status.offers": "\u25CF {count} OFERTAS",
-        "status.claimed": "\u25CF {count} RECLAMADOS",
-        "status.error": "\u25CF ERROR",
-        "status.searching": "\u25CF BUSCANDO...",
-        "claimed.btn": "\u2605 RECLAMADOS",
-        "claimed.btn_active": "\u2605 VER RECLAMADOS",
-        "claimed.title": "\u2605  MIS RECLAMADOS  \u00b7  {count}",
+        "status.ready": "● LISTO",
+        "status.offers": "● {count} OFERTAS",
+        "status.claimed": "● {count} RECLAMADOS",
+        "status.error": "● ERROR",
+        "status.searching": "● BUSCANDO...",
+        "claimed.btn": "★ RECLAMADOS",
+        "claimed.btn_active": "★ VER RECLAMADOS",
+        "claimed.title": "★  MIS RECLAMADOS  ·  {count}",
         "claimed.empty": "AÚN NO TIENES JUEGOS RECLAMADOS",
         "saved.pill": "$ AHORRADO : {amount}",
         "card.claim": "RECLAMAR",
@@ -46,7 +44,7 @@ TRADUCCIONES = {
         "card.share_tooltip": "Compartir oferta en Discord / Redes",
         "tooltip.home": "Inicio / Restablecer vista",
         "tooltip.back": "Volver a la vista anterior",
-        "tooltip.kofi": "Invítame a un café en Ko-fi \u2615",
+        "tooltip.kofi": "Invítame a un café en Ko-fi ☕",
         "tooltip.settings": "Ajustes de la aplicación",
         "tooltip.theme": "Cambiar tema visual (Oscuro / Claro)",
         "tooltip.mute": "Silenciar o activar música de fondo",
@@ -71,7 +69,7 @@ TRADUCCIONES = {
         "settings.autostart_label": "Iniciar con Windows (minimizado)",
         "settings.notif_label": "Mostrar notificaciones de ofertas",
         "settings.save_btn": "GUARDAR CAMBIOS",
-        "kofi.title": "\u2615 ¿Apoyar el proyecto?",
+        "kofi.title": "☕ ¿Apoyar el proyecto?",
         "kofi.desc": "K Game Tracker es gratuito y se mantiene con esfuerzo.\n¡Invítame a un café! :)",
         "kofi.continue": "Continuar a Ko-fi",
         "kofi.cancel": "Cancelar",
@@ -92,14 +90,14 @@ TRADUCCIONES = {
     "en": {
         "app.title": "K GAME TRACKER",
         "search.button": "SEARCH FREE GAMES",
-        "status.ready": "\u25CF READY",
-        "status.offers": "\u25CF {count} OFFERS",
-        "status.claimed": "\u25CF {count} CLAIMED",
-        "status.error": "\u25CF ERROR",
-        "status.searching": "\u25CF SEARCHING...",
-        "claimed.btn": "\u2605 CLAIMED",
-        "claimed.btn_active": "\u2605 VIEW CLAIMED",
-        "claimed.title": "\u2605  MY CLAIMED  \u00b7  {count}",
+        "status.ready": "● READY",
+        "status.offers": "● {count} OFFERS",
+        "status.claimed": "● {count} CLAIMED",
+        "status.error": "● ERROR",
+        "status.searching": "● SEARCHING...",
+        "claimed.btn": "★ CLAIMED",
+        "claimed.btn_active": "★ VIEW CLAIMED",
+        "claimed.title": "★  MY CLAIMED  ·  {count}",
         "claimed.empty": "YOU DON'T HAVE ANY CLAIMED GAMES YET",
         "saved.pill": "$ SAVED : {amount}",
         "card.claim": "CLAIM",
@@ -117,7 +115,7 @@ TRADUCCIONES = {
         "card.ends_today": "⏳ Ends today!",
         "tooltip.home": "Home / Reset view",
         "tooltip.back": "Go back to previous view",
-        "tooltip.kofi": "Buy me a coffee on Ko-fi \u2615",
+        "tooltip.kofi": "Buy me a coffee on Ko-fi ☕",
         "tooltip.settings": "Application settings",
         "tooltip.theme": "Toggle visual theme (Dark / Light)",
         "tooltip.mute": "Mute or unmute background music",
@@ -136,7 +134,7 @@ TRADUCCIONES = {
         "settings.autostart_label": "Start with Windows (minimized)",
         "settings.notif_label": "Show desktop notifications",
         "settings.save_btn": "SAVE CHANGES",
-        "kofi.title": "\u2615 Support the project?",
+        "kofi.title": "☕ Support the project?",
         "kofi.desc": "K Game Tracker is free and maintained with care.\nBuy me a coffee! :)",
         "kofi.continue": "Continue to Ko-fi",
         "kofi.cancel": "Cancel",
@@ -161,7 +159,7 @@ _idioma_actual = "es"
 
 def obtener_idioma() -> str:
     global _idioma_actual
-    if os.path.exists(SETTINGS_FILE):
+    if SETTINGS_FILE.exists():
         try:
             data = cargar_json_seguro(SETTINGS_FILE, valor_por_defecto={})
             lang_raw = str(data.get("idioma", "es")).lower()
