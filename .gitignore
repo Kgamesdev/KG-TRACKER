@@ -29,3 +29,7 @@ node_modules/
 CONTEXTO_PROYECTO.md
 project-context.txt
 scripts/Auditoria/
+# Datos de usuario runtime y configuraciones locales
+data/reclamados.json
+data/settings.json
+scripts/Auditoria.txt
