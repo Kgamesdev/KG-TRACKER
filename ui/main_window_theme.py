@@ -280,27 +280,18 @@ def _apply_theme_qss(self):
     border: none;
   }}
 
-  /* BANNER INFORMATIVO FIJO DE CONTEXTO DE TIENDA */
+  /* BANNER INFORMATIVO CENTRADO RESPLANDECIENTE DE CONTEXTO DE TIENDA */
   QFrame#storeContextBanner {{
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #25263A, stop:1 #1B1C2A);
-    border: 1px solid #3A3B52;
-    border-left: 3px solid {c("COLOR_ACCENT_LIGHT")};
-    border-radius: 8px;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 rgba(31, 32, 51, 0.95), stop:0.5 rgba(42, 43, 69, 0.95), stop:1 rgba(31, 32, 51, 0.95));
+    border: 1px solid rgba(129, 140, 248, 0.45);
+    border-radius: 10px;
   }}
 
   QLabel#storeContextTitle {{
     color: #FFFFFF;
     font: bold 9.5pt "Segoe UI";
-    padding: 6px 10px;
-  }}
-
-  QLabel#storeContextCount {{
-    background: rgba(99, 102, 241, 0.22);
-    color: #A5B4FC;
-    border: 1px solid rgba(129, 140, 248, 0.5);
-    border-radius: 9px;
-    font: bold 7.5pt "Segoe UI";
-    padding: 2px 9px;
+    letter-spacing: 0.8px;
+    background: transparent;
   }}
 
   QLabel#emptyLabel {{

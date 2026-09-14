@@ -1,4 +1,4 @@
-"""Componentes visuales y tarjetas de juego para KG Tracker."""
+﻿"""Componentes visuales y tarjetas de juego para KG Tracker."""
 
 import os
 import re
@@ -84,12 +84,10 @@ class FloatingRewardLabel(QLabel):
         self.move(pos_inicial)
         self.show()
 
-        # Efecto de opacidad
         self._op_effect = QGraphicsOpacityEffect(self)
         self.setGraphicsEffect(self._op_effect)
         self._op_effect.setOpacity(1.0)
 
-        # Animación paralela: Ascenso vertical + Fade Out
         self._anim_group = QParallelAnimationGroup(self)
 
         anim_pos = QPropertyAnimation(self, b"pos")
@@ -627,6 +625,22 @@ class NeonFrame(QFrame):
         p.end()
 
 
+class StoreHeaderBanner(NeonFrame):
+    """Banner de cabecera con texto centrado y contorno neón animado resplandeciente."""
+
+    def __init__(self, parent=None, text=""):
+        super().__init__(parent, radius=10, border_width=1.5, speed_ms=3800)
+        self.setObjectName("storeContextBanner")
+        self.setFixedHeight(42)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(16, 0, 16, 0)
+        
+        self.label = QLabel(text)
+        self.label.setObjectName("storeContextTitle")
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.label)
+
+
 class GameCard(NeonFrame):
     """Tarjeta de juego con cápsulas uniformes para Tienda, Reseñas Steam y Precio."""
 
@@ -645,7 +659,6 @@ class GameCard(NeonFrame):
         layout.setContentsMargins(12, 10, 14, 10)
         layout.setSpacing(14)
 
-        # 1. Carátula del juego redondeada
         image_box = QLabel()
         image_box.setObjectName("gameImage")
         image_box.setFixedSize(184, 104)
@@ -653,7 +666,6 @@ class GameCard(NeonFrame):
         self._image_label = image_box
         layout.addWidget(image_box)
 
-        # 2. Información central
         info = QVBoxLayout()
         info.setSpacing(5)
 
@@ -671,12 +683,10 @@ class GameCard(NeonFrame):
         self._desc_label.setWordWrap(True)
         info.addWidget(self._desc_label)
 
-        # Fila de Cápsulas / Chips uniformes
         meta_row = QHBoxLayout()
         meta_row.setSpacing(8)
         meta_row.setContentsMargins(0, 3, 0, 0)
 
-        # Cápsula 1: Tienda
         store = QLabel(f"🏷️ {nombre_tienda.upper()}")
         store.setObjectName("gameStore")
         store.setStyleSheet("""
@@ -691,13 +701,11 @@ class GameCard(NeonFrame):
         """)
         meta_row.addWidget(store)
 
-        # Cápsula 2: Reseñas de Steam
         self._steam_badge = QLabel("")
         self._steam_badge.setObjectName("steamBadge")
         self._steam_badge.hide()
         meta_row.addWidget(self._steam_badge)
 
-        # Cápsula 3: Precio Anterior / Valor
         valor = owner._valor_juego(juego)
         if valor > 0:
             worth = QLabel(f"💰 Antes: ${valor:,.2f}")
@@ -720,7 +728,6 @@ class GameCard(NeonFrame):
         info.addStretch()
         layout.addLayout(info, 1)
 
-        # 3. Columna de botones de acción
         actions = QVBoxLayout()
         actions.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         actions.setSpacing(6)
@@ -806,7 +813,6 @@ class GameCard(NeonFrame):
         self._consultar_steam()
 
     def _lanzar_recompensa_flotante(self, widget_origen=None):
-        """Dispara una píldora visual que flota y se desvanece suavemente hacia arriba."""
         try:
             ventana_raiz = self.window()
             if not ventana_raiz:

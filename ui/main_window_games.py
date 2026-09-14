@@ -17,7 +17,7 @@ from config import (
     BASE_DIR,
 )
 from core.images import limpiar_cache_imagenes
-from ui.components.game_card import GameCard
+from ui.components.game_card import GameCard, StoreHeaderBanner
 from core.i18n import t
 from logger import log_info, log_warning, log_error
 from core.scrapers.store_scrapers import (
@@ -330,8 +330,7 @@ def _actualizar_vista_juegos(self):
             juegos_visibles_ordenados.append(clave_banner)
             juegos_a_mostrar_map[clave_banner] = {
                 'tipo': 'banner',
-                'titulo': t("claimed.title", count=len(lista_reclamados)),
-                'count': len(lista_reclamados),
+                'titulo': f"★  MIS RECLAMADOS  ·  {len(lista_reclamados)}",
             }
             for juego in lista_reclamados:
                 clave = self._clave_juego(juego)
@@ -344,23 +343,23 @@ def _actualizar_vista_juegos(self):
                 if self._asignar_tienda(j) in tiendas_activas and not self._esta_reclamado(j)
             ]
             
-            # Banner informativo estático de contexto de tienda
+            # Banner centrado y resplandeciente
             if len(tiendas_activas) == 1:
                 tienda_nombre = tiendas_activas[0]
                 clave_banner = f"banner_{tienda_nombre}"
                 juegos_visibles_ordenados.append(clave_banner)
+                conteo_texto = t("store.offers_count", count=len(juegos_filtrados)).upper()
                 juegos_a_mostrar_map[clave_banner] = {
                     'tipo': 'banner',
-                    'titulo': f"🏷️ {tienda_nombre.upper()}",
-                    'count': len(juegos_filtrados),
+                    'titulo': f"🏷️  {tienda_nombre.upper()}  ·  {conteo_texto}",
                 }
             elif len(tiendas_activas) > 1:
                 clave_banner = "banner_todas"
                 juegos_visibles_ordenados.append(clave_banner)
+                conteo_texto = t("store.offers_count", count=len(juegos_filtrados)).upper()
                 juegos_a_mostrar_map[clave_banner] = {
                     'tipo': 'banner',
-                    'titulo': "🌐 TODAS LAS TIENDAS",
-                    'count': len(juegos_filtrados),
+                    'titulo': f"🌐  TODAS LAS TIENDAS  ·  {conteo_texto}",
                 }
 
             # Ordenar directamente por tienda y título de juego
@@ -379,28 +378,12 @@ def _actualizar_vista_juegos(self):
             widget.setParent(None)
             widget.deleteLater()
 
-        # Insertar banner estático y tarjetas directamente
+        # Insertar banner brillante o tarjetas directamente
         for i, clave in enumerate(juegos_visibles_ordenados):
             if clave not in self.game_widgets_map:
                 data = juegos_a_mostrar_map[clave]
                 if data.get('tipo') == 'banner':
-                    banner = QFrame()
-                    banner.setObjectName("storeContextBanner")
-                    banner_layout = QHBoxLayout(banner)
-                    banner_layout.setContentsMargins(12, 6, 14, 6)
-                    banner_layout.setSpacing(10)
-
-                    titulo = QLabel(data['titulo'])
-                    titulo.setObjectName("storeContextTitle")
-                    banner_layout.addWidget(titulo, 1)
-
-                    count_text = t("store.offers_count", count=data['count'])
-                    conteo = QLabel(count_text)
-                    conteo.setObjectName("storeContextCount")
-                    conteo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                    banner_layout.addWidget(conteo, 0)
-
-                    widget = banner
+                    widget = StoreHeaderBanner(self.frame_lista, data['titulo'])
                 else:
                     widget = GameCard(self, data['juego'], data['tienda'])
                 self.game_widgets_map[clave] = widget
