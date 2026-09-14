@@ -893,7 +893,7 @@ class GameCard(NeonFrame):
         meta_row.setSpacing(8)
         meta_row.setContentsMargins(0, 3, 0, 0)
 
-        store = QLabel(f"🏷️ {nombre_tienda.upper()}")
+        store = QLabel(nombre_tienda.upper())
         store.setObjectName("gameStore")
         store.setStyleSheet("""
             QLabel#gameStore {
@@ -914,7 +914,7 @@ class GameCard(NeonFrame):
 
         valor = owner._valor_juego(juego)
         if valor > 0:
-            worth = QLabel(f"💰 Antes: ${valor:,.2f}")
+            worth = QLabel(f"Antes: ${valor:,.2f}")
             worth.setObjectName("gameWorth")
             es_oscuro_chip = (config.CURRENT_THEME == "dark")
             if es_oscuro_chip:
@@ -1115,7 +1115,7 @@ class GameCard(NeonFrame):
                 return
 
             valor = self.owner._valor_juego(self.juego)
-            texto = f"+${valor:,.2f} 💰" if valor > 0 else "¡Reclamado! ✨"
+            texto = f"+${valor:,.2f}" if valor > 0 else "¡Reclamado! ✨"
 
             origen = widget_origen or self
             pos_global = origen.mapToGlobal(QPoint(0, 0))

@@ -363,7 +363,7 @@ def _actualizar_vista_juegos(self):
                 conteo_texto = t("store.offers_count", count=len(juegos_filtrados)).upper()
                 juegos_a_mostrar_map[clave_banner] = {
                     'tipo': 'banner',
-                    'titulo': f"🏷️  {tienda_nombre.upper()}  ·  {conteo_texto}",
+                    'titulo': f"{tienda_nombre.upper()}  ·  {conteo_texto}",
                 }
             elif len(tiendas_activas) > 1:
                 clave_banner = "banner_todas"
