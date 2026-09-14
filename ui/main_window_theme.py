@@ -13,6 +13,7 @@ from config import (
 
 def _apply_theme_qss(self):
   tema = config.THEMES[config.CURRENT_THEME]
+  es_oscuro = (config.CURRENT_THEME == "dark")
 
   def c(name):
     return tema[name]
