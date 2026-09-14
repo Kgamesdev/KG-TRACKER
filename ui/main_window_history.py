@@ -11,7 +11,7 @@ def _normalizar_titulo_clave(titulo):
     ):
         if t.endswith(sufijo):
             t = t[:-len(sufijo)].strip()
-    t = re.sub(r"[:\-\–\—_'",.!¡?¿]", " ", t)
+    t = re.sub(r'''[:\-\–\—_'",.!¡?¿]''', " ", t)
     return " ".join(t.split()).strip()
 
 from core.i18n import t
