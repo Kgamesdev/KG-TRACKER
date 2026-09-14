@@ -1,15 +1,19 @@
-# K GAME TRACKER (KG Tracker)
+﻿# K GAME TRACKER (KG Tracker)
 
 <p align="center">
   <img src="assets/LogoKG_transparente.png" alt="KG Tracker Logo" width="130"/>
 </p>
 
 <p align="center">
-  <strong>Centro de control de escritorio para rastrear, centralizar y reclamar videojuegos gratuitos por tiempo limitado para PC.</strong>
+  <strong>Desktop control center to track, centralize, and claim time-limited free PC video games.</strong>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.2.32-blue?style=for-the-badge" alt="Version"/>
+  <a href="README_ES.md"><strong>Español / Spanish Version</strong></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/version-v0.2.35-blue?style=for-the-badge" alt="Version"/>
   <img src="https://img.shields.io/badge/python-3.14+-yellow?style=for-the-badge" alt="Python Version"/>
   <img src="https://img.shields.io/badge/framework-PySide6%20(Qt%206)-41CD52?style=for-the-badge" alt="PySide6"/>
   <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=for-the-badge" alt="Platform"/>
@@ -18,104 +22,47 @@
 
 ---
 
-## Descripción del Proyecto
+## Project Description
 
-**KG Tracker** es una aplicación de escritorio nativa para Windows desarrollada en **Python** y **PySide6 (Qt 6)**. Su objetivo es mantener a los usuarios informados sobre todas las ofertas de juegos 100% gratuitos y por tiempo limitado en las principales tiendas digitales de PC, filtrando automáticamente DLCs, demos, pases de temporada o bandas sonoras.
+**KG Tracker** is a native Windows desktop application built with **Python** and **PySide6 (Qt 6)**. Its primary purpose is to keep gamers informed about all 100% free, time-limited game offers across major PC digital distribution stores, automatically filtering out DLCs, demos, season passes, and soundtracks.
 
-Cuenta con un motor de enriquecimiento de datos en tiempo real que cruza cada oferta con las **reseñas comunitarias de Steam** y traduce las descripciones dinámicamente en segundo plano.
-
----
-
-## Características Principales
-
-- **Rastreo Multitienda Centralizado:** Monitorea ofertas de Epic Games, Steam, GOG, Amazon Prime Gaming, Itch.io, Humble Store, Fanatical e IndieGala mediante la API de GamerPower.
-- **Filtrado Inteligente:** Elimina automáticamente expansiones, skins, demos, betas y contenido secundario, mostrando exclusivamente videojuegos completos.
-- **Cruce con Steam API en Vivo:** Muestra la puntuación comunitaria y el porcentaje de críticas positivas de Steam (ej. `Steam: 95% (Muy positivas)`) incluso en ofertas regaladas por Epic Games, GOG o Prime Gaming.
-- **Traductor Dinámico de Descripciones:** Motor asíncrono con fallback multicanal (Google Mobile Web + MyMemory) que traduce las descripciones en segundo plano sin congelar la interfaz.
-- **Internacionalización Completa (i18n):** Soporte bilingüe en caliente (Español / English) para botones, estados, modales, menús contextuales y notificaciones.
-- **Arquitectura de Alto Rendimiento (60 FPS):** Carga y renderizado asíncrono de carátulas (`QThreadPool` + `QRunnable`) con caché multinivel en RAM y disco para un desplazamiento fluido.
-- **Integración con System Tray de Windows:** Minimiza al área de notificación junto al reloj con notificaciones push nativas bilingües y temporizador de barrido periódico configurable (2h, 4h, 8h, 24h).
-- **Historial de Reclamados y Cálculo de Ahorro:** Guarda localmente con I/O atómico seguro los juegos obtenidos y calcula el valor total acumulado en dólares (`$ AHORRADO`).
-- **Hilo Musical Configurable:** Reproducción de audio de fondo con transiciones suaves (*Fade Out* al minimizar, *Fade In* al restaurar).
+It features a real-time data enrichment engine that cross-references each giveaway with **Steam community reviews** and dynamically translates store descriptions in the background.
 
 ---
 
-## Arquitectura y Stack Tecnológico
+## Key Features
 
-| Componente | Tecnología |
+- **Centralized Multi-Store Tracking:** Monitors giveaways from Epic Games, Steam, GOG, Amazon Prime Gaming, Itch.io, Humble Store, Fanatical, and IndieGala via the GamerPower API.
+- **Smart Filtering:** Automatically excludes expansions, skins, demos, betas, and secondary content, displaying exclusively full video games.
+- **Live Steam API Integration:** Displays community scores and positive review percentages (e.g., `Steam: 95% (Very Positive)`) even for giveaways hosted on Epic Games, GOG, or Prime Gaming.
+- **Dynamic Description Translator:** Asynchronous engine with multi-channel fallback (Google Mobile Web + MyMemory) that translates descriptions in the background without freezing the UI.
+- **Full Internationalization (i18n):** On-the-fly bilingual support (Spanish / English) for buttons, status badges, modals, context menus, and push notifications.
+- **High-Performance Architecture (60 FPS):** Asynchronous thumbnail loading and rendering (`QThreadPool` + `QRunnable`) with multi-level RAM and disk caching for fluid scrolling.
+- **Windows System Tray Integration:** Minimizes to the tray area next to the clock with native bilingual push notifications and a configurable sweep timer (2h, 4h, 8h, 24h).
+- **Claim History & Savings Tracker:** Safely stores claimed games locally using atomic I/O and calculates total accumulated savings in USD (`$ SAVED`).
+- **Configurable Background Audio:** Background music player with smooth audio transitions (*Fade Out* on minimize, *Fade In* on restore).
+
+---
+
+## About the Author
+
+> This personal project was created by me, a nurse who never had much time to study programming, but always had an overwhelming desire to learn. I developed this project guided solely by research and AI. I hope you enjoy the hours and care I have put into it.
+
+---
+
+## Architecture & Tech Stack
+
+| Component | Technology |
 | :--- | :--- |
-| **Lenguaje** | Python 3.14 |
-| **Interfaz Gráfica (GUI)** | PySide6 (Qt 6.x) con hojas de estilo dinámicas (QSS) |
-| **Procesamiento de Imágenes** | Pillow (`PIL`) |
-| **Consumo de APIs y Red** | `requests` con manejo de sesiones concurrentes |
-| **Motor de Audio** | `pygame-ce` |
-| **Persistencia** | JSON transaccional con escritura atómica (`fsync` + reemplazo seguro) |
+| **Language** | Python 3.14 |
+| **GUI Framework** | PySide6 (Qt 6.x) with dynamic QSS stylesheets |
+| **Image Processing** | Pillow (`PIL`) |
+| **Networking & APIs** | `requests` with concurrent session pooling |
+| **Audio Engine** | `pygame-ce` |
+| **Persistence** | Transactional JSON with atomic writing (`fsync` + safe replace) |
 
 ---
 
-## Estructura del Proyecto
+## License
 
-```text
-KG TRACKER/
-├── assets/                  # Iconografía, logotipos y carátulas
-├── core/
-│   ├── autostart.py         # Control opt-in de inicio con Windows
-│   ├── i18n.py              # Motor central de traducciones bilingüe
-│   ├── image_loader.py      # Gestor asíncrono de miniaturas y caché
-│   ├── steam_enricher.py    # Cliente API de Steam para reseñas y valoraciones
-│   ├── storage.py           # Persistencia atómica segura
-│   ├── translator.py        # Cola de traducción de descripciones
-│   └── tray.py              # Integración con la bandeja del sistema y push
-├── data/                    # Historial de reclamados y ajustes
-├── ui/
-│   ├── game_card.py         # Tarjeta interactiva de juego y botones personalizados
-│   ├── main_window.py       # Ventana principal orquestadora
-│   ├── main_window_*.py    # Módulos especializados (tema, navegación, audio...)
-│   └── settings_modal.py    # Modal de configuración en caliente
-├── config.py                # Paletas de color y constantes globales
-├── main.py                  # Punto de entrada y pantalla splash
-└── requirements.txt         # Dependencias deterministas del entorno
-```
-
----
-
-## Instalación y Puesta en Marcha
-
-### Prerrequisitos
-
-- **Windows 10** o **Windows 11**
-- **Python 3.10 o superior** (Recomendado: Python 3.12 - 3.14)
-
-### Pasos
-
-1. **Clonar el repositorio:**
-
-   ```powershell
-   git clone https://github.com/Kgamesdev/KG-TRACKER.git
-   cd KG-TRACKER
-   ```
-
-2. **Crear y activar un entorno virtual:**
-
-   ```powershell
-   python -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   ```
-
-3. **Instalar dependencias:**
-
-   ```powershell
-   pip install -r requirements.txt
-   ```
-
-4. **Ejecutar la aplicación:**
-
-   ```powershell
-   python main.py
-   ```
-
----
-
-## Licencia
-
-Este proyecto está bajo una **Licencia No Comercial** (Non-Commercial License). Consulta el archivo [**LICENSE**](LICENSE) para más información.
+This project is licensed under a **Non-Commercial License**. See the [**LICENSE**](LICENSE) file for more information.
