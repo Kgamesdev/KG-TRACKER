@@ -108,11 +108,6 @@ class StoreWidget(QFrame):
         return super().eventFilter(obj, event)
 
     def _aplicar_transformacion(self, angulo):
-        # OPTIMIZACION: Umbral de 0.6 grados para evitar ahogar el recolector de basura 
-        # de Python (GC) instanciando miles de matrices y pixmaps por milimetro movido.
-        if hasattr(self, "_current_angle") and abs(self._current_angle - angulo) < 0.6:
-            return
-            
         self._current_angle = angulo
         if self._pixmap_base is not None and not self._pixmap_base.isNull():
             escala = 1.18 if self.property("hovering") else 1.0

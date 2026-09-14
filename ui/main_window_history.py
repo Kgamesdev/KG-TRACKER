@@ -1,11 +1,8 @@
-import re
-_RE_SUFIJOS = re.compile(r"\s*[\(\[](?:epic games|epic|steam|gog|itch\.io|itch|amazon prime|amazon|prime|pc|free|gratis)[\)\]]", re.IGNORECASE)
-_RE_CHARS = re.compile(r"[:\-\–\—_\'\",.!¡?¿]")
-
 def _normalizar_titulo_clave(titulo):
-    """Limpia sufijos y menciones de plataforma con Regex compiladas en memoria (O(1))."""
+    """Limpia sufijos y menciones de plataforma para evitar duplicados."""
+    import re
     t = " ".join(str(titulo or "").lower().split()).strip()
-    t = _RE_SUFIJOS.sub("", t)
+    t = re.sub(r"\s*[\(\[](?:epic games|epic|steam|gog|itch\.io|itch|amazon prime|amazon|prime|pc|free|gratis)[\)\]]", "", t)
     for sufijo in (
         " - giveaway", " : giveaway", " giveaway",
         " free steam key", " steam key", " free key",
@@ -14,7 +11,7 @@ def _normalizar_titulo_clave(titulo):
     ):
         if t.endswith(sufijo):
             t = t[:-len(sufijo)].strip()
-    t = _RE_CHARS.sub(" ", t)
+    t = re.sub(r"[:\-\–\—_'",.!¡?¿]", " ", t)
     return " ".join(t.split()).strip()
 
 from core.i18n import t
