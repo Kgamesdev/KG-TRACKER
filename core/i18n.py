@@ -1,4 +1,4 @@
-﻿"""Motor de internacionalización (i18n) para textos de KG Tracker."""
+"""Motor de internacionalización (i18n) para textos de KG Tracker."""
 
 import os
 import json
@@ -74,7 +74,6 @@ TRADUCCIONES = {
         "kofi.continue": "Continuar a Ko-fi",
         "kofi.cancel": "Cancelar",
 
-        # Notificaciones y System Tray (ES)
         "tray.tooltip": "K Game Tracker — Ofertas activas",
         "tray.menu_open": "Mostrar K Game Tracker",
         "tray.menu_check": "Comprobar ofertas ahora",
@@ -139,7 +138,6 @@ TRADUCCIONES = {
         "kofi.continue": "Continue to Ko-fi",
         "kofi.cancel": "Cancel",
 
-        # Notificaciones y System Tray (EN)
         "tray.tooltip": "K Game Tracker — Active offers",
         "tray.menu_open": "Open K Game Tracker",
         "tray.menu_check": "Check for offers now",
@@ -154,12 +152,14 @@ TRADUCCIONES = {
     }
 }
 
-_idioma_actual = "es"
+# Variable en memoria protegida
+_idioma_actual = None
 
 
-def obtener_idioma() -> str:
+def inicializar_idioma() -> str:
+    """Carga el idioma desde el disco UNA SOLA VEZ al iniciar."""
     global _idioma_actual
-    if SETTINGS_FILE.exists():
+    if SETTINGS_FILE and SETTINGS_FILE.exists():
         try:
             data = cargar_json_seguro(SETTINGS_FILE, valor_por_defecto={})
             lang_raw = str(data.get("idioma", "es")).lower()
@@ -172,10 +172,21 @@ def obtener_idioma() -> str:
                 _idioma_actual = "es"
         except Exception:
             _idioma_actual = "es"
+    else:
+        _idioma_actual = "es"
+    return _idioma_actual
+
+
+def obtener_idioma() -> str:
+    """Devuelve el idioma en memoria sin golpear el disco en cada llamada."""
+    global _idioma_actual
+    if _idioma_actual is None:
+        return inicializar_idioma()
     return _idioma_actual
 
 
 def establecer_idioma(lang_code: str):
+    """Fija el nuevo idioma de forma inmediata y persistente en memoria."""
     global _idioma_actual
     _idioma_actual = lang_code if lang_code in TRADUCCIONES else "es"
 

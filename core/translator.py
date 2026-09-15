@@ -1,11 +1,10 @@
-﻿from core.storage import guardar_json_atomico, cargar_json_seguro
-import threading
 """Motor de traducción asíncrono para KG Tracker con concurrencia controlada y precarga."""
 
+from core.storage import guardar_json_atomico, cargar_json_seguro             
+import threading
 import os
 import json
 import html
-import re
 import hashlib
 import time
 import queue
@@ -27,32 +26,42 @@ def _guardar_cache(cache):
 
 
 def _consultar_traduccion_red(session: requests.Session, texto: str, target_lang: str) -> str:
-    # 1. Google Translate Mobile Web Endpoint
+    # Sanitizar target_lang a formato ISO (ej: 'es_ES' o 'es-ES' -> 'es')
+    target_lang = str(target_lang or "es").split("_")[0].split("-")[0].lower()
+
+    # 1. API Directa de Google (JSON)
     try:
-        url_google = f"https://translate.google.com/m?sl=auto&tl={target_lang}&q={urllib.parse.quote(texto)}"
-        headers_mobile = {
-            "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        url_google = (
+            f"https://translate.googleapis.com/translate_a/single?"
+            f"client=gtx&sl=auto&tl={target_lang}&dt=t&q={urllib.parse.quote(texto)}"
+        )
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
         }
-        resp = session.get(url_google, headers=headers_mobile, timeout=5)
+        resp = session.get(url_google, headers=headers, timeout=4)
         if resp.status_code == 200:
-            m = re.search(r'(?s)class="(?:result-container|t0)">(.*?)<', resp.text)
-            if m:
-                resultado = html.unescape(m.group(1)).strip()
-                if resultado and resultado.lower() != texto.lower():
-                    return resultado
+            data = resp.json()
+            if data and isinstance(data, list) and len(data) > 0 and isinstance(data[0], list):
+                resultado = "".join([frase[0] for frase in data[0] if frase and len(frase) > 0 and frase[0]])
+                if resultado and resultado.strip().lower() != texto.strip().lower():
+                    return html.unescape(resultado).strip()
     except Exception:
         pass
 
     # 2. Respaldo MyMemory API
     try:
-        url_mm = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(texto[:450])}&langpair=en|{target_lang}"
+        url_mm = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(texto[:400])}&langpair=en|{target_lang}"
         headers_mm = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        resp_mm = session.get(url_mm, headers=headers_mm, timeout=5)
+        resp_mm = session.get(url_mm, headers=headers_mm, timeout=4)
         if resp_mm.status_code == 200:
             data_mm = resp_mm.json()
             res_mm = data_mm.get("responseData", {}).get("translatedText", "")
-            if res_mm and "MYMEMORY WARNING" not in res_mm.upper() and res_mm.lower() != texto.lower():
+            if (
+                res_mm 
+                and "MYMEMORY WARNING" not in res_mm.upper() 
+                and "INVALID TARGET" not in res_mm.upper() 
+                and res_mm.lower() != texto.lower()
+            ):
                 return html.unescape(res_mm).strip()
     except Exception:
         pass
@@ -88,7 +97,7 @@ class _TranslationWorkerThread(QThread):
             if self._activo:
                 self.traducido_signal.emit(clave, texto, traducido)
             self.cola.task_done()
-            time.sleep(0.08)
+            time.sleep(0.2)
 
 
 class GameTranslator(QObject):
@@ -108,7 +117,7 @@ class GameTranslator(QObject):
         self._cola = queue.Queue()
 
         self._workers = []
-        for _ in range(3):
+        for _ in range(2):
             w = _TranslationWorkerThread(self._cola)
             w.traducido_signal.connect(self._al_terminar_traduccion)
             w.start()
@@ -120,11 +129,13 @@ class GameTranslator(QObject):
 
     def traducir_async(self, texto: str, target_lang: str, callback):
         texto_limpio = " ".join(str(texto or "").split())
-        if not texto_limpio or target_lang == "en":
+        lang_normalizado = str(target_lang or "es").split("_")[0].split("-")[0].lower()
+
+        if not texto_limpio or lang_normalizado == "en":
             callback(texto_limpio)
             return
 
-        clave = self._generar_clave(texto_limpio, target_lang)
+        clave = self._generar_clave(texto_limpio, lang_normalizado)
 
         with self._lock:
             if clave in self._cache and self._cache[clave].lower() != texto_limpio.lower():
@@ -136,14 +147,15 @@ class GameTranslator(QObject):
                 return
 
             self._pendientes[clave] = [callback]
-        self._cola.put((clave, texto_limpio, target_lang))
+        self._cola.put((clave, texto_limpio, lang_normalizado))
 
     def precargar_async(self, lista_textos: list, target_lang: str):
-        if target_lang == "en":
+        lang_normalizado = str(target_lang or "es").split("_")[0].split("-")[0].lower()
+        if lang_normalizado == "en":
             return
         for t in lista_textos:
             if t:
-                self.traducir_async(t, target_lang, lambda _: None)
+                self.traducir_async(t, lang_normalizado, lambda _: None)
 
     def _al_terminar_traduccion(self, clave: str, texto_orig: str, traducido: str):
         callbacks = []
