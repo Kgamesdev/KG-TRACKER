@@ -1,4 +1,4 @@
-"""Componentes visuales y tarjetas de juego para KG Tracker."""
+﻿"""Componentes visuales y tarjetas de juego para KG Tracker."""
 
 import os
 import re
@@ -965,7 +965,8 @@ class GameCard(NeonFrame):
 
         valor = owner._valor_juego(juego)
         if valor > 0:
-            worth = QLabel(f"Antes: ${valor:,.2f}")
+            txt_antes = "Antes" if obtener_idioma() == "es" else "Was"
+            worth = QLabel(f"{txt_antes}: ${valor:,.2f}")
             worth.setObjectName("gameWorth")
             es_oscuro_chip = (config.CURRENT_THEME == "dark")
             if es_oscuro_chip:
@@ -1289,7 +1290,13 @@ class GameCard(NeonFrame):
 
     def _traducir_descripcion(self):
         idioma = obtener_idioma()
-        if idioma == "en" or not self._desc_original:
+        if not self._desc_original:
+            return
+        if idioma == "en":
+            desc = " ".join(self._desc_original.split())
+            if len(desc) > 148:
+                desc = desc[:145] + "..."
+            self._desc_label.setText(desc)
             return
 
         GameTranslator.get_instance().traducir_async(
@@ -1341,7 +1348,7 @@ class GameCard(NeonFrame):
             color_accent = "#F59E0B"
             bg_color = "rgba(245, 158, 11, 0.16)"
 
-        self._steam_badge.setText(f"★ Steam: {percent}% ({desc})")
+        self._steam_badge.setText(f"\u2605 Steam: {percent}% ({desc})")
         self._steam_badge.setStyleSheet(f"""
             QLabel#steamBadge {{
                 background-color: {bg_color};

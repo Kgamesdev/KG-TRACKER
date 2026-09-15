@@ -21,7 +21,7 @@ from core.storage import guardar_json_atomico, cargar_json_seguro
 from core.autostart import habilitar_autostart, deshabilitar_autostart, autostart_activo
 from core.i18n import t, establecer_idioma, obtener_idioma, IDIOMAS, MAPEO_FRECUENCIA, MAPEO_TEMAS
 
-SETTINGS_FILE = os.path.join(BASE_DIR, "data", "settings.json")
+from core.paths import SETTINGS_FILE
 
 
 def cargar_ajustes():

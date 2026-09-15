@@ -1,4 +1,4 @@
-"""Motor de traducción asíncrono para KG Tracker con concurrencia controlada y precarga."""
+﻿"""Motor de traducción asíncrono para KG Tracker con concurrencia controlada y precarga."""
 
 from core.storage import guardar_json_atomico, cargar_json_seguro             
 import threading
@@ -40,6 +40,7 @@ def _consultar_traduccion_red(session: requests.Session, texto: str, target_lang
         }
         resp = session.get(url_google, headers=headers, timeout=4)
         if resp.status_code == 200:
+            resp.encoding = "utf-8"
             data = resp.json()
             if data and isinstance(data, list) and len(data) > 0 and isinstance(data[0], list):
                 resultado = "".join([frase[0] for frase in data[0] if frase and len(frase) > 0 and frase[0]])
@@ -54,6 +55,7 @@ def _consultar_traduccion_red(session: requests.Session, texto: str, target_lang
         headers_mm = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
         resp_mm = session.get(url_mm, headers=headers_mm, timeout=4)
         if resp_mm.status_code == 200:
+            resp_mm.encoding = "utf-8"
             data_mm = resp_mm.json()
             res_mm = data_mm.get("responseData", {}).get("translatedText", "")
             if (
