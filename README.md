@@ -1,4 +1,4 @@
-﻿# K GAME TRACKER (KG Tracker)
+# K GAME TRACKER (KG Tracker)
 
 <p align="center">
   <img src="assets/LogoKG_transparente.png" alt="KG Tracker Logo" width="130"/>
@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.2.35-blue?style=for-the-badge" alt="Version"/>
+  <img src="https://img.shields.io/badge/version-v0.2.36-blue?style=for-the-badge" alt="Version"/>
   <img src="https://img.shields.io/badge/python-3.14+-yellow?style=for-the-badge" alt="Python Version"/>
   <img src="https://img.shields.io/badge/framework-PySide6%20(Qt%206)-41CD52?style=for-the-badge" alt="PySide6"/>
   <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=for-the-badge" alt="Platform"/>
@@ -61,8 +61,34 @@ It features a real-time data enrichment engine that cross-references each giveaw
 | **Audio Engine** | `pygame-ce` |
 | **Persistence** | Transactional JSON with atomic writing (`fsync` + safe replace) |
 
+
+---
+
+## ☕ Support the Project
+
+If you find KG Tracker useful and would like to support ongoing development, feel free to buy me a coffee:
+
+<p align="center">
+  <a href="https://ko-fi.com/kurigamedeveloper" target="_blank">
+    <img src="https://storage.ko-fi.com/cdn/kofi3.png?v=3" alt="Buy Me a Coffee at ko-fi.com" height="42"/>
+  </a>
+</p>
+<p align="center">
+  <a href="https://ko-fi.com/kurigamedeveloper"><strong>ko-fi.com/kurigamedeveloper</strong></a>
+</p>
+
+---
+
+## 📋 Recent Highlights (v0.2.36)
+
+- **Fluid Accordion Opening:** Seamless drawer deployment displaying game cards instantly with unified `OutCubic` motion.
+- **Theme Cross-Fade:** Native screen dissolve transition between Dark and Light visual themes.
+- **Direct Ko-fi Integration:** Verified, whitelist-compliant creator link directly into `kurigamedeveloper`.
+- **Render Pipeline Optimization:** Cleaned up Qt graphics painter synchronization and removed console warnings.
+
 ---
 
 ## License
 
 This project is licensed under a **Non-Commercial License**. See the [**LICENSE**](LICENSE) file for more information.
+
