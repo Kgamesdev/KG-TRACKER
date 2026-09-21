@@ -1,4 +1,4 @@
-﻿"""Configuración y constantes globales de la aplicación."""
+"""Configuración y constantes globales de la aplicación."""
 
 import os
 
@@ -105,7 +105,9 @@ SPLASH_MAX_WIDTH = 400
 SPLASH_CORNER_RADIUS = 40
 
 # --- AUDIO ---
-AUDIO_PATH = os.path.join(BASE_DIR, "assets", "chill.wav")
+_audio_ogg = os.path.join(BASE_DIR, "assets", "chill.ogg")
+_audio_wav = os.path.join(BASE_DIR, "assets", "chill.wav")
+AUDIO_PATH = _audio_ogg if os.path.exists(_audio_ogg) else _audio_wav
 AUDIO_ENABLED = True
 AUDIO_VOLUME_TARGET = 0.05
 AUDIO_FADE_IN_DURATION = 3.0
@@ -113,3 +115,4 @@ AUDIO_FADE_IN_DURATION = 3.0
 # --- AUTOSTART (Windows) ---
 AUTOSTART_REG_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
 AUTOSTART_APP_NAME = "KGameTracker"
+
