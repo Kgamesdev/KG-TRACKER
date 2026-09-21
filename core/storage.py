@@ -1,31 +1,22 @@
-﻿import json
 import os
-import shutil
-from pathlib import Path
+import json
+import time
+import logging
+from config import BASE_DIR
 
-from core.paths import (
-    SETTINGS_FILE,
-    RECLAMADOS_FILE,
-    CACHE_GIVEAWAYS_FILE,
-    migrar_datos_desarrollo_si_existen
-)
+logger = logging.getLogger("KGTracker")
 
-# Migrar automáticamente archivos de 'data/' si existen de una versión previa
-migrar_datos_desarrollo_si_existen()
-
-
-def guardar_json_atomico(ruta_archivo, datos):
+def guardar_json_atomico(ruta_archivo: str, datos: dict) -> bool:
     """
-    Guarda datos JSON de forma atómica.
-    Escribe primero en un archivo temporal (.tmp), realiza fsync y luego renombra (os.replace).
-    Evita la corrupción del archivo en caso de corte o cierre inesperado.
+    Guarda datos de forma atomica (.tmp + fsync + os.replace) con tolerancia
+    a bloqueos transitorios en Windows NTFS.
     """
-    ruta_archivo = Path(ruta_archivo)
-    directorio = ruta_archivo.parent
-    directorio.mkdir(parents=True, exist_ok=True)
+    ruta_tmp = f"{ruta_archivo}.tmp"
+    ruta_bak = f"{ruta_archivo}.bak"
+    directorio = os.path.dirname(ruta_archivo)
 
-    ruta_tmp = Path(f"{ruta_archivo}.tmp")
-    ruta_bak = Path(f"{ruta_archivo}.bak")
+    if directorio:
+        os.makedirs(directorio, exist_ok=True)
 
     try:
         with open(ruta_tmp, "w", encoding="utf-8") as f:
@@ -33,37 +24,71 @@ def guardar_json_atomico(ruta_archivo, datos):
             f.flush()
             os.fsync(f.fileno())
 
-        if ruta_archivo.exists():
-            shutil.copy2(ruta_archivo, ruta_bak)
+        # Backup preventivo
+        if os.path.exists(ruta_archivo):
+            try:
+                import shutil
+                shutil.copy2(ruta_archivo, ruta_bak)
+            except Exception:
+                pass
 
-        os.replace(ruta_tmp, ruta_archivo)
-        return True
+        # Reemplazo con reintentos para evitar PermissionError en Windows
+        reintentos = 5
+        demora = 0.05
+        for intento in range(reintentos):
+            try:
+                os.replace(ruta_tmp, ruta_archivo)
+                return True
+            except (PermissionError, OSError) as e:
+                if intento == reintentos - 1:
+                    logger.error(f"Error al reemplazar {ruta_archivo} tras reintentos: {e}")
+                    raise
+                time.sleep(demora)
+                demora *= 2
 
     except Exception as e:
-        if ruta_tmp.exists():
+        logger.error(f"Fallo en guardado atomico de {ruta_archivo}: {e}")
+        if os.path.exists(ruta_tmp):
             try:
-                ruta_tmp.unlink()
-            except Exception:
+                os.remove(ruta_tmp)
+            except OSError:
                 pass
-        raise e
+        return False
 
-
-def cargar_json_seguro(ruta_archivo, valor_por_defecto=None):
+def cargar_json_seguro(ruta_archivo: str, default: dict = None, valor_por_defecto: dict = None) -> dict:
     """
-    Carga un archivo JSON. Si está corrupto o no existe, intenta rescatar desde el .bak.
+    Carga un JSON de disco; si falla o esta corrupto, intenta recuperar el .bak.
+    Soporta tanto 'default' como 'valor_por_defecto'.
     """
-    if valor_por_defecto is None:
-        valor_por_defecto = []
+    if valor_por_defecto is not None:
+        default_val = valor_por_defecto
+    elif default is not None:
+        default_val = default
+    else:
+        default_val = {}
 
-    ruta_archivo = Path(ruta_archivo)
-    ruta_bak = Path(f"{ruta_archivo}.bak")
+    target = ruta_archivo
+    if not os.path.exists(target):
+        bak = f"{ruta_archivo}.bak"
+        if os.path.exists(bak):
+            target = bak
+        else:
+            return default_val
 
-    for target in (ruta_archivo, ruta_bak):
-        if target.exists():
+    try:
+        with open(target, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.warning(f"Archivo no legible {target}: {e}. Intentando .bak...")
+        bak = f"{ruta_archivo}.bak"
+        if target != bak and os.path.exists(bak):
             try:
-                with open(target, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            except Exception:
-                pass
+                with open(bak, "r", encoding="utf-8") as fb:
+                    return json.load(fb)
+            except Exception as eb:
+                logger.error(f"Fallo critico al leer backup {bak}: {eb}")
+        return default_val
 
-    return valor_por_defecto
+# Alias de compatibilidad
+guardar_datos_atomicos = guardar_json_atomico
+cargar_datos_seguros = cargar_json_seguro
