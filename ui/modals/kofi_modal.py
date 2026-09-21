@@ -79,5 +79,6 @@ class KofiModal(QDialog):
         self._anim_fade.start()
 
     def ir_a_kofi(self):
-        webbrowser.open_new_tab("https://ko-fi.com")
+        webbrowser.open_new_tab("https://ko-fi.com/kurigamedeveloper")
         self.close()
+
