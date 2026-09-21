@@ -21,6 +21,7 @@ hiddenimports = [
     'core.network',
     'core.image_loader',
     'core.ui_settings',
+    'core.updater',
     'ui.design_system',
 ]
 
@@ -107,3 +108,4 @@ exe = EXE(
     entitlements_file=None,
     icon='assets/logo.ico' if os.path.exists('assets/logo.ico') else None,
 )
+
