@@ -227,6 +227,27 @@ def _actualizar_textos_idioma(self):
     if hasattr(self, "_actualizar_vista_juegos"):
         self._actualizar_vista_juegos()
 
+import webbrowser
+from core.updater import verificar_actualizacion_asincrona
+
+
+def _verificar_actualizacion_github(self):
+    """Consulta asincronamente si hay una nueva version en GitHub Releases."""
+    self._updater_signals = verificar_actualizacion_asincrona(self._on_nueva_version_detectada)
+
+
+def _on_nueva_version_detectada(self, tag_name: str, release_url: str):
+    """Muestra el banner informando de la nueva version."""
+    if hasattr(self, "update_banner") and hasattr(self, "update_label"):
+        self.update_label.setText(f"🚀 ¡Nueva versión {tag_name} disponible!")
+        if hasattr(self, "btn_descargar_update"):
+            try:
+                self.btn_descargar_update.clicked.disconnect()
+            except Exception:
+                pass
+            self.btn_descargar_update.clicked.connect(lambda: webbrowser.open_new_tab(release_url))
+        self.update_banner.show()
+
 def instalar_metodos(cls):
     cls._centrar = _centrar
     cls._load_store_icon = _load_store_icon
@@ -244,3 +265,6 @@ def instalar_metodos(cls):
     cls.mostrar = mostrar
     cls.run = run
     cls._actualizar_textos_idioma = _actualizar_textos_idioma
+    cls._verificar_actualizacion_github = _verificar_actualizacion_github
+    cls._on_nueva_version_detectada = _on_nueva_version_detectada
+

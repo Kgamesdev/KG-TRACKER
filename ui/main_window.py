@@ -6,7 +6,7 @@ import os
 import config
 
 from PySide6.QtWidgets import QMainWindow, QWidget, QApplication, QGraphicsOpacityEffect
-from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve
+from PySide6.QtCore import QTimer, Qt, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QIcon
 
 from config import WINDOW_TITLE, ICON_PATH, LOGO_PATH, STORES_MAPPING
@@ -88,6 +88,7 @@ class VentanaPrincipal(QMainWindow):
                 self._anim_entrada.setEndValue(1.0)
                 self._anim_entrada.setEasingCurve(QEasingCurve.Type.OutCubic)
                 self._anim_entrada.start()
+                QTimer.singleShot(3000, self._verificar_actualizacion_github)
 
 
 # Los métodos especializados se instalan en la misma clase para conservar
@@ -107,6 +108,7 @@ if __name__ == "__main__":
     window = VentanaPrincipal()
     window.show()
     sys.exit(app.exec())
+
 
 
 

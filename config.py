@@ -1,3 +1,8 @@
+# --- VERSION Y ACTUALIZACIONES ---
+APP_VERSION = "0.2.36"
+GITHUB_REPO = "Kgamesdev/KG-TRACKER"
+GITHUB_RELEASES_URL = f"https://github.com/{GITHUB_REPO}/releases"
+GITHUB_API_LATEST_RELEASE = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 """Configuración y constantes globales de la aplicación."""
 
 import os
@@ -115,4 +120,5 @@ AUDIO_FADE_IN_DURATION = 3.0
 # --- AUTOSTART (Windows) ---
 AUTOSTART_REG_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
 AUTOSTART_APP_NAME = "KGameTracker"
+
 

@@ -129,6 +129,35 @@ def _build_ui(self):
 
   self.content = QWidget()
   content_layout = QVBoxLayout(self.content)
+
+  # Banner de actualizacion disponible (oculto por defecto)
+  self.update_banner = QFrame(self.content)
+  self.update_banner.setObjectName("updateBanner")
+  self.update_banner.setFixedHeight(46)
+  banner_layout = QHBoxLayout(self.update_banner)
+  banner_layout.setContentsMargins(16, 4, 12, 4)
+  banner_layout.setSpacing(10)
+
+  self.update_label = QLabel("🚀 ¡Nueva versión disponible!")
+  self.update_label.setObjectName("updateLabel")
+  banner_layout.addWidget(self.update_label)
+  banner_layout.addStretch()
+
+  self.btn_descargar_update = QPushButton("Descargar")
+  self.btn_descargar_update.setObjectName("btnDownloadUpdate")
+  self.btn_descargar_update.setCursor(Qt.CursorShape.PointingHandCursor)
+  banner_layout.addWidget(self.btn_descargar_update)
+
+  self.btn_cerrar_update = QPushButton("✕")
+  self.btn_cerrar_update.setObjectName("btnCloseUpdate")
+  self.btn_cerrar_update.setCursor(Qt.CursorShape.PointingHandCursor)
+  self.btn_cerrar_update.setFixedSize(26, 26)
+  self.btn_cerrar_update.clicked.connect(self.update_banner.hide)
+  banner_layout.addWidget(self.btn_cerrar_update)
+
+  self.update_banner.hide()
+  content_layout.addWidget(self.update_banner)
+  content_layout.addSpacing(6)
   content_layout.setContentsMargins(28, 16, 28, 14)
   content_layout.setSpacing(0)
   content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -319,4 +348,5 @@ def instalar_metodos(cls):
   cls._crear_burbujas_tiendas = _crear_burbujas_tiendas
   cls._on_bubble_hover = _on_bubble_hover
   cls._sync_store_states = _sync_store_states
+
 

@@ -424,3 +424,4 @@ def instalar_metodos(cls):
     cls.alternar_tema = alternar_tema
     cls._actualizar_estilo_botones = _actualizar_estilo_botones
     cls._set_button_role = _set_button_role
+
