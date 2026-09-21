@@ -109,3 +109,5 @@ exe = EXE(
     icon='assets/logo.ico' if os.path.exists('assets/logo.ico') else None,
 )
 
+
+

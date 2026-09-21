@@ -69,86 +69,19 @@ def enviar_notificacion_windows(titulo: str, mensaje: str, icono_path: str = Non
         try:
             t_str = str(titulo or "K GAME TRACKER")
             m_str = str(mensaje or "")
-
-            ruta_img = icono_path or str(ASSETS_DIR / "branding" / "KG LOGO.png")
-            if not os.path.exists(ruta_img):
-                ruta_img = str(ASSETS_DIR / "icons" / "KGLogo.png")
-
-            uri_icono = ""
-            if os.path.exists(ruta_img):
-                uri_icono = "file:///" + os.path.abspath(ruta_img).replace("\\", "/")
-
-            # Payload JSON seguro para STDIN
-            payload = json.dumps({
-                "titulo": t_str,
-                "mensaje": m_str,
-                "icono_uri": uri_icono,
-                "duracion_larga": bool(duracion_larga)
-            }, ensure_ascii=False)
-
-            # Script PowerShell 100% estático - No contiene f-strings ni interpolaciones de usuario
-            ps_script = r"""
-$ErrorActionPreference = 'Stop'
-$rawInput = [Console]::In.ReadLine()
-if (-not $rawInput) { exit 0 }
-
-$data = $rawInput | ConvertFrom-Json
-$t_xml = [System.Security.SecurityElement]::Escape($data.titulo)
-$m_xml = [System.Security.SecurityElement]::Escape($data.mensaje)
-
-$imgTag = ""
-if ($data.icono_uri) {
-    $imgTag = "<image placement=`"appLogoOverride`" hint-crop=`"circle`" src=`"$($data.icono_uri)`" />"
-}
-
-$durAttr = if ($data.duracion_larga) { 'duration="long"' } else { 'duration="short"' }
-
-[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
-[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlCommands, ContentType = WindowsRuntime] | Out-Null
-
-$xmlTemplate = @"
-<toast $durAttr>
-    <visual>
-        <binding template="ToastGeneric">
-            <text>$t_xml</text>
-            <text>$m_xml</text>
-            $imgTag
-        </binding>
-    </visual>
-    <audio silent="true" />
-</toast>
-"@
-
-$xml = New-Object Windows.Data.Xml.Dom.XmlDocument
-$xml.LoadXml($xmlTemplate)
-$toast = [Windows.UI.Notifications.ToastNotification]::new($xml)
-[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("K GAME TRACKER").Show($toast)
-"""
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            startupinfo.wShowWindow = subprocess.SW_HIDE
-
-            proc = subprocess.Popen(
-                [
-                    "powershell.exe",
-                    "-NoProfile",
-                    "-NonInteractive",
-                    "-WindowStyle", "Hidden",
-                    "-Command", ps_script,
-                ],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                startupinfo=startupinfo,
-                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
-                text=True,
-                encoding="utf-8"
-            )
-            
-            proc.communicate(input=payload, timeout=5)
-            log_info(f"📢 Notificación push silenciosa enviada de forma segura: {titulo}")
+            try:
+                from plyer import notification
+                notification.notify(
+                    title=t_str,
+                    message=m_str,
+                    app_name="K GAME TRACKER",
+                    timeout=10 if duracion_larga else 5
+                )
+            except Exception:
+                pass
+            log_info(f"📢 Notificación push enviada de forma segura: {t_str}")
         except Exception as e:
-            log_error(f"Error en notificación push silenciosa: {e}")
+            log_error(f"Error en notificación push: {e}")
 
     threading.Thread(target=_worker, daemon=True).start()
 

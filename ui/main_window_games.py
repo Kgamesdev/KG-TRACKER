@@ -49,7 +49,7 @@ class _BusquedaWorker(QObject):
     def run(self):
         import requests
         try:
-            response = requests.get(API_URL, headers=API_HEADERS, timeout=(3.5, 7.0))
+            response = requests.get(API_URL, headers=API_HEADERS, timeout=5.0)
             response.raise_for_status()
             giveaways = response.json()
             if isinstance(giveaways, list) and len(giveaways) > 0:
@@ -478,6 +478,7 @@ def instalar_metodos(cls):
     cls._clear_layout = _clear_layout
     cls._actualizar_visibilidad_contenedor_juegos = _actualizar_visibilidad_contenedor_juegos
     cls._actualizar_vista_juegos = _actualizar_vista_juegos
+
 
 
 

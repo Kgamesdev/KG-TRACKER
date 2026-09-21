@@ -1,4 +1,4 @@
-# K GAME TRACKER (KG Tracker)
+﻿# K GAME TRACKER (KG Tracker)
 
 <p align="center">
   <img src="assets/LogoKG_transparente.png" alt="KG Tracker Logo" width="130"/>
@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.2.36-blue?style=for-the-badge" alt="Version"/>
+  <img src="https://img.shields.io/badge/version-v0.3.0-blue?style=for-the-badge" alt="Version"/>
   <img src="https://img.shields.io/badge/python-3.14+-yellow?style=for-the-badge" alt="Python Version"/>
   <img src="https://img.shields.io/badge/framework-PySide6%20(Qt%206)-41CD52?style=for-the-badge" alt="PySide6"/>
   <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=for-the-badge" alt="Platform"/>
@@ -79,7 +79,7 @@ If you find KG Tracker useful and would like to support ongoing development, fee
 
 ---
 
-## 📋 Recent Highlights (v0.2.36)
+## 📋 Recent Highlights (v0.3.0)
 
 - **Fluid Accordion Opening:** Seamless drawer deployment displaying game cards instantly with unified `OutCubic` motion.
 - **Theme Cross-Fade:** Native screen dissolve transition between Dark and Light visual themes.

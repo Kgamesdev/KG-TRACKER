@@ -114,3 +114,14 @@ class ImageLoader(QObject):
                 cb(url, pixmap)
             except Exception:
                 pass
+
+def limpiar_cache_antigua(dias=30):
+    import time, os
+    from .paths import CACHE_DIR
+    if not os.path.exists(CACHE_DIR): return
+    ahora = time.time()
+    for f in os.listdir(CACHE_DIR):
+        ruta = os.path.join(CACHE_DIR, f)
+        if os.path.isfile(ruta) and os.stat(ruta).st_mtime < ahora - (dias * 86400):
+            try: os.remove(ruta)
+            except: pass

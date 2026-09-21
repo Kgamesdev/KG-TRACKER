@@ -1,4 +1,4 @@
-"""Verificador asincrono de actualizaciones para K GAME TRACKER."""
+﻿"""Verificador asincrono de actualizaciones para K GAME TRACKER."""
 
 import re
 import logging
@@ -35,9 +35,6 @@ class UpdateCheckTask(QRunnable):
                 "Accept": "application/vnd.github.v3+json",
                 "User-Agent": f"KG-Tracker-{APP_VERSION}",
             }
-            # MODO PRUEBA: simulamos que GitHub tiene la version v0.2.37
-            self.signals.update_available.emit("v0.2.37", GITHUB_RELEASES_URL)
-            return
             resp = requests.get(GITHUB_API_LATEST_RELEASE, headers=headers, timeout=4)
             if resp.status_code != 200:
                 return
