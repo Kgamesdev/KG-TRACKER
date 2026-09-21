@@ -326,9 +326,12 @@ def _actualizar_visibilidad_contenedor_juegos(self):
         self.mostrando_reclamados
         or (self.juegos_cache_global and hay_tiendas_activas)
     )
-    if self.container.isVisible() != hay_contenido:
-        self.container.setVisible(hay_contenido)
-
+    if not hay_contenido:
+        self.container.setVisible(False)
+        self.container.setMaximumHeight(0)
+    elif not self.container.isVisible():
+        self.container.setMaximumHeight(0)
+        self.container.setVisible(True)
 
 def _actualizar_vista_juegos(self):
     from core.i18n import t
@@ -423,7 +426,7 @@ def _actualizar_vista_juegos(self):
             
             if es_nuevo:
                 if hasattr(widget, "preparar_animacion_cascada"):
-                    widget.preparar_animacion_cascada()
+                    pass
                     widgets_to_animate.append(widget)
             else:
                 if hasattr(widget, "graphicsEffect") and widget.graphicsEffect():
@@ -440,25 +443,24 @@ def _actualizar_vista_juegos(self):
         if root is not None:
             root.setUpdatesEnabled(True)
 
-    if widgets_to_animate:
-        if hasattr(self, "_master_anim_group") and self._master_anim_group.state() != 0:
-            self._master_anim_group.stop()
-            self._master_anim_group.deleteLater()
+    # Animacion fluida de acordeon sincronizado
+    if self.container.isVisible():
+        from PySide6.QtCore import QPropertyAnimation, QEasingCurve
+        target_height = min(680, max(260, len(juegos_visibles_ordenados) * 160 + 60))
+        if self.container.height() < 50:
+            anim_cajon = QPropertyAnimation(self.container, b"maximumHeight", self)
+            anim_cajon.setDuration(300)
+            anim_cajon.setStartValue(0)
+            anim_cajon.setEndValue(target_height)
+            anim_cajon.setEasingCurve(QEasingCurve.Type.OutCubic)
 
-        self._master_anim_group = QParallelAnimationGroup(self)
-        
-        for index, widget in enumerate(widgets_to_animate):
-            if hasattr(widget, "obtener_animacion_baraja"):
-                anim = widget.obtener_animacion_baraja()
-                if anim:
-                    seq = QSequentialAnimationGroup(self._master_anim_group)
-                    if index > 0:
-                        seq.addAnimation(QPauseAnimation(index * 30)) 
-                    
-                    seq.addAnimation(anim)
-                    self._master_anim_group.addAnimation(seq)
-                    
-        self._master_anim_group.start()
+            def _restaurar_max():
+                self.container.setMaximumHeight(16777215)
+            anim_cajon.finished.connect(_restaurar_max)
+            self._cajon_anim = anim_cajon
+            anim_cajon.start()
+        else:
+            self.container.setMaximumHeight(16777215)
 
 def instalar_metodos(cls):
     cls.game_widgets_map = {}
@@ -476,4 +478,6 @@ def instalar_metodos(cls):
     cls._clear_layout = _clear_layout
     cls._actualizar_visibilidad_contenedor_juegos = _actualizar_visibilidad_contenedor_juegos
     cls._actualizar_vista_juegos = _actualizar_vista_juegos
+
+
 

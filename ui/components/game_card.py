@@ -1,4 +1,4 @@
-﻿"""Componentes visuales y tarjetas de juego para KG Tracker."""
+"""Componentes visuales y tarjetas de juego para KG Tracker."""
 
 import os
 import re
@@ -732,52 +732,27 @@ class NeonFrame(QFrame):
         self.update()
 
     def preparar_animacion_cascada(self):
-        from PySide6.QtWidgets import QGraphicsOpacityEffect
-        self._bloquear_neon = True
-        
-        self._efecto_opacidad = QGraphicsOpacityEffect(self)
-        self.setGraphicsEffect(self._efecto_opacidad)
-        self._efecto_opacidad.setOpacity(0.0)
+        self._bloquear_neon = False
 
     def obtener_animacion_baraja(self):
-        from PySide6.QtCore import QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPoint
-        
-        if not hasattr(self, "_efecto_opacidad"):
+        from PySide6.QtCore import QPropertyAnimation, QEasingCurve
+        if not hasattr(self, '_efecto_opacidad'):
             return None
 
-        self.raise_()
-            
-        final_pos = self.pos()
-        # Reducimos la caída a 45px para que empate con el despliegue de la ventana
-        start_pos = QPoint(final_pos.x(), final_pos.y() + 45)
-        self.move(start_pos)
-
-        # Animación de Traslación veloz (380ms)
-        anim_pos = QPropertyAnimation(self, b"pos", self)
-        anim_pos.setDuration(380) 
-        anim_pos.setStartValue(start_pos)
-        anim_pos.setEndValue(final_pos)
-        anim_pos.setEasingCurve(QEasingCurve.Type.OutCubic) 
-
-        # Fade in ultra rápido (280ms) para que no se vea vacío
-        anim_fade = QPropertyAnimation(self._efecto_opacidad, b"opacity", self)
-        anim_fade.setDuration(280)
+        anim_fade = QPropertyAnimation(self._efecto_opacidad, b'opacity', self)
+        anim_fade.setDuration(260)
         anim_fade.setStartValue(0.0)
         anim_fade.setEndValue(1.0)
         anim_fade.setEasingCurve(QEasingCurve.Type.OutCubic)
 
-        grupo = QParallelAnimationGroup(self)
-        grupo.addAnimation(anim_pos)
-        grupo.addAnimation(anim_fade)
-        
         def _on_finish():
             self._bloquear_neon = False
-            if hasattr(self, "_efecto_opacidad"):
+            if hasattr(self, '_efecto_opacidad'):
                 self._efecto_opacidad.setOpacity(1.0)
             self.update()
-            
-        grupo.finished.connect(_on_finish)
-        return grupo
+
+        anim_fade.finished.connect(_on_finish)
+        return anim_fade
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -1360,3 +1335,4 @@ class GameCard(NeonFrame):
             }}
         """)
         self._steam_badge.show()
+

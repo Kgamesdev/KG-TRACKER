@@ -33,3 +33,5 @@ scripts/Auditoria/
 data/reclamados.json
 data/settings.json
 scripts/Auditoria.txt
+ 
+_audit/

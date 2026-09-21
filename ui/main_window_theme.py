@@ -326,58 +326,101 @@ def _sync_theme_properties(self):
     widget.style().unpolish(widget)
     widget.style().polish(widget)
 
-
 def alternar_tema(self):
-  """Cambia el tema en caliente aplicando un QSS global."""
-  config.CURRENT_THEME = "light" if config.CURRENT_THEME == "dark" else "dark"
-  self.es_modo_oscuro = config.CURRENT_THEME == "dark"
-  self._apply_theme_qss()
+    """Realiza un fundido cruzado (Fade In) visual cinematografico."""
+    from PySide6.QtCore import QVariantAnimation, QEasingCurve, Qt
+    from PySide6.QtGui import QPainter
+    from PySide6.QtWidgets import QWidget
 
-  icon_path = self._icon_path(
-    "light_theme.png" if self.es_modo_oscuro else "dark_theme.png"
-  )
-  self.btn_side_theme.setIcon(QIcon(icon_path))
-  self.btn_side_theme.setIconSize(QSize(28, 28))
+    # 1. Crear un overlay que pinte la pantalla anterior desvaneciendose
+    snapshot = self.grab()
 
-  self._actualizar_estilo_botones()
-  if hasattr(self, "_actualizar_vista_juegos"):
-      if hasattr(self, "game_widgets_map"):
-          for w in list(self.game_widgets_map.values()):
-              w.setParent(None)
-              w.deleteLater()
-          self.game_widgets_map.clear()
-      self._actualizar_vista_juegos()
+    class FadeOverlay(QWidget):
+        def __init__(self, parent, pixmap):
+            super().__init__(parent)
+            self.pixmap = pixmap
+            self.alpha = 255
+            self.setGeometry(parent.rect())
+            self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+            self.show()
+            self.raise_()
+
+        def paintEvent(self, event):
+            if self.alpha > 0 and not self.pixmap.isNull():
+                painter = QPainter(self)
+                painter.setOpacity(self.alpha / 255.0)
+                painter.drawPixmap(0, 0, self.pixmap)
+                painter.end()
+
+    overlay = FadeOverlay(self, snapshot)
+
+    # 2. Cambiar tema por debajo
+    config.CURRENT_THEME = "light" if config.CURRENT_THEME == "dark" else "dark"
+    self.es_modo_oscuro = (config.CURRENT_THEME == "dark")
+    self._apply_theme_qss()
+
+    icon_path = self._icon_path(
+        "light_theme.png" if self.es_modo_oscuro else "dark_theme.png"
+    )
+    self.btn_side_theme.setIcon(QIcon(icon_path))
+    self.btn_side_theme.setIconSize(QSize(28, 28))
+    self._actualizar_estilo_botones()
+
+    if hasattr(self, "_actualizar_vista_juegos"):
+        if hasattr(self, "game_widgets_map"):
+            for w in list(self.game_widgets_map.values()):
+                w.setParent(None)
+                w.deleteLater()
+            self.game_widgets_map.clear()
+        self._actualizar_vista_juegos()
+
+    # 3. Animar la transparencia del overlay de 255 a 0 (Fade In continuo)
+    anim = QVariantAnimation(self)
+    anim.setDuration(320)
+    anim.setStartValue(255)
+    anim.setEndValue(0)
+    anim.setEasingCurve(QEasingCurve.Type.InOutQuad)
+
+    def _on_step(valor):
+        overlay.alpha = int(valor)
+        overlay.update()
+
+    def _on_end():
+        overlay.setParent(None)
+        overlay.deleteLater()
+
+    anim.valueChanged.connect(_on_step)
+    anim.finished.connect(_on_end)
+    self._theme_fade_anim = anim
+    anim.start()
 
 
 def _actualizar_estilo_botones(self):
-  self._set_button_role(self.btn_side_back, "sidebar")
-  self._set_button_role(self.btn_side_kofi, "sidebar")
-  self._set_button_role(self.btn_side_settings, "sidebar")
-  self._set_button_role(self.btn_side_theme, "sidebar")
-  self._set_button_role(self.btn_side_todas, "sidebar")
-  self._set_button_role(self.btn_actualizar, "accent")
-  self._set_button_role(self.btn_reclamados, "secondary")
-  if hasattr(self, "ahorro_pill") and self.ahorro_pill is not None:
-      self.ahorro_pill.setProperty("role", "saved_pill")
-      self.ahorro_pill.setStyleSheet("QPushButton { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #E5A93C, stop:1 #C8861E); color: #FFFFFF; border: 1.5px solid #FAD06C; border-radius: 12px; padding: 0 8px; font-weight: bold; }")
-      self.ahorro_pill.style().unpolish(self.ahorro_pill)
-      self.ahorro_pill.style().polish(self.ahorro_pill)
-  self._set_button_role(self.btn_mute, "secondary")
+    self._set_button_role(self.btn_side_back, "sidebar")
+    self._set_button_role(self.btn_side_kofi, "sidebar")
+    self._set_button_role(self.btn_side_settings, "sidebar")
+    self._set_button_role(self.btn_side_theme, "sidebar")
+    self._set_button_role(self.btn_side_todas, "sidebar")
+    self._set_button_role(self.btn_reclamados, "secondary")
+    if hasattr(self, "ahorro_pill") and self.ahorro_pill is not None:
+        self.ahorro_pill.setProperty("role", "saved_pill")
+        self.ahorro_pill.setStyleSheet("QPushButton { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #E5A93C, stop:1 #C8861E); color: #FFFFFF; border: 1.5px solid #FAD06C; border-radius: 12px; padding: 0 8px; font-weight: bold; }")
+        self.ahorro_pill.style().unpolish(self.ahorro_pill)
+        self.ahorro_pill.style().polish(self.ahorro_pill)
+    self._set_button_role(self.btn_mute, "secondary")
 
 
 def _set_button_role(self, button, role):
-  if button is None:
-    return
-  button.setProperty("role", role)
-  if hasattr(button, "aplicar_estilo_segun_rol"):
-      button.aplicar_estilo_segun_rol()
-  button.style().unpolish(button)
-  button.style().polish(button)
+    if button is None:
+        return
+    button.setProperty("role", role)
+    button.style().unpolish(button)
+    button.style().polish(button)
 
 
 def instalar_metodos(cls):
-  cls._apply_theme_qss = _apply_theme_qss
-  cls._sync_theme_properties = _sync_theme_properties
-  cls.alternar_tema = alternar_tema
-  cls._actualizar_estilo_botones = _actualizar_estilo_botones
-  cls._set_button_role = _set_button_role
+    cls._apply_theme_qss = _apply_theme_qss
+    cls._sync_theme_properties = _sync_theme_properties
+    cls.alternar_tema = alternar_tema
+    cls._actualizar_estilo_botones = _actualizar_estilo_botones
+    cls._set_button_role = _set_button_role
