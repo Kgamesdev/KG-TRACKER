@@ -114,3 +114,4 @@ def instalar_metodos(cls):
 
     cls._detener_audio = _detener_audio
 
+

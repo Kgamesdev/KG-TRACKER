@@ -328,3 +328,4 @@ def obtener_gog_directo(session=None):
         log_error(f"Error consultando GOG directo: {err}")
     return juegos
 
+
