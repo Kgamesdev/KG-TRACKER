@@ -94,9 +94,9 @@ def alternar_mute(self):
 
 def _detener_audio(self):
     try:
+        import pygame
         if pygame.mixer.get_init():
             pygame.mixer.music.stop()
-            pygame.mixer.quit()
     except Exception:
         pass
 
@@ -113,3 +113,4 @@ def instalar_metodos(cls):
     cls.alternar_mute = alternar_mute
 
     cls._detener_audio = _detener_audio
+

@@ -1,4 +1,4 @@
-﻿from core.storage import guardar_json_atomico, cargar_json_seguro
+from core.storage import guardar_json_atomico, cargar_json_seguro
 import urllib.parse
 """Módulo centralizado de scrapers y consultas directas a tiendas de videojuegos."""
 
@@ -32,8 +32,7 @@ def _obtener_sesion_scrapers():
 def guardar_en_cache_disco(giveaways):
     try:
         os.makedirs(os.path.dirname(CACHE_GIVEAWAYS_FILE), exist_ok=True)
-        with open(CACHE_GIVEAWAYS_FILE, "w", encoding="utf-8") as f:
-            json.dump(giveaways, f, ensure_ascii=False, indent=2)
+        guardar_json_atomico(CACHE_GIVEAWAYS_FILE, giveaways)
     except Exception as err:
         log_error(f"Error guardando caché local: {err}")
 
@@ -328,3 +327,4 @@ def obtener_gog_directo(session=None):
     except Exception as err:
         log_error(f"Error consultando GOG directo: {err}")
     return juegos
+
