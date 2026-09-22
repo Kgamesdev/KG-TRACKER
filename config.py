@@ -1,5 +1,5 @@
 # --- VERSION Y ACTUALIZACIONES ---
-APP_VERSION = "0.3.1"
+APP_VERSION = "0.3.2"
 GITHUB_REPO = "Kgamesdev/KG-TRACKER"
 GITHUB_RELEASES_URL = f"https://github.com/{GITHUB_REPO}/releases"
 GITHUB_API_LATEST_RELEASE = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
