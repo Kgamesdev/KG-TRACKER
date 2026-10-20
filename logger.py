@@ -3,9 +3,16 @@
 Proporciona una manera consistente de registrar eventos, errores y debugging
 en toda la aplicación.
 
+Los logs se guardan en el directorio de datos del usuario (%LOCALAPPDATA%\\KGTracker\\logs),
+con rotación automática. Si ese directorio no es escribible se usa la carpeta
+temporal del sistema y, como último recurso, solo consola: el logger nunca
+debe impedir que la aplicación arranque.
+
+Nivel por defecto: INFO. Para depurar, definir la variable de entorno KGT_DEBUG=1.
+
 Ejemplo de uso:
     from logger import log_info, log_error, log_warning
-    
+
     log_info("App iniciada")
     log_error("Error al descargar imagen", exc_info=True)
     log_warning("Conexión lenta detectada")
@@ -14,35 +21,70 @@ Ejemplo de uso:
 import logging
 import os
 import sys
-from datetime import datetime
+import tempfile
+from logging.handlers import RotatingFileHandler
 
-# Directorio de logs junto al propio módulo, NO relativo al directorio de
-# trabajo actual (CWD). Si se deja como "logs" a secas, al arrancar la app
-# vía autostart de Windows el CWD puede no ser la carpeta del proyecto y
-# los logs se crearían en un sitio inesperado (o fallaría la creación si
-# ese CWD no es escribible).
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-LOGS_DIR = os.path.join(BASE_DIR, "logs")
-if not os.path.exists(LOGS_DIR):
-    os.makedirs(LOGS_DIR)
+LOG_NOMBRE = "kgametracker.log"
+LOG_MAX_BYTES = 1_000_000
+LOG_BACKUPS = 3
 
-# Nombre del archivo de log con fecha
-LOG_FILE = os.path.join(LOGS_DIR, f"kgametracker_{datetime.now().strftime('%Y-%m-%d')}.log")
 
-# Handlers: el de archivo siempre. El de consola solo si hay una consola
-# real conectada (sys.stderr no es None). En un build sin consola
-# (PyInstaller --noconsole / pythonw.exe) StreamHandler() usa por defecto
-# sys.stderr, y si es None cualquier log.info(...) lanzaría una excepción.
-_handlers = [logging.FileHandler(LOG_FILE, encoding="utf-8")]
+def _resolver_directorio_logs():
+    """Devuelve un directorio de logs escribible, o None si no hay ninguno."""
+    candidatos = []
+    try:
+        from core.paths import LOGS_DIR as _LOGS_USUARIO
+        candidatos.append(str(_LOGS_USUARIO))
+    except Exception:
+        pass
+    candidatos.append(os.path.join(tempfile.gettempdir(), "KGTracker", "logs"))
+
+    for directorio in candidatos:
+        try:
+            os.makedirs(directorio, exist_ok=True)
+            prueba = os.path.join(directorio, ".write_test")
+            with open(prueba, "w", encoding="utf-8") as f:
+                f.write("ok")
+            os.remove(prueba)
+            return directorio
+        except OSError:
+            continue
+    return None
+
+
+LOGS_DIR = _resolver_directorio_logs()
+LOG_FILE = os.path.join(LOGS_DIR, LOG_NOMBRE) if LOGS_DIR else None
+
+_handlers = []
+if LOG_FILE:
+    try:
+        _handlers.append(
+            RotatingFileHandler(
+                LOG_FILE, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUPS, encoding="utf-8"
+            )
+        )
+    except OSError:
+        LOG_FILE = None
+
+# El handler de consola solo si hay una consola real conectada (sys.stderr no es
+# None). En un build sin consola (PyInstaller --noconsole / pythonw.exe)
+# StreamHandler() usaría sys.stderr=None y cualquier log lanzaría una excepción.
 if sys.stderr is not None:
     _handlers.append(logging.StreamHandler())
+if not _handlers:
+    _handlers.append(logging.NullHandler())
 
-# Configurar logging
+_NIVEL = logging.DEBUG if os.environ.get("KGT_DEBUG") == "1" else logging.INFO
+
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=_NIVEL,
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-    handlers=_handlers
+    handlers=_handlers,
 )
+
+# Las librerías HTTP en DEBUG registran URLs completas; las mantenemos en WARNING.
+for _nombre in ("urllib3", "requests", "PIL"):
+    logging.getLogger(_nombre).setLevel(logging.WARNING)
 
 # Obtener logger específico
 logger = logging.getLogger("KGameTracker")
@@ -132,7 +174,7 @@ def obtener_ruta_log():
         ruta = obtener_ruta_log()
         print(f"Logs guardados en: {ruta}")
     """
-    return LOG_FILE
+    return LOG_FILE or ""
 
 
 # =====================================================

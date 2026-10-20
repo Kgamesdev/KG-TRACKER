@@ -16,6 +16,7 @@ def _normalizar_titulo_clave(titulo):
 
 from core.i18n import t
 from core.storage import guardar_json_atomico, cargar_json_seguro
+from core.paths import RECLAMADOS_FILE
 """Histórico de juegos reclamados."""
 
 
@@ -26,7 +27,7 @@ import os
 
 import re
 
-import webbrowser
+from core.validators import abrir_url_externa_segura
 
 from datetime import datetime
 
@@ -49,14 +50,9 @@ from ui.components.game_card import GameCard
 
 
 def _ruta_reclamados(self):
+    return str(RECLAMADOS_FILE)
 
-  base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-  data_dir = os.path.join(base_dir, "data")
-
-  os.makedirs(data_dir, exist_ok=True)
-
-  return os.path.join(data_dir, "reclamados.json")
 
 
 
@@ -270,7 +266,7 @@ def _abrir_reclamacion(self, url):
 
   if url:
 
-    webbrowser.open(url)
+    abrir_url_externa_segura(url)
 
 
 

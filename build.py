@@ -1,4 +1,4 @@
-﻿"""
+"""
 build.py
 Script maestro de compilación automatizada y verificable para KG Tracker.
 Proceso: Limpieza -> Tests -> Compilación PyInstaller -> Checksum SHA256.
@@ -36,11 +36,8 @@ def main():
     print("🚀 KG TRACKER — PIPELINE DE COMPILACIÓN DE RELEASE")
     print("==================================================")
 
-    # 1. Limpieza de artefactos previos
-    clean_script = ROOT_DIR / "scripts" / "clean_release.py"
-    if clean_script.exists():
-        if not ejecutar_comando([sys.executable, str(clean_script)], "LIMPIEZA DE ARTEFACTOS"):
-            sys.exit(1)
+    # 1. Limpieza omitida intencionadamente.
+    # No ejecutar clean_release.py hasta revisar y corregir su comportamiento destructivo.
 
     # 2. Ejecutar la suite completa de tests
     print("\n🧪 Ejecutando suite de pruebas unitarias e integración...")
@@ -49,22 +46,22 @@ def main():
         sys.exit(1)
 
     # 3. Compilar ejecutable con PyInstaller
-    spec_file = ROOT_DIR / "KGameTracker.spec"
+    spec_file = ROOT_DIR / "KG-TRACKER.spec"
     if not spec_file.exists():
         print(f"❌ Error: No se encontró el archivo spec {spec_file}")
         sys.exit(1)
 
-    if not ejecutar_comando(["pyinstaller", "--noconfirm", str(spec_file)], "COMPILACIÓN PYINSTALLER"):
+    if not ejecutar_comando([sys.executable, "-m", "PyInstaller", "--noconfirm", str(spec_file)], "COMPILACIÓN PYINSTALLER"):
         sys.exit(1)
 
     # 4. Verificar ejecutable generado y calcular checksum SHA256
-    exe_path = ROOT_DIR / "dist" / "KGameTracker.exe"
+    exe_path = ROOT_DIR / "dist" / "KG-TRACKER.exe"
     if exe_path.exists():
         size_mb = exe_path.stat().st_size / (1024 * 1024)
         checksum = calcular_sha256(exe_path)
 
-        checksum_file = ROOT_DIR / "dist" / "KGameTracker.exe.sha256"
-        checksum_file.write_text(f"{checksum}  KGameTracker.exe\n", encoding="utf-8")
+        checksum_file = ROOT_DIR / "dist" / "KG-TRACKER.exe.sha256"
+        checksum_file.write_text(f"{checksum}  KG-TRACKER.exe\n", encoding="utf-8")
 
         print("\n==================================================")
         print("🎉 COMPILACIÓN EXITOSA — RESUMEN DE RELEASE")
@@ -75,7 +72,7 @@ def main():
         print(f"📄 Checksum guardado en: {checksum_file}")
         print("==================================================")
     else:
-        print("❌ Error: El ejecutable dist/KGameTracker.exe no fue generado.")
+        print("❌ Error: El ejecutable dist/KG-TRACKER.exe no fue generado.")
         sys.exit(1)
 
 

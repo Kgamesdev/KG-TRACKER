@@ -1,7 +1,6 @@
 """Modal de apoyo a Ko-fi para K GAME TRACKER con diseno premium y mensaje personal."""
 
 import os
-import webbrowser
 
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QIcon
@@ -13,6 +12,7 @@ from PySide6.QtWidgets import (
 from config import ICON_PATH
 from core.i18n import obtener_idioma
 
+from core.validators import abrir_url_externa_segura
 
 class KofiModal(QDialog):
     """Modal Qt para apoyar el proyecto mediante Ko-fi con diseno calido y personal."""
@@ -175,6 +175,6 @@ class KofiModal(QDialog):
         self._anim_fade.start()
 
     def ir_a_kofi(self):
-        webbrowser.open_new_tab("https://ko-fi.com/kurigamedeveloper")
+        abrir_url_externa_segura("https://ko-fi.com/kurigamedeveloper", nueva_pestana=True)
         self.close()
 

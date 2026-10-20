@@ -10,9 +10,10 @@ import re
 import html
 import threading
 from config import BASE_DIR
+from core.paths import CACHE_GIVEAWAYS_FILE as USER_CACHE_GIVEAWAYS_FILE
 from logger import log_info, log_warning, log_error
 
-CACHE_GIVEAWAYS_FILE = os.path.join(BASE_DIR, "data", "giveaways_cache.json")
+CACHE_GIVEAWAYS_FILE = str(USER_CACHE_GIVEAWAYS_FILE)
 
 _session_scrapers = None
 _scrapers_lock = threading.Lock()

@@ -1,13 +1,11 @@
-import requests
 """Utilidades y compatibilidad de la ventana principal."""
 
-import hashlib
 import os
-import webbrowser
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QApplication
 from logger import log_warning
+from core.validators import abrir_url_externa_segura, DOMINIOS_GITHUB
 from config import (
     COLOR_BG_CARD, COLOR_HOVER, COLOR_BORDER, COLOR_TEXT_PRIMARY,
     COLOR_ACCENT, COLOR_ACCENT_LIGHT,
@@ -48,41 +46,6 @@ def _load_store_icon(self, path, logical_size=64):
 
 
 
-def _load_thumbnail(self, url_img):
-    if not url_img:
-        return None
-
-    cache_dir = "cache"
-    os.makedirs(cache_dir, exist_ok=True)
-    filename = os.path.join(
-        cache_dir,
-        f"{hashlib.sha256(url_img.encode('utf-8')).hexdigest()}.png",
-    )
-
-    try:
-        if os.path.exists(filename):
-            pixmap = QPixmap(filename)
-            if not pixmap.isNull():
-                return pixmap
-
-        headers = {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            )
-        }
-        res = requests.get(url_img, headers=headers, timeout=5)
-        if res.status_code == 200:
-            pixmap = QPixmap()
-            if pixmap.loadFromData(res.content):
-                pixmap.save(filename, "PNG")
-                return pixmap
-    except Exception as e:
-        log_warning(f"Error descargando miniatura ({url_img}): {e}")
-    return None
-
-
-
 def _resize_canvas_content(self, event):
     # Compatibilidad nominal con el nombre antiguo.
     if self.frame_lista is not None:
@@ -98,7 +61,7 @@ def _mousewheel(self, event):
 
 def abrir_enlace(self, url):
     if url:
-        webbrowser.open(url)
+        abrir_url_externa_segura(url)
 
 
 
@@ -227,7 +190,6 @@ def _actualizar_textos_idioma(self):
     if hasattr(self, "_actualizar_vista_juegos"):
         self._actualizar_vista_juegos()
 
-import webbrowser
 from core.updater import verificar_actualizacion_asincrona
 
 
@@ -245,13 +207,12 @@ def _on_nueva_version_detectada(self, tag_name: str, release_url: str):
                 self.btn_descargar_update.clicked.disconnect()
             except Exception:
                 pass
-            self.btn_descargar_update.clicked.connect(lambda: webbrowser.open_new_tab(release_url))
+            self.btn_descargar_update.clicked.connect(lambda: abrir_url_externa_segura(release_url, DOMINIOS_GITHUB, nueva_pestana=True))
         self.update_banner.show()
 
 def instalar_metodos(cls):
     cls._centrar = _centrar
     cls._load_store_icon = _load_store_icon
-    cls._load_thumbnail = _load_thumbnail
     cls._resize_canvas_content = _resize_canvas_content
     cls._mousewheel = _mousewheel
     cls.abrir_enlace = abrir_enlace
