@@ -27,7 +27,7 @@ import os
 
 import re
 
-import webbrowser
+from core.validators import abrir_url_externa_segura
 
 from datetime import datetime
 
@@ -266,7 +266,7 @@ def _abrir_reclamacion(self, url):
 
   if url:
 
-    webbrowser.open(url)
+    abrir_url_externa_segura(url)
 
 
 

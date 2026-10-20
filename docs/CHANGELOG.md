@@ -1,6 +1,17 @@
-﻿# CHANGELOG — KG TRACKER
+# CHANGELOG — KG TRACKER
 
 Todos los cambios notables en este proyecto se documentan en este archivo.
+
+## [Sin publicar]
+### Seguridad
+- Todas las aperturas de enlaces pasan por `abrir_url_externa_segura` (HTTPS + lista blanca, sin credenciales ni puertos raros).
+- Descargas: HTTPS validado en cada redirección y límite de dimensiones de imagen antes de decodificar.
+### Corregido
+- Logger: ruta en `%LOCALAPPDATA%`, rotación, nivel INFO y sin fallo de arranque si no se puede escribir.
+- `core/paths.py`: `SyntaxWarning` por secuencia de escape inválida.
+### Mantenimiento
+- Eliminados archivos basura de la raíz y binarios del control de versiones; spec único; dependencias en UTF-8.
+- CI (tests + `pip-audit`) y Dependabot.
 
 ## [v0.2.33] - 2026-09-15
 ### Corregido

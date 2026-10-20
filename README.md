@@ -1,4 +1,4 @@
-﻿# K GAME TRACKER (KG Tracker)
+# K GAME TRACKER (KG Tracker)
 
 <p align="center">
   <img src="assets/LogoKG_transparente.png" alt="KG Tracker Logo" width="130"/>
@@ -56,7 +56,6 @@ It features a real-time data enrichment engine that cross-references each giveaw
 | :--- | :--- |
 | **Language** | Python 3.14 |
 | **GUI Framework** | PySide6 (Qt 6.x) with dynamic QSS stylesheets |
-| **Image Processing** | Pillow (`PIL`) |
 | **Networking & APIs** | `requests` with concurrent session pooling |
 | **Audio Engine** | `pygame-ce` |
 | **Persistence** | Transactional JSON with atomic writing (`fsync` + safe replace) |

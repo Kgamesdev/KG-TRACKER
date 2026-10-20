@@ -1,12 +1,36 @@
-﻿"""Gestor de descarga y caché asíncrona de miniaturas para KG Tracker con seguridad de red (SEC-03)."""
+"""Gestor de descarga y caché asíncrona de miniaturas para KG Tracker con seguridad de red (SEC-03)."""
 
 import os
 import hashlib
-from PySide6.QtCore import QObject, Signal, QRunnable, QThreadPool, Qt
-from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtCore import QObject, Signal, QRunnable, QThreadPool, Qt, QBuffer, QByteArray, QIODevice
+from PySide6.QtGui import QImage, QImageReader, QPixmap
 
 from core.paths import CACHE_DIR
 from core.network import descargar_contenido_seguro
+
+
+# Límites de seguridad: un PNG pequeño puede decodificarse a cientos de MB.
+MAX_LADO_PX = 4096
+MAX_PIXELES = 12_000_000
+
+
+def _dimensiones_aceptables(contenido: bytes) -> bool:
+    """Lee solo la cabecera de la imagen y rechaza dimensiones desproporcionadas."""
+    datos = QByteArray(contenido)
+    buf = QBuffer(datos)
+    if not buf.open(QIODevice.OpenModeFlag.ReadOnly):
+        return False
+    try:
+        size = QImageReader(buf).size()
+    finally:
+        buf.close()
+    if not size.isValid():
+        return False
+    return (
+        size.width() <= MAX_LADO_PX
+        and size.height() <= MAX_LADO_PX
+        and size.width() * size.height() <= MAX_PIXELES
+    )
 
 
 class _ImageWorkerSignals(QObject):
@@ -26,7 +50,7 @@ class _ImageDownloadWorker(QRunnable):
     def run(self):
         # Descarga segura con timeouts, límites de tamaño e hilo aislado (NET-01 & SEC-03 fix)
         contenido = descargar_contenido_seguro(self.url)
-        if contenido:
+        if contenido and _dimensiones_aceptables(contenido):
             img = QImage()
             if img.loadFromData(contenido):
                 try:
@@ -118,10 +142,13 @@ class ImageLoader(QObject):
 def limpiar_cache_antigua(dias=30):
     import time, os
     from .paths import CACHE_DIR
-    if not os.path.exists(CACHE_DIR): return
+    if not os.path.exists(CACHE_DIR):
+        return
     ahora = time.time()
     for f in os.listdir(CACHE_DIR):
         ruta = os.path.join(CACHE_DIR, f)
         if os.path.isfile(ruta) and os.stat(ruta).st_mtime < ahora - (dias * 86400):
-            try: os.remove(ruta)
-            except: pass
+            try:
+                os.remove(ruta)
+            except OSError:
+                pass

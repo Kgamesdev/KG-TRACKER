@@ -1,4 +1,4 @@
-﻿# K GAME TRACKER (KG Tracker)
+# K GAME TRACKER (KG Tracker)
 
 <p align="center">
   <img src="assets/LogoKG_transparente.png" alt="KG Tracker Logo" width="130"/>
@@ -58,7 +58,6 @@ Cuenta con un motor de enriquecimiento de datos en tiempo real que cruza cada of
 | :--- | :--- |
 | **Lenguaje** | Python 3.14 |
 | **Interfaz Gráfica (GUI)** | PySide6 (Qt 6.x) con hojas de estilo dinámicas (QSS) |
-| **Procesamiento de Imágenes** | Pillow (`PIL`) |
 | **Consumo de APIs y Red** | `requests` con manejo de sesiones concurrentes |
 | **Motor de Audio** | `pygame-ce` |
 | **Persistencia** | JSON transaccional con escritura atómica (`fsync` + reemplazo seguro) |

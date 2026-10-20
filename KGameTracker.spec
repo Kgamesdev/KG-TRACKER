@@ -98,7 +98,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,  # UPX provoca falsos positivos de antivirus
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,  # Sin ventana CMD de consola
@@ -108,6 +108,3 @@ exe = EXE(
     entitlements_file=None,
     icon='assets/logo.ico' if os.path.exists('assets/logo.ico') else None,
 )
-
-
-
