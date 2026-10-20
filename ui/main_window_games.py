@@ -1,4 +1,4 @@
-﻿import config
+import config
 """Búsqueda, filtrado y construcción de la vista de juegos con validación temporal estricta a 0.00 EUR."""
 
 import os
@@ -30,7 +30,8 @@ from core.scrapers.store_scrapers import (
     obtener_gog_directo as _obtener_gog_directo,
 )
 
-CACHE_GIVEAWAYS_FILE = os.path.join(BASE_DIR, "data", "giveaways_cache.json")
+from core.paths import CACHE_GIVEAWAYS_FILE as USER_CACHE_GIVEAWAYS_FILE
+CACHE_GIVEAWAYS_FILE = str(USER_CACHE_GIVEAWAYS_FILE)
 
 
 def _limpiar_hilo_busqueda(self):

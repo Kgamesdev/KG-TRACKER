@@ -1,4 +1,5 @@
-﻿import os
+import os
+import tempfile
 import unittest
 from pathlib import Path
 from core.paths import get_resource_dir, get_user_data_dir, SETTINGS_FILE
@@ -39,21 +40,19 @@ class TestPhase1P0(unittest.TestCase):
 
         self.assertTrue(exito)
 
-    def test_atomic_storage_user_dir(self):
-        """Verifica que la escritura atómica cree archivos en el directorio de usuario."""
-        test_file = get_user_data_dir() / "data" / "test_atomic.json"
-        data_test = {"status": "ok", "count": 42}
+    def test_atomic_storage_temp_dir(self):
+        """Verifica la escritura atómica en un directorio temporal aislado."""
+        with tempfile.TemporaryDirectory(prefix="kgtracker-storage-test-") as tmp:
+            test_file = Path(tmp) / "data" / "test_atomic.json"
+            data_test = {"status": "ok", "count": 42}
 
-        self.assertTrue(guardar_json_atomico(test_file, data_test))
-        loaded = cargar_json_seguro(test_file)
-        self.assertEqual(loaded.get("status"), "ok")
+            self.assertTrue(guardar_json_atomico(test_file, data_test))
 
-        if test_file.exists():
-            test_file.unlink()
-        bak = test_file.with_suffix(".bak")
-        if bak.exists():
-            bak.unlink()
-
+            loaded = cargar_json_seguro(test_file)
+            self.assertEqual(loaded.get("status"), "ok")
+            self.assertEqual(loaded.get("count"), 42)
 
 if __name__ == "__main__":
     unittest.main()
+
+

@@ -1,4 +1,4 @@
-﻿"""
+"""
 core/paths.py
 Gestión centralizada de rutas de recursos (solo lectura) y datos de usuario (escritura).
 Resuelve el bloqueador PKG-01 para ejecución empaquetada en Windows.
@@ -20,7 +20,7 @@ def get_resource_dir() -> Path:
 
 
 def get_user_data_dir() -> Path:
-    """Retorna la ruta escribible para datos del usuario en %LOCALAPPDATA%\KGTracker."""
+    """Retorna la ruta escribible para datos del usuario en %LOCALAPPDATA%\\KGTracker."""
     if sys.platform == "win32":
         base = os.environ.get("LOCALAPPDATA", os.path.expanduser("~\\AppData\\Local"))
     elif sys.platform == "darwin":
