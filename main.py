@@ -1,5 +1,3 @@
-from core.tray import GameTrackerTray
-
 import sys
 
 import io
@@ -266,15 +264,21 @@ def main():
 
     from PySide6.QtWidgets import QApplication
 
+    app = QApplication.instance() or QApplication(sys.argv)
+
+    from core.single_instance import SingleInstance
+
+    app.setApplicationName("KGameTracker")
+    gestor_instancia = SingleInstance()
+
+    if not gestor_instancia.is_primary:
+        log_info("[APP] Ya hay una instancia abierta; se solicitó mostrar su ventana.")
+        return 0
+
     from ui.main_window import VentanaPrincipal
-
-
+    from core.tray import GameTrackerTray
 
     log_app_iniciada()
-
-
-
-    app = QApplication.instance() or QApplication(sys.argv)
 
     app.setQuitOnLastWindowClosed(False)
 
@@ -322,11 +326,13 @@ def main():
 
         def mostrar_principal():
 
-            ventana.show()
+            if splash is not None and splash.isVisible():
+                splash.close()
 
-            ventana.raise_()
+            ventana._tray.mostrar_ventana()
 
-            ventana.activateWindow()
+
+        gestor_instancia.activation_requested.connect(mostrar_principal)
 
 
 
@@ -359,6 +365,14 @@ def main():
         return 1
 
     finally:
+
+        try:
+
+            gestor_instancia.close()
+
+        except Exception:
+
+            pass
 
         try:
 
