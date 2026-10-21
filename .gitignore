@@ -1,10 +1,16 @@
 ﻿# Entornos virtuales y Python
 .venv/
+.venv-*/
 venv/
 env/
 __pycache__/
 *.pyc
 *.pyo
+
+# Salidas locales de PyInstaller; no forman parte del código fuente
+/build/
+/dist/
+/logs/
 
 # Caches locales (no deben subir a GitHub)
 cache/
