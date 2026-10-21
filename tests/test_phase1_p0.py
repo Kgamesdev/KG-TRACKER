@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from core.paths import get_resource_dir, get_user_data_dir, SETTINGS_FILE
 from core.tray import enviar_notificacion_windows
@@ -20,7 +21,7 @@ class TestPhase1P0(unittest.TestCase):
         if os.name == "nt":
             self.assertIn("AppData", str(user_data_dir))
 
-    def test_sec_01_powershell_payload_injection(self):
+    def test_sec_01_notification_payload_is_handled_asynchronously(self):
         """
         Prueba que un texto malicioso con comillas, caracteres XML y saltos de línea
         NO ejecute comandos arbitrarios ni rompa el proceso de notificación.
@@ -29,16 +30,13 @@ class TestPhase1P0(unittest.TestCase):
         payload_malicioso_mensaje = 'Mensaje con "@ \n & <xml> y comillas "'
 
         # Debe ejecutarse de forma segura sin lanzar excepciones de sintaxis ni subcomandos
-        try:
+        with patch("core.tray.threading.Thread") as thread_mock:
             enviar_notificacion_windows(
                 payload_malicioso_titulo,
                 payload_malicioso_mensaje
             )
-            exito = True
-        except Exception:
-            exito = False
-
-        self.assertTrue(exito)
+        thread_mock.assert_called_once()
+        thread_mock.return_value.start.assert_called_once_with()
 
     def test_atomic_storage_temp_dir(self):
         """Verifica la escritura atómica en un directorio temporal aislado."""

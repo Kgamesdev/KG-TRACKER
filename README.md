@@ -63,7 +63,6 @@ py -3.12 -m venv .venv
 | :--- | :--- |
 | **Language** | Python 3.12 (tested) |
 | **GUI Framework** | PySide6 (Qt 6.x) with QSS stylesheets |
-| **Image Processing** | Pillow (`PIL`) |
 | **Networking** | `requests` and concurrent session pooling |
 | **Audio Engine** | `pygame-ce` |
 | **Persistence** | Local JSON with atomic writes |

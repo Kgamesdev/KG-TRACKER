@@ -299,8 +299,20 @@ def _abrir_kofi(self):
 
 
 def _abrir_settings(self):
+  dialog = getattr(self, "_settings_dialog", None)
+  if dialog is not None and dialog.isVisible():
+    dialog.raise_()
+    dialog.activateWindow()
+    return
+
   dialog = SettingsModal(self)
-  dialog.exec()
+  self._settings_dialog = dialog
+  dialog.finished.connect(
+    lambda _result, owner=self: setattr(owner, "_settings_dialog", None)
+  )
+  dialog.show()
+  dialog.raise_()
+  dialog.activateWindow()
 
 
 def _crear_burbujas_tiendas(self):

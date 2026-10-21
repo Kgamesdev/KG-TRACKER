@@ -279,6 +279,18 @@ def main():
         gestor_instancia.close()
         return 0
 
+    # Restaurar el tema elegido antes de construir widgets y tarjetas.
+    try:
+        import config
+        from core.paths import SETTINGS_FILE
+        from core.storage import cargar_json_seguro
+        preferencias = cargar_json_seguro(SETTINGS_FILE, valor_por_defecto={})
+        tema_guardado = preferencias.get("tema_clave")
+        if tema_guardado in config.THEMES:
+            config.CURRENT_THEME = tema_guardado
+    except Exception as error:
+        log_warning(f"No se pudo restaurar el tema guardado: {error}")
+
     from ui.main_window import VentanaPrincipal
     from core.tray import GameTrackerTray
 

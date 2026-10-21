@@ -178,14 +178,14 @@ class RoundedButton(QPushButton):
             if es_oscuro:
                 self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6366F1, stop:1 #4F46E5); color: #FFFFFF; border: 1.2px solid #818CF8; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; letter-spacing: 0.5px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #818CF8, stop:1 #6366F1); border: 1.2px solid #00F3FF; }} QPushButton:pressed {{ background: #4338CA; padding-top: 2px; }}')
             else:
-                self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #4F46E5, stop:0.5 #6366F1, stop:1 #38BDF8); color: #FFFFFF; border: 1.5px solid #818CF8; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; letter-spacing: 0.5px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6366F1, stop:0.5 #818CF8, stop:1 #67E8F9); border: 1.5px solid #00F3FF; }} QPushButton:pressed {{ background: #3730A3; padding-top: 2px; }}')
+                self.setStyleSheet(f'QPushButton {{ background: #C6D6EA; color: #354E76; border: 1px solid #AEBFD7; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; letter-spacing: 0.2px; }} QPushButton:hover {{ background: #B9CCE3; border: 1px solid #98AFCE; }} QPushButton:pressed {{ background: #AEC3DE; padding-top: 2px; }}')
 
         elif role == 'success':
             # 2. BOTÓN VERDE (RECLAMAR): Mismo verde esmeralda, versión menta luminosa
             if es_oscuro:
                 self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {self._bg}, stop:1 {self._hover}); color: {self._fg}; border: 1px solid #34D399; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #34D399, stop:1 {self._bg}); }} QPushButton:pressed {{ background: #047857; padding-top: 2px; }}')
             else:
-                self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #34D399, stop:1 #10B981); color: #FFFFFF; border: 1.2px solid #6EE7B7; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6EE7B7, stop:1 #34D399); color: #064E3B; border: 1.2px solid #A7F3D0; }} QPushButton:pressed {{ background: #059669; padding-top: 2px; }}')
+                self.setStyleSheet(f'QPushButton {{ background: #C8E2D2; color: #35634B; border: 1px solid #AECFB9; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: #BDDBC9; border: 1px solid #9FC6AD; }} QPushButton:pressed {{ background: #B1D3BE; padding-top: 2px; }}')
 
         elif role in ('secondary', 'sidebar'):
             # 3. BOTONES AZUL MARINO / PIZARRA (SIDEBAR, [✔], [🔗], RECLAMADOS, MUTE):
@@ -195,7 +195,13 @@ class RoundedButton(QPushButton):
                 bd_dark = "#4E506B" if role == 'secondary' else "#3A3A50"
                 self.setStyleSheet(f'QPushButton {{ background: {bg_dark}; color: #FFFFFF; border: 1px solid {bd_dark}; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E506B, stop:1 #3A3B52); border: 1px solid #818CF8; color: #818CF8; }} QPushButton:pressed {{ background: #1E1F2E; padding-top: 2px; }}')
             else:
-                self.setStyleSheet(f'QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #636792, stop:1 #4D5175); color: #FFFFFF; border: 1.2px solid #878BB8; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #787CAE, stop:1 #5E628E); border: 1.2px solid #A5B4FC; color: #FFFFFF; }} QPushButton:pressed {{ background: #3C3F5E; padding-top: 2px; }}')
+                if role == 'sidebar':
+                    bg_light, hover_light, pressed_light = "#D0DCEC", "#C4D4E8", "#B8CAE2"
+                    fg_light, border_light, hover_border = "#3B5479", "#B2C2D8", "#9FB4D0"
+                else:
+                    bg_light, hover_light, pressed_light = "#DDE5EF", "#D0DCE9", "#C4D2E2"
+                    fg_light, border_light, hover_border = "#38485D", "#C1CDDB", "#AEBED2"
+                self.setStyleSheet(f'QPushButton {{ background: {bg_light}; color: {fg_light}; border: 1px solid {border_light}; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: {hover_light}; border: 1px solid {hover_border}; color: {fg_light}; }} QPushButton:pressed {{ background: {pressed_light}; padding-top: 2px; }}')
 
         else:
             b_bg = "#FFFFFF" if not es_oscuro else self._bg
@@ -268,11 +274,11 @@ class RoundedButton(QPushButton):
             es_oscuro_ahorro = (config.CURRENT_THEME == "dark")
             if not es_oscuro_ahorro:
                 if self._is_hover:
-                    bg_grad.setColorAt(0.0, QColor('#FCD34D'))
-                    bg_grad.setColorAt(1.0, QColor('#F59E0B'))
+                    bg_grad.setColorAt(0.0, QColor('#F2E5C3'))
+                    bg_grad.setColorAt(1.0, QColor('#EEDFB2'))
                 else:
-                    bg_grad.setColorAt(0.0, QColor('#FBBF24'))
-                    bg_grad.setColorAt(1.0, QColor('#D97706'))
+                    bg_grad.setColorAt(0.0, QColor('#F0E1B8'))
+                    bg_grad.setColorAt(1.0, QColor('#EBD8A6'))
             else:
                 if self._is_hover:
                     bg_grad.setColorAt(0.0, QColor('#F0B74E'))
@@ -285,7 +291,7 @@ class RoundedButton(QPushButton):
             p.setBrush(bg_grad)
             p.drawRoundedRect(r, float(self._radius), float(self._radius))
 
-            c_bd = '#FFD700' if not (self._is_hover or self._flicker_state) else '#FFFF80'
+            c_bd = '#DDC77F' if not (self._is_hover or self._flicker_state) else '#CFB965'
             p.setPen(QPen(QColor(c_bd), ab))
             p.setBrush(Qt.BrushStyle.NoBrush)
             p.drawRoundedRect(r, float(self._radius), float(self._radius))
@@ -298,7 +304,7 @@ class RoundedButton(QPushButton):
             p.setBrush(lg)
             p.drawRoundedRect(r, float(self._radius), float(self._radius))
 
-            p.setPen(QPen(QColor('#FFFFFF')))
+            p.setPen(QPen(QColor('#70591F') if not es_oscuro_ahorro else QColor('#FFFFFF')))
             p.setFont(self.font())
             p.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self.text())
             p.end()
@@ -316,11 +322,18 @@ class RoundedButton(QPushButton):
 
         if self._is_hover:
             g = QConicalGradient(r.center(), self._ang)
-            g.setColorAt(0.0, QColor('#FFFFFF'))
-            g.setColorAt(0.15, QColor('#00F3FF'))
-            g.setColorAt(0.50, QColor('#818CF8'))
-            g.setColorAt(0.85, QColor('#00F3FF'))
-            g.setColorAt(1.0, QColor('#FFFFFF'))
+            if config.CURRENT_THEME == "light":
+                g.setColorAt(0.0, QColor('#E7EDF6'))
+                g.setColorAt(0.15, QColor('#BCCBDD'))
+                g.setColorAt(0.50, QColor('#8299BD'))
+                g.setColorAt(0.85, QColor('#BCCBDD'))
+                g.setColorAt(1.0, QColor('#E7EDF6'))
+            else:
+                g.setColorAt(0.0, QColor('#FFFFFF'))
+                g.setColorAt(0.15, QColor('#00F3FF'))
+                g.setColorAt(0.50, QColor('#818CF8'))
+                g.setColorAt(0.85, QColor('#00F3FF'))
+                g.setColorAt(1.0, QColor('#FFFFFF'))
             pen = QPen(g, ab)
         else:
             pen = QPen(QColor(self._border), ab)
@@ -781,13 +794,19 @@ class NeonFrame(QFrame):
         r.adjust(0.75, 0.75, -0.75, -0.75)
 
         g = QConicalGradient(r.center(), self._ang)
-        g.setColorAt(0.0, QColor("#FFFFFF"))
-        g.setColorAt(0.05, QColor("#00F3FF"))
-        g.setColorAt(0.12, QColor(129, 140, 248, 50))
+        if config.CURRENT_THEME == "light":
+            g.setColorAt(0.0, QColor(95, 119, 170, 28))
+            g.setColorAt(0.05, QColor(95, 119, 170, 82))
+            g.setColorAt(0.12, QColor(120, 142, 180, 24))
+            g.setColorAt(0.95, QColor(95, 119, 170, 44))
+        else:
+            g.setColorAt(0.0, QColor("#FFFFFF"))
+            g.setColorAt(0.05, QColor("#00F3FF"))
+            g.setColorAt(0.12, QColor(129, 140, 248, 50))
+            g.setColorAt(0.95, QColor(0, 243, 255, 120))
         g.setColorAt(0.22, QColor(0, 0, 0, 0))
         g.setColorAt(0.82, QColor(0, 0, 0, 0))
-        g.setColorAt(0.95, QColor(0, 243, 255, 120))
-        g.setColorAt(1.0, QColor("#FFFFFF"))
+        g.setColorAt(1.0, QColor("#FFFFFF") if config.CURRENT_THEME == "dark" else QColor(95, 119, 170, 28))
 
         pen = QPen(g, float(self._border_width))
         p.setPen(pen)
@@ -824,8 +843,8 @@ class StoreHeaderBanner(NeonFrame):
             bg_gradient.setColorAt(0.0, QColor(42, 45, 72, 185))
             bg_gradient.setColorAt(1.0, QColor(22, 23, 38, 215))
         else:
-            bg_gradient.setColorAt(0.0, QColor(255, 255, 255, 210))
-            bg_gradient.setColorAt(1.0, QColor(215, 228, 245, 190))
+            bg_gradient.setColorAt(0.0, QColor(241, 243, 246, 245))
+            bg_gradient.setColorAt(1.0, QColor(227, 232, 239, 240))
 
         p.setPen(Qt.PenStyle.NoPen)
         p.setBrush(bg_gradient)
@@ -1160,12 +1179,12 @@ class GameCard(NeonFrame):
             c_bot_g = int(29 + (prog * 4))
             c_bot_b = int(46 + (prog * 5))
         else:
-            c_top_r = int(255 - (prog * 6))
-            c_top_g = int(255 - (prog * 6))
-            c_top_b = int(255 - (prog * 4))
-            c_bot_r = int(241 - (prog * 8))
-            c_bot_g = int(245 - (prog * 8))
-            c_bot_b = int(249 - (prog * 6))
+            c_top_r = int(250 - (prog * 5))
+            c_top_g = int(249 - (prog * 5))
+            c_top_b = int(246 - (prog * 4))
+            c_bot_r = int(242 - (prog * 7))
+            c_bot_g = int(240 - (prog * 7))
+            c_bot_b = int(234 - (prog * 6))
 
         bg = QLinearGradient(0, 0, 0, self.height())
         bg.setColorAt(0.0, QColor(c_top_r, c_top_g, c_top_b))
@@ -1178,10 +1197,10 @@ class GameCard(NeonFrame):
         # 3. Borde reactivo orgánico (halo cian suave proporcional a la elevación)
         p.setBrush(Qt.BrushStyle.NoBrush)
         if prog > 0.05:
-            c_neon = QColor(0, 243, 255, int(prog * 200))
+            c_neon = QColor(0, 243, 255, int(prog * 200)) if es_oscuro else QColor(95, 119, 170, int(prog * 100))
             p.setPen(QPen(c_neon, 1.2 + (prog * 0.6)))
         else:
-            p.setPen(QPen(QColor(COLOR_BORDER if es_oscuro else "#CBD5E1"), 1.0))
+            p.setPen(QPen(QColor(COLOR_BORDER if es_oscuro else "#CFD7E2"), 1.0))
         p.drawRoundedRect(r, radius, radius)
         p.end()
 

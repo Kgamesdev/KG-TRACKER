@@ -84,22 +84,27 @@ class _TranslationWorkerThread(QThread):
 
     def run(self):
         session = requests.Session()
-        while self._activo:
-            try:
-                item = self.cola.get(timeout=0.2)
-            except queue.Empty:
-                continue
+        try:
+            while self._activo:
+                try:
+                    item = self.cola.get(timeout=0.2)
+                except queue.Empty:
+                    continue
 
-            if not self._activo or item is None:
-                self.cola.task_done()
-                break
+                try:
+                    if not self._activo or item is None:
+                        break
 
-            clave, texto, target_lang = item
-            traducido = _consultar_traduccion_red(session, texto, target_lang)
-            if self._activo:
-                self.traducido_signal.emit(clave, texto, traducido)
-            self.cola.task_done()
-            time.sleep(0.2)
+                    clave, texto, target_lang = item
+                    traducido = _consultar_traduccion_red(session, texto, target_lang)
+                    if self._activo:
+                        self.traducido_signal.emit(clave, texto, traducido)
+                finally:
+                    self.cola.task_done()
+
+                time.sleep(0.2)
+        finally:
+            session.close()
 
 
 class GameTranslator(QObject):
@@ -183,11 +188,14 @@ class GameTranslator(QObject):
                 pass
 
     def detener(self):
-        for w in self._workers:
+        workers = tuple(self._workers)
+        for w in workers:
             w.stop()
-        for _ in self._workers:
-            self._cola.put(None)
-        for w in self._workers:
-            w.quit()
-            w.wait(250)
+
+        # Estos QThreads ejecutan un bucle propio y peticiones HTTP síncronas;
+        # quit() no interrumpe run(). Mantener las referencias y esperar a que
+        # cada worker salga evita destruir un QThread todavía activo.
+        for w in workers:
+            if w.isRunning():
+                w.wait()
         self._workers.clear()

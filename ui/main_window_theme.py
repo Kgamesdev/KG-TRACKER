@@ -82,14 +82,14 @@ def _apply_theme_qss(self):
 
   /* TARJETA DE JUEGO GAMING */
   QFrame#gameCard {{
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 {c("COLOR_BG_CARD")}, stop:1 #1C1D2E);
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 {c("COLOR_BG_CARD")}, stop:1 {c("COLOR_BG")});
     border: 1px solid {c("COLOR_BORDER")};
     border-radius: 12px;
   }}
 
   QFrame#gameCard:hover {{
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #383952, stop:1 #222338);
-    border: 1px solid rgba(129, 140, 248, 0.75);
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {c("COLOR_HOVER")}, stop:1 {c("COLOR_BG_CARD")});
+    border: 1px solid {('#B6C6DC' if config.CURRENT_THEME == 'light' else 'rgba(129, 140, 248, 0.75)')};
   }}
 
   QLabel#gameImage {{
@@ -181,7 +181,7 @@ def _apply_theme_qss(self):
 
   /* BOTÓN PRINCIPAL */
   QPushButton[role="accent"] {{
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6366F1, stop:1 #4F46E5);
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {c("COLOR_ACCENT")}, stop:1 {c("COLOR_ACCENT_HOVER")});
     color: #FFFFFF;
     border: 1.2px solid #818CF8;
     border-radius: 12px;
@@ -191,12 +191,12 @@ def _apply_theme_qss(self):
   }}
 
   QPushButton[role="accent"]:hover {{
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #818CF8, stop:1 #6366F1);
-    border: 1.2px solid #00F3FF;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {c("COLOR_ACCENT_LIGHT")}, stop:1 {c("COLOR_ACCENT")});
+    border: 1.2px solid {c("COLOR_ACCENT_LIGHT")};
   }}
 
   QPushButton[role="accent"]:pressed {{
-    background: #4338CA;
+    background: {"#555BB5" if config.CURRENT_THEME == "light" else "#4338CA"};
     border-top: 2px solid rgba(0, 0, 0, 0.4);
     padding-top: 2px;
   }}
@@ -233,14 +233,14 @@ def _apply_theme_qss(self):
   }}
 
   QPushButton[role="secondary"]:hover {{
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E506B, stop:1 #3A3B52);
-    border: 1px solid #818CF8;
-    color: #818CF8;
+    background: {c("COLOR_SIDEBAR_HOVER") if config.CURRENT_THEME == "light" else "#3A3B52"};
+    border: 1px solid {c("COLOR_ACCENT_LIGHT")};
+    color: {c("COLOR_ACCENT_LIGHT")};
   }}
 
   QPushButton[role="secondary"]:pressed {{
-    background: #1E1F2E;
-    border: 1px solid #3A3B52;
+    background: {c("COLOR_BG_DESC")};
+    border: 1px solid {c("COLOR_BORDER")};
     padding-top: 2px;
   }}
 
@@ -318,6 +318,10 @@ def _apply_theme_qss(self):
   """
   self.setStyleSheet(qss)
   self._sync_theme_properties()
+  if hasattr(self, "status_pill") and hasattr(self, "_set_status"):
+    self._set_status(
+      self.status_pill.text(), getattr(self, "_status_kind", "success")
+    )
 
 
 def _sync_theme_properties(self):
@@ -325,6 +329,27 @@ def _sync_theme_properties(self):
     widget.setProperty("active", bool(self.active_filters.get(store, False)))
     widget.style().unpolish(widget)
     widget.style().polish(widget)
+
+
+def _guardar_tema_actual():
+    """Persiste el cambio rápido de tema sin descartar el resto de preferencias."""
+    try:
+        from core.paths import SETTINGS_FILE
+        from core.storage import cargar_json_seguro, guardar_json_atomico
+        from core.i18n import MAPEO_TEMAS, obtener_idioma
+
+        preferencias = cargar_json_seguro(SETTINGS_FILE, valor_por_defecto={})
+        if not isinstance(preferencias, dict):
+            preferencias = {}
+        clave = config.CURRENT_THEME
+        idioma = obtener_idioma()
+        temas = MAPEO_TEMAS.get(idioma, MAPEO_TEMAS["es"])
+        preferencias["tema_clave"] = clave
+        preferencias["tema"] = temas[1 if clave == "light" else 0]
+        guardar_json_atomico(SETTINGS_FILE, preferencias)
+    except Exception:
+        from logger import log_warning
+        log_warning("No se pudo guardar el tema seleccionado.")
 
 def alternar_tema(self):
     """Realiza un fundido cruzado (Fade In) visual cinematografico."""
@@ -356,6 +381,7 @@ def alternar_tema(self):
 
     # 2. Cambiar tema por debajo
     config.CURRENT_THEME = "light" if config.CURRENT_THEME == "dark" else "dark"
+    _guardar_tema_actual()
     self.es_modo_oscuro = (config.CURRENT_THEME == "dark")
     self._apply_theme_qss()
 
@@ -396,6 +422,7 @@ def alternar_tema(self):
 
 
 def _actualizar_estilo_botones(self):
+    self._set_button_role(self.btn_actualizar, "accent")
     self._set_button_role(self.btn_side_back, "sidebar")
     self._set_button_role(self.btn_side_kofi, "sidebar")
     self._set_button_role(self.btn_side_settings, "sidebar")
@@ -404,9 +431,13 @@ def _actualizar_estilo_botones(self):
     self._set_button_role(self.btn_reclamados, "secondary")
     if hasattr(self, "ahorro_pill") and self.ahorro_pill is not None:
         self.ahorro_pill.setProperty("role", "saved_pill")
-        self.ahorro_pill.setStyleSheet("QPushButton { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #E5A93C, stop:1 #C8861E); color: #FFFFFF; border: 1.5px solid #FAD06C; border-radius: 12px; padding: 0 8px; font-weight: bold; }")
+        if config.CURRENT_THEME == "light":
+            self.ahorro_pill.setStyleSheet("QPushButton { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #F0E1B8, stop:1 #EBD8A6); color: #705D2D; border: 1px solid #D9C78F; border-radius: 12px; padding: 0 8px; font-weight: bold; }")
+        else:
+            self.ahorro_pill.setStyleSheet("QPushButton { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #E5A93C, stop:1 #C8861E); color: #FFFFFF; border: 1.5px solid #FAD06C; border-radius: 12px; padding: 0 8px; font-weight: bold; }")
         self.ahorro_pill.style().unpolish(self.ahorro_pill)
         self.ahorro_pill.style().polish(self.ahorro_pill)
+        self.ahorro_pill.update()
     self._set_button_role(self.btn_mute, "secondary")
 
 
@@ -414,8 +445,12 @@ def _set_button_role(self, button, role):
     if button is None:
         return
     button.setProperty("role", role)
-    button.style().unpolish(button)
-    button.style().polish(button)
+    aplicar_estilo = getattr(button, "aplicar_estilo_segun_rol", None)
+    if callable(aplicar_estilo):
+        aplicar_estilo()
+    else:
+        button.style().unpolish(button)
+        button.style().polish(button)
 
 
 def instalar_metodos(cls):

@@ -63,7 +63,6 @@ py -3.12 -m venv .venv
 | :--- | :--- |
 | **Lenguaje** | Python 3.12 (probado) |
 | **Interfaz Gráfica** | PySide6 (Qt 6.x) con hojas de estilo QSS |
-| **Procesamiento de Imágenes** | Pillow (`PIL`) |
 | **Conexiones de red** | `requests` y sesiones concurrentes |
 | **Motor de Audio** | `pygame-ce` |
 | **Persistencia** | JSON local con escrituras atómicas |

@@ -1,8 +1,6 @@
 ﻿import os
 import sys
 import json
-import html
-import subprocess
 import threading
 from PySide6.QtWidgets import QSystemTrayIcon, QMenu, QApplication
 from PySide6.QtGui import QIcon, QPixmap, QColor, QPainter, QAction
@@ -60,28 +58,21 @@ def _obtener_dict_reclamados():
 
 
 def enviar_notificacion_windows(titulo: str, mensaje: str, icono_path: str = None, duracion_larga: bool = True):
-    """Envía una notificación push nativa de Windows 10/11 sin inyección de código (SEC-01 fix):
-    - Transmite el payload en JSON a través de STDIN a un script PowerShell estático.
-    - 100% Silenciosa (sin ding de Windows).
-    - Duración pausada y extendida para lectura tranquila.
-    """
+    """Envía una notificación de escritorio de forma asíncrona mediante Plyer."""
     def _worker():
         try:
             t_str = str(titulo or "K GAME TRACKER")
             m_str = str(mensaje or "")
-            try:
-                from plyer import notification
-                notification.notify(
-                    title=t_str,
-                    message=m_str,
-                    app_name="K GAME TRACKER",
-                    timeout=10 if duracion_larga else 5
-                )
-            except Exception:
-                pass
-            log_info(f"📢 Notificación push enviada de forma segura: {t_str}")
+            from plyer import notification
+            notification.notify(
+                title=t_str,
+                message=m_str,
+                app_name="K GAME TRACKER",
+                timeout=10 if duracion_larga else 5
+            )
+            log_info(f"Notificación de escritorio enviada: {t_str}")
         except Exception as e:
-            log_error(f"Error en notificación push: {e}")
+            log_warning(f"No se pudo mostrar la notificación de escritorio: {e}")
 
     threading.Thread(target=_worker, daemon=True).start()
 
@@ -238,16 +229,31 @@ class GameTrackerTray:
 
     def _lanzar_busqueda(self, manual=False):
         try:
+            if getattr(self.ventana, "_busqueda_en_curso", False):
+                log_info("[TRAY] Se omite el barrido: ya hay una búsqueda en curso.")
+                return
+            self._barrido_notificacion_pendiente = bool(manual)
             if hasattr(self.ventana, "cargar_juegos_thread"):
-                self.ventana.cargar_juegos_thread()
+                iniciado = self.ventana.cargar_juegos_thread()
             elif hasattr(self.ventana, "actualizar_ofertas"):
-                self.ventana.actualizar_ofertas()
+                iniciado = self.ventana.actualizar_ofertas()
             elif hasattr(self.ventana, "buscar_juegos"):
-                self.ventana.buscar_juegos()
-
-            QTimer.singleShot(2500, lambda: self._reportar_resultado_barrido(manual))
+                iniciado = self.ventana.buscar_juegos()
+            else:
+                self._barrido_notificacion_pendiente = None
+                return
+            if iniciado is False:
+                self._barrido_notificacion_pendiente = None
         except Exception as e:
+            self._barrido_notificacion_pendiente = None
             log_error(f"[TRAY] Error lanzando barrido: {e}")
+
+    def completar_barrido(self):
+        manual = self._barrido_notificacion_pendiente
+        if manual is None:
+            return
+        self._barrido_notificacion_pendiente = None
+        self._reportar_resultado_barrido(manual)
 
     def _reportar_resultado_barrido(self, manual=False):
         cfg = _obtener_config()

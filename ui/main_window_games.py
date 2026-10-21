@@ -28,14 +28,29 @@ from logger import log_info, log_warning, log_error
 from core.scrapers.store_scrapers import (
     guardar_en_cache_disco as _guardar_en_cache_disco,
     cargar_cache_otras_tiendas as _cargar_cache_otras_tiendas,
+    detectar_tienda_juego as _detectar_tienda_juego,
     obtener_epic_directo as _obtener_epic_directo,
     obtener_steam_directo as _obtener_steam_directo,
     obtener_itch_directo as _obtener_itch_directo,
     obtener_gog_directo as _obtener_gog_directo,
+    obtener_amazon_prime_directo as _obtener_amazon_prime_directo,
+    obtener_fanatical_directo as _obtener_fanatical_directo,
 )
 
 from core.paths import CACHE_GIVEAWAYS_FILE as USER_CACHE_GIVEAWAYS_FILE
 CACHE_GIVEAWAYS_FILE = str(USER_CACHE_GIVEAWAYS_FILE)
+_CACHE_OFERTAS_SIN_FECHA_MAX_HORAS = 12
+
+
+def _clasificar_resultado_busqueda(total_fuentes, fuentes_exitosas, hay_ofertas):
+    """Distingue una búsqueda vacía de otra sin ninguna fuente disponible."""
+    if hay_ofertas:
+        return "offers"
+    if fuentes_exitosas == 0:
+        return "offline"
+    if fuentes_exitosas < total_fuentes:
+        return "partial"
+    return "empty"
 
 
 def _limpiar_hilo_busqueda(self):
@@ -113,6 +128,63 @@ def _titulos_equivalentes_entre_fuentes(titulo_a, titulo_b):
     return SequenceMatcher(None, normal_a, normal_b).ratio() >= 0.96
 
 
+def _oferta_cache_vigente(juego, ahora_utc, cache_actualizada_utc):
+    """Reutiliza solo ofertas no vencidas o sin fecha desde una caché muy reciente."""
+    fecha_fin = str(juego.get("end_date") or juego.get("endDate") or "").strip()
+    if not fecha_fin:
+        if cache_actualizada_utc is None:
+            return False
+        edad = ahora_utc - cache_actualizada_utc
+        return datetime.timedelta(0) <= edad <= datetime.timedelta(
+            hours=_CACHE_OFERTAS_SIN_FECHA_MAX_HORAS
+        )
+
+    try:
+        fecha = datetime.datetime.fromisoformat(fecha_fin.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    if fecha.tzinfo is None:
+        fecha = fecha.replace(tzinfo=datetime.timezone.utc)
+    return fecha >= ahora_utc
+
+
+def _ofertas_son_equivalentes(a, b):
+    tienda_a = str(_detectar_tienda_juego(a) or "").casefold().strip()
+    tienda_b = str(_detectar_tienda_juego(b) or "").casefold().strip()
+    if not tienda_a or tienda_a != tienda_b:
+        return False
+    titulo_a = str(a.get("title") or "").strip()
+    titulo_b = str(b.get("title") or "").strip()
+    return bool(
+        titulo_a
+        and titulo_b
+        and _titulos_equivalentes_entre_fuentes(titulo_a, titulo_b)
+    )
+
+
+def _fusionar_cache_ofertas(juegos_actuales, cache, ahora_utc, cache_actualizada_utc):
+    """Añade ofertas de caché vigentes que no estén ya en los resultados."""
+    combinadas = list(juegos_actuales)
+    recuperadas = 0
+    for juego in cache:
+        if not isinstance(juego, dict) or not _oferta_cache_vigente(
+            juego, ahora_utc, cache_actualizada_utc
+        ):
+            continue
+        if any(
+            _ofertas_son_equivalentes(juego, actual)
+            for actual in combinadas
+            if isinstance(actual, dict)
+        ):
+            continue
+
+        oferta = dict(juego)
+        oferta.setdefault("_kg_source", "GamerPower-cache")
+        combinadas.append(oferta)
+        recuperadas += 1
+    return combinadas, recuperadas
+
+
 class _BusquedaWorker(QObject):
     terminado = Signal(object, str)
     error = Signal(str)
@@ -121,7 +193,8 @@ class _BusquedaWorker(QObject):
         import requests
         juegos_encontrados = []
         respuesta_api_valida = False
-        respuesta_api_vacia = False
+        fuentes_exitosas = 0
+        total_fuentes = 7
 
         def _obtener_gamerpower():
             response = requests.get(API_URL, headers=API_HEADERS, timeout=5.0)
@@ -138,13 +211,15 @@ class _BusquedaWorker(QObject):
         # Combinamos GamerPower y los scrapers para ampliar la cobertura; las
         # coincidencias entre rutas se eliminan al preparar la vista.
         try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
                 fuentes = {
                     executor.submit(_obtener_gamerpower): "GamerPower",
                     executor.submit(_ejecutar_scraper_con_sesion, _obtener_epic_directo): "Epic Games",
                     executor.submit(_ejecutar_scraper_con_sesion, _obtener_itch_directo): "Itch.io",
                     executor.submit(_ejecutar_scraper_con_sesion, _obtener_gog_directo): "GOG",
                     executor.submit(_ejecutar_scraper_con_sesion, _obtener_steam_directo): "Steam",
+                    executor.submit(_ejecutar_scraper_con_sesion, _obtener_amazon_prime_directo): "Amazon Prime",
+                    executor.submit(_ejecutar_scraper_con_sesion, _obtener_fanatical_directo): "Fanatical",
                 }
                 completadas, pendientes = concurrent.futures.wait(
                     fuentes,
@@ -155,9 +230,9 @@ class _BusquedaWorker(QObject):
                     fuente = fuentes[future]
                     try:
                         resultados = future.result() or []
+                        fuentes_exitosas += 1
                         if fuente == "GamerPower":
                             respuesta_api_valida = True
-                            respuesta_api_vacia = not resultados
                             if resultados:
                                 _guardar_en_cache_disco(resultados)
                         for juego in resultados:
@@ -172,18 +247,29 @@ class _BusquedaWorker(QObject):
                     for future in pendientes:
                         future.cancel()
 
-            # Si GamerPower no respondió o quedó vacío, completa también el
-            # resto de plataformas desde su caché local.
-            if not respuesta_api_valida or respuesta_api_vacia:
-                if not respuesta_api_valida:
-                    log_info("GamerPower inaccesible; usando caché y scrapers de respaldo.")
-                cache = _cargar_cache_otras_tiendas(
-                    excluir_tiendas=("Epic Games", "Itch.io", "GOG", "Steam")
-                ) or []
-                for juego in cache:
-                    if isinstance(juego, dict):
-                        juego.setdefault("_kg_source", "GamerPower-cache")
-                juegos_encontrados.extend(cache)
+            # Completa resultados parciales por oferta, no por tienda: una
+            # respuesta actual de la tienda no invalida las demás entradas de
+            # caché que sigan vigentes.
+            cache = _cargar_cache_otras_tiendas(
+                excluir_tiendas=("Epic Games", "Itch.io", "Steam")
+            ) or []
+            ahora_utc = datetime.datetime.now(datetime.timezone.utc)
+            try:
+                cache_actualizada_utc = datetime.datetime.fromtimestamp(
+                    os.path.getmtime(CACHE_GIVEAWAYS_FILE), datetime.timezone.utc
+                )
+            except OSError:
+                cache_actualizada_utc = None
+            juegos_encontrados, recuperadas = _fusionar_cache_ofertas(
+                juegos_encontrados,
+                cache,
+                ahora_utc,
+                cache_actualizada_utc,
+            )
+            if recuperadas:
+                log_info(f"Caché: recuperadas {recuperadas} ofertas de tiendas ausentes en la respuesta actual.")
+            if not respuesta_api_valida:
+                log_info("GamerPower inaccesible; se muestran resultados directos y caché vigente.")
         except Exception as error_busqueda:
             log_error(f"Error en la búsqueda combinada: {error_busqueda}", exc_info=True)
 
@@ -197,21 +283,24 @@ class _BusquedaWorker(QObject):
             self.terminado.emit(juegos_encontrados, "combinado")
             return
 
-        self.error.emit("No se encontraron ofertas gratuitas activas en este momento.")
+        self.error.emit(_clasificar_resultado_busqueda(
+            total_fuentes, fuentes_exitosas, bool(juegos_encontrados)
+        ))
 
 
 def _set_status(self, text, status="success"):
+    self._status_kind = status
     self.status_pill.setText(text)
     es_oscuro = getattr(self, "es_modo_oscuro", config.CURRENT_THEME == "dark")
     if not es_oscuro:
         if status == "success":
-            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #10B981, stop:1 #34D399); color: #FFFFFF; border: 1.2px solid #6EE7B7; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+            estilo = "background: #DCE9DF; color: #4D6B55; border: 1px solid #C8D9CC; border-radius: 10px; font-weight: bold; padding: 0 10px;"
         elif status == "warning":
-            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F59E0B, stop:1 #D97706); color: #FFFFFF; border: 1.2px solid #FCD34D; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+            estilo = "background: #EEE5D2; color: #80652F; border: 1px solid #DFD3B8; border-radius: 10px; font-weight: bold; padding: 0 10px;"
         elif status == "error":
-            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #EF4444, stop:1 #DC2626); color: #FFFFFF; border: 1.2px solid #FCA5A5; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+            estilo = "background: #EEDDD8; color: #8A514A; border: 1px solid #E0C7C1; border-radius: 10px; font-weight: bold; padding: 0 10px;"
         else:
-            estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4F46E5, stop:1 #6366F1); color: #FFFFFF; border: 1.2px solid #818CF8; border-radius: 10px; font-weight: bold; padding: 0 10px;"
+            estilo = "background: #E0E0EC; color: #535886; border: 1px solid #CDCEE0; border-radius: 10px; font-weight: bold; padding: 0 10px;"
     else:
         if status == "success":
             estilo = "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #10B981, stop:1 #059669); color: #FFFFFF; border: 1px solid #34D399; border-radius: 10px; font-weight: bold; padding: 0 10px;"
@@ -305,7 +394,16 @@ def _finalizar_busqueda(self, giveaways, inicio, fuente="gamerpower"):
                     # (/es-ES/, /en-US/, etc.). La región no identifica otra oferta.
                     if host == "store.epicgames.com":
                         ruta = re.sub(r"^/[a-z]{2}-[a-z]{2}(?=/)", "", ruta)
-                    url_canonica = urlunsplit((partes.scheme.casefold() or "https", host + puerto, ruta, "", ""))
+                    # Amazon usa una sola página de reclamaciones para todos
+                    # los juegos Prime; esa URL compartida no identifica un
+                    # duplicado. La clave por tienda y título sí lo hace.
+                    es_pagina_generica_prime = (
+                        tienda == "amazon prime"
+                        and host in {"luna.amazon.com", "gaming.amazon.com"}
+                        and ruta.rstrip("/") in {"/claims", "/home"}
+                    )
+                    if not es_pagina_generica_prime:
+                        url_canonica = urlunsplit((partes.scheme.casefold() or "https", host + puerto, ruta, "", ""))
                 except ValueError:
                     url_canonica = url.casefold().split("?", 1)[0].split("#", 1)[0].rstrip("/")
 
@@ -335,6 +433,14 @@ def _finalizar_busqueda(self, giveaways, inicio, fuente="gamerpower"):
                 urls_vistas.add(url_canonica)
 
         self.juegos_cache_global = list(juegos_unicos.values())
+        conteo_tiendas = {}
+        for juego in self.juegos_cache_global:
+            tienda = self._asignar_tienda(juego)
+            conteo_tiendas[tienda] = conteo_tiendas.get(tienda, 0) + 1
+        resumen_tiendas = ", ".join(
+            f"{tienda}: {cantidad}" for tienda, cantidad in sorted(conteo_tiendas.items())
+        ) or "ninguna"
+        log_info(f"Ofertas activas por tienda: {resumen_tiendas}.")
 
         # La búsqueda carga ofertas y actualiza los contadores, pero no activa
         # ni despliega tiendas por sí sola. El usuario elige qué tienda abrir.
@@ -388,22 +494,36 @@ def _recibir_resultados_busqueda(self, giveaways, fuente):
         getattr(self, "_busqueda_inicio", time.monotonic()),
         fuente=fuente,
     )
+    _notificar_barrido_si_pendiente(self)
 
 
 def _buscar_juegos_error(self, mensaje):
     self._detener_animacion_busqueda()
     self._busqueda_en_curso = False
-    self._set_status(t("status.error"), "error")
-    log_warning(f"Aviso de búsqueda: {mensaje}")
+    claves_estado = {
+        "offline": ("status.offline", "error"),
+        "partial": ("status.partial", "warning"),
+        "empty": ("status.no_offers", "success"),
+    }
+    clave, tipo = claves_estado.get(mensaje, ("status.error", "error"))
+    self._set_status(t(clave), tipo)
+    log_warning(f"Aviso de búsqueda ({mensaje}): no se recibieron ofertas para mostrar.")
+    _notificar_barrido_si_pendiente(self)
+
+
+def _notificar_barrido_si_pendiente(self):
+    tray = getattr(self, "_tray", None)
+    if tray and getattr(tray, "_barrido_notificacion_pendiente", None) is not None:
+        tray.completar_barrido()
 
 
 def buscar_juegos(self):
     if getattr(self, "_busqueda_en_curso", False):
-        return
+        return False
 
     if not self._limpiar_hilo_busqueda():
         log_warning("Se omitió una búsqueda duplicada mientras terminaba la anterior.")
-        return
+        return False
     limpiar_cache_imagenes()
     self._busqueda_en_curso = True
     self._busqueda_inicio = time.monotonic()
@@ -426,6 +546,7 @@ def buscar_juegos(self):
     self._busqueda_thread = thread
     self._busqueda_worker = worker
     thread.start()
+    return True
 
 
 def _busqueda_hilo_terminado(self):
@@ -471,10 +592,6 @@ def actualizar_insignias(self, conteos):
         widget.setProperty("count", int(count))
         widget.style().unpolish(widget)
         widget.style().polish(widget)
-
-
-def _clear_layout(self, layout):
-    pass
 
 
 def _actualizar_visibilidad_contenedor_juegos(self):
@@ -625,6 +742,7 @@ def instalar_metodos(cls):
     cls._set_status = _set_status
     cls._recibir_resultados_busqueda = _recibir_resultados_busqueda
     cls._buscar_juegos_error = _buscar_juegos_error
+    cls._notificar_barrido_si_pendiente = _notificar_barrido_si_pendiente
     cls.buscar_juegos = buscar_juegos
     cls._actualizar_animacion_busqueda = _actualizar_animacion_busqueda
     cls._iniciar_animacion_busqueda = _iniciar_animacion_busqueda
@@ -632,7 +750,6 @@ def instalar_metodos(cls):
     cls._finalizar_busqueda = _finalizar_busqueda
     cls._asignar_tienda = _asignar_tienda
     cls.actualizar_insignias = actualizar_insignias
-    cls._clear_layout = _clear_layout
     cls._actualizar_visibilidad_contenedor_juegos = _actualizar_visibilidad_contenedor_juegos
     cls._actualizar_vista_juegos = _actualizar_vista_juegos
 

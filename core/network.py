@@ -7,9 +7,54 @@ Resuelve las vulnerabilidades SEC-03 (descargas seguras de imágenes) y NET-01 (
 import urllib.parse
 import requests
 from typing import Optional, Tuple
+from config import APP_VERSION
 
 MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024  # Límite de 10 MB por imagen
 TIMEOUT_CONEXION: Tuple[float, float] = (3.0, 5.0)  # (Connect, Read)
+
+# CDNs usadas por las tiendas consultadas y por las imágenes de GamerPower.
+# Cada redirección debe permanecer dentro de esta lista.
+_DOMINIOS_IMAGENES_PERMITIDOS = frozenset({
+    "gamerpower.com",
+    "steamstatic.com",
+    "steampowered.com",
+    "epicgames.com",
+    "unrealengine.com",
+    "itch.zone",
+    "itch.io",
+    "gog-statics.com",
+    "gog.com",
+    "fanatical.com",
+    "indiegala.com",
+    "couchloot.com",
+    "amazon.com",
+    "media-amazon.com",
+    "ssl-images-amazon.com",
+})
+
+
+def _url_imagen_permitida(url: str) -> bool:
+    """Acepta solo HTTPS hacia CDNs conocidas, sin credenciales ni puertos alternativos."""
+    try:
+        parsed = urllib.parse.urlsplit(url)
+        hostname = (parsed.hostname or "").lower().rstrip(".")
+        puerto = parsed.port
+    except (TypeError, ValueError):
+        return False
+
+    if (
+        parsed.scheme.lower() != "https"
+        or not hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or puerto not in (None, 443)
+    ):
+        return False
+
+    return any(
+        hostname == dominio or hostname.endswith("." + dominio)
+        for dominio in _DOMINIOS_IMAGENES_PERMITIDOS
+    )
 
 
 def crear_sesion_http_segura() -> requests.Session:
@@ -24,7 +69,7 @@ def crear_sesion_http_segura() -> requests.Session:
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/124.0.0.0 Safari/537.36 KGTracker/0.2.35"
+            f"Chrome/124.0.0.0 Safari/537.36 KGTracker/{APP_VERSION}"
         )
     })
     return session
@@ -37,7 +82,7 @@ def descargar_contenido_seguro(
 ) -> Optional[bytes]:
     """
     Descarga el contenido de una URL garantizando:
-    1. Esquema HTTPS obligatorio.
+    1. Esquema HTTPS y dominios de imagen permitidos.
     2. Límite estricto de tamaño recibido en streaming (previene ataques de agotamiento de memoria).
     3. Timeouts estrictos de conexión y lectura.
     4. Manejo seguro de errores sin propagar excepciones.
@@ -49,11 +94,7 @@ def descargar_contenido_seguro(
         return None
 
     url_str = url.strip()
-    try:
-        parsed = urllib.parse.urlparse(url_str)
-        if parsed.scheme.lower() != "https":
-            return None
-    except Exception:
+    if not _url_imagen_permitida(url_str):
         return None
 
     # Usar una sesión independiente por petición (evita race conditions de NET-01).
@@ -63,8 +104,7 @@ def descargar_contenido_seguro(
         try:
             current_url = url_str
             for redirect_count in range(6):
-                parsed_current = urllib.parse.urlparse(current_url)
-                if parsed_current.scheme.lower() != "https" or not parsed_current.hostname:
+                if not _url_imagen_permitida(current_url):
                     return None
 
                 resp = session.get(
