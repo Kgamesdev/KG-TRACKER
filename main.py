@@ -8,7 +8,7 @@ import traceback
 
 
 
-from logger import log_app_iniciada, log_app_cerrada, log_info
+from logger import log_app_iniciada, log_app_cerrada, log_info, log_error, log_warning
 
 
 
@@ -272,7 +272,11 @@ def main():
     gestor_instancia = SingleInstance()
 
     if not gestor_instancia.is_primary:
-        log_info("[APP] Ya hay una instancia abierta; se solicitó mostrar su ventana.")
+        if getattr(gestor_instancia, "activation_sent", False):
+            log_info("[APP] Ya hay una instancia abierta; se solicitó mostrar su ventana.")
+        else:
+            log_warning("[APP] Inicio bloqueado: no se pudo adquirir la instancia única ni contactar con la instancia activa.")
+        gestor_instancia.close()
         return 0
 
     from ui.main_window import VentanaPrincipal
@@ -303,10 +307,12 @@ def main():
                 pass
 
             try:
-                if hasattr(ventana, "_limpiar_hilo_busqueda"):
+                if hasattr(ventana, "_esperar_hilo_busqueda"):
+                    ventana._esperar_hilo_busqueda(timeout_ms=15000)
+                elif hasattr(ventana, "_limpiar_hilo_busqueda"):
                     ventana._limpiar_hilo_busqueda()
-            except Exception:
-                pass
+            except Exception as error_busqueda:
+                log_error(f"Error cerrando el hilo de búsqueda: {error_busqueda}", exc_info=True)
 
             try:
                 if hasattr(ventana, "_detener_audio"):
@@ -316,7 +322,12 @@ def main():
 
             try:
                 from PySide6.QtCore import QThreadPool
-                QThreadPool.globalInstance().waitForDone(300)
+                pool = QThreadPool.globalInstance()
+                pool.clear()
+                terminado = pool.waitForDone(15000)
+                if not terminado:
+                    log_warning("Siguen finalizando tareas de fondo durante el cierre.")
+                    pool.waitForDone()
             except Exception:
                 pass
 
@@ -325,9 +336,16 @@ def main():
 
 
         def mostrar_principal():
-
-            if splash is not None and splash.isVisible():
-                splash.close()
+            # El splash se autodestruye al terminar su animación. Si la
+            # activación de otra instancia llega después, el wrapper Python
+            # puede seguir existiendo aunque su QWidget C++ ya no exista.
+            if splash is not None:
+                try:
+                    from shiboken6 import isValid
+                    if isValid(splash) and splash.isVisible():
+                        splash.close()
+                except RuntimeError:
+                    pass
 
             ventana._tray.mostrar_ventana()
 
@@ -358,7 +376,7 @@ def main():
 
     except Exception as e:
 
-        log_info(f"❌ Error fatal en aplicación: {e}")
+        log_error(f"Error fatal en aplicación: {e}", exc_info=True)
 
         traceback.print_exc()
 

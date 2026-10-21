@@ -1,5 +1,7 @@
+import os
 import subprocess
 import sys
+import tempfile
 import threading
 import unittest
 import uuid
@@ -44,15 +46,24 @@ class SingleInstanceTests(unittest.TestCase):
 
         def launch_six_more():
             try:
-                for _ in range(6):
-                    result = subprocess.run(
-                        [sys.executable, "-c", child_code],
-                        cwd=project_dir,
-                        capture_output=True,
-                        text=True,
-                        timeout=5,
-                    )
-                    child_results.append((result.returncode, result.stdout.strip(), result.stderr))
+                with tempfile.TemporaryDirectory(
+                    prefix=".kg-tracker-instance-", dir=project_dir
+                ) as temp_root:
+                    for index in range(6):
+                        child_env = os.environ.copy()
+                        if sys.platform == "win32":
+                            # La exclusión mutua debe ser global a la app,
+                            # aunque cada proceso resuelva otro LOCALAPPDATA.
+                            child_env["LOCALAPPDATA"] = str(Path(temp_root) / str(index))
+                        result = subprocess.run(
+                            [sys.executable, "-c", child_code],
+                            cwd=project_dir,
+                            env=child_env,
+                            capture_output=True,
+                            text=True,
+                            timeout=5,
+                        )
+                        child_results.append((result.returncode, result.stdout.strip(), result.stderr))
             finally:
                 worker_finished.set()
 

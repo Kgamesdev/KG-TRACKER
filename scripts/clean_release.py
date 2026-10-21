@@ -16,13 +16,11 @@ DIRECTORIOS_A_ELIMINAR = [
     "__pycache__",
     "build",
     "dist",
-    "logs",
     "tmp",
 ]
 
 PATRONES_ARCHIVOS_A_ELIMINAR = [
     "*.tmp",
-    "*.bak",
     "*.pyc",
     "*.pyo",
 ]
@@ -33,10 +31,13 @@ def limpiar():
     eliminados_count = 0
 
     # 1. Eliminar directorios pesados/desarrollo
-    for item in ROOT_DIR.rglob("*"):
-        if item.is_dir() and item.name in DIRECTORIOS_A_ELIMINAR:
+    # Solo limpiar directorios conocidos en la raíz del proyecto; no borrar
+    # subdirectorios o datos de usuario que casualmente compartan esos nombres.
+    for nombre in DIRECTORIOS_A_ELIMINAR:
+        item = ROOT_DIR / nombre
+        if item.is_dir():
             try:
-                shutil.rmtree(item, ignore_errors=True)
+                shutil.rmtree(item)
                 print(f"  [BORRADO] Directorio: {item.relative_to(ROOT_DIR)}")
                 eliminados_count += 1
             except Exception as e:
@@ -46,6 +47,8 @@ def limpiar():
     for patron in PATRONES_ARCHIVOS_A_ELIMINAR:
         for file_path in ROOT_DIR.rglob(patron):
             if file_path.is_file():
+                if ".bak" in file_path.name.lower():
+                    continue
                 try:
                     file_path.unlink()
                     print(f"  [BORRADO] Archivo: {file_path.relative_to(ROOT_DIR)}")

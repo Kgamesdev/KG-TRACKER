@@ -45,6 +45,9 @@ def descargar_contenido_seguro(
     if not url or not isinstance(url, str):
         return None
 
+    if not isinstance(max_size, int) or max_size <= 0:
+        return None
+
     url_str = url.strip()
     try:
         parsed = urllib.parse.urlparse(url_str)
@@ -53,10 +56,30 @@ def descargar_contenido_seguro(
     except Exception:
         return None
 
-    # Usar una sesión independiente por petición (evita race conditions de NET-01)
+    # Usar una sesión independiente por petición (evita race conditions de NET-01).
+    # Seguir redirecciones manualmente para impedir una bajada de HTTPS a HTTP.
     with crear_sesion_http_segura() as session:
+        resp = None
         try:
-            resp = session.get(url_str, timeout=timeout, stream=True, allow_redirects=True)
+            current_url = url_str
+            for redirect_count in range(6):
+                parsed_current = urllib.parse.urlparse(current_url)
+                if parsed_current.scheme.lower() != "https" or not parsed_current.hostname:
+                    return None
+
+                resp = session.get(
+                    current_url, timeout=timeout, stream=True, allow_redirects=False
+                )
+                if resp.status_code not in (301, 302, 303, 307, 308):
+                    break
+
+                location = resp.headers.get("Location")
+                resp.close()
+                resp = None
+                if not location or redirect_count == 5:
+                    return None
+                current_url = urllib.parse.urljoin(current_url, location)
+
             if resp.status_code != 200:
                 return None
 
@@ -77,3 +100,6 @@ def descargar_contenido_seguro(
 
         except Exception:
             return None
+        finally:
+            if resp is not None:
+                resp.close()

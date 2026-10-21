@@ -14,28 +14,36 @@ Ejemplo de uso:
 import logging
 import os
 import sys
+import tempfile
 from datetime import datetime
 
-# Directorio de logs junto al propio módulo, NO relativo al directorio de
-# trabajo actual (CWD). Si se deja como "logs" a secas, al arrancar la app
-# vía autostart de Windows el CWD puede no ser la carpeta del proyecto y
-# los logs se crearían en un sitio inesperado (o fallaría la creación si
-# ese CWD no es escribible).
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-LOGS_DIR = os.path.join(BASE_DIR, "logs")
-if not os.path.exists(LOGS_DIR):
-    os.makedirs(LOGS_DIR)
+# Los logs viven en una ubicación escribible para el usuario. La carpeta de
+# instalación puede estar bajo Program Files y ser de solo lectura.
+try:
+    from core.paths import LOGS_DIR as USER_LOGS_DIR
+    LOGS_DIR = str(USER_LOGS_DIR)
+except Exception:
+    LOGS_DIR = os.path.join(os.path.expanduser("~"), ".kgtracker", "logs")
+
+try:
+    os.makedirs(LOGS_DIR, exist_ok=True)
+except OSError:
+    LOGS_DIR = os.path.join(tempfile.gettempdir(), "KGTracker", "logs")
+    os.makedirs(LOGS_DIR, exist_ok=True)
 
 # Nombre del archivo de log con fecha
 LOG_FILE = os.path.join(LOGS_DIR, f"kgametracker_{datetime.now().strftime('%Y-%m-%d')}.log")
 
-# Handlers: el de archivo siempre. El de consola solo si hay una consola
-# real conectada (sys.stderr no es None). En un build sin consola
-# (PyInstaller --noconsole / pythonw.exe) StreamHandler() usa por defecto
-# sys.stderr, y si es None cualquier log.info(...) lanzaría una excepción.
-_handlers = [logging.FileHandler(LOG_FILE, encoding="utf-8")]
+# Handlers: el archivo si está disponible y consola solo si existe.
+_handlers = []
+try:
+    _handlers.append(logging.FileHandler(LOG_FILE, encoding="utf-8"))
+except OSError:
+    pass
 if sys.stderr is not None:
     _handlers.append(logging.StreamHandler())
+if not _handlers:
+    _handlers.append(logging.NullHandler())
 
 # Configurar logging
 logging.basicConfig(
@@ -46,6 +54,22 @@ logging.basicConfig(
 
 # Obtener logger específico
 logger = logging.getLogger("KGameTracker")
+
+
+def _registrar_excepcion_no_controlada(tipo, valor, traza):
+    """Deja un rastro de errores Python que, de otro modo, cerrarían la app."""
+    if issubclass(tipo, KeyboardInterrupt):
+        sys.__excepthook__(tipo, valor, traza)
+        return
+    logger.critical(
+        "Excepción Python no controlada; la aplicación puede cerrarse.",
+        exc_info=(tipo, valor, traza),
+    )
+    if sys.stderr is not None:
+        sys.__excepthook__(tipo, valor, traza)
+
+
+sys.excepthook = _registrar_excepcion_no_controlada
 
 
 # =====================================================

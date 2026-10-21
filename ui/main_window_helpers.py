@@ -1,9 +1,11 @@
-import requests
 """Utilidades y compatibilidad de la ventana principal."""
 
 import hashlib
 import os
-import webbrowser
+import urllib.parse
+from core.validators import abrir_url_externa_segura
+from core.network import descargar_contenido_seguro
+from core.paths import CACHE_DIR, ASSETS_DIR
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QApplication
@@ -52,7 +54,7 @@ def _load_thumbnail(self, url_img):
     if not url_img:
         return None
 
-    cache_dir = "cache"
+    cache_dir = str(CACHE_DIR)
     os.makedirs(cache_dir, exist_ok=True)
     filename = os.path.join(
         cache_dir,
@@ -65,16 +67,10 @@ def _load_thumbnail(self, url_img):
             if not pixmap.isNull():
                 return pixmap
 
-        headers = {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            )
-        }
-        res = requests.get(url_img, headers=headers, timeout=5)
-        if res.status_code == 200:
+        contenido = descargar_contenido_seguro(url_img)
+        if contenido:
             pixmap = QPixmap()
-            if pixmap.loadFromData(res.content):
+            if pixmap.loadFromData(contenido):
                 pixmap.save(filename, "PNG")
                 return pixmap
     except Exception as e:
@@ -98,7 +94,7 @@ def _mousewheel(self, event):
 
 def abrir_enlace(self, url):
     if url:
-        webbrowser.open(url)
+        abrir_url_externa_segura(url)
 
 
 
@@ -111,8 +107,7 @@ def _apply_theme(self, bg, card, desc, text, secondary, icon_path):
 
 def _icons_root(self):
     return os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "assets",
+        str(ASSETS_DIR),
         "icons",
     )
 
@@ -227,7 +222,6 @@ def _actualizar_textos_idioma(self):
     if hasattr(self, "_actualizar_vista_juegos"):
         self._actualizar_vista_juegos()
 
-import webbrowser
 from core.updater import verificar_actualizacion_asincrona
 
 
@@ -238,6 +232,15 @@ def _verificar_actualizacion_github(self):
 
 def _on_nueva_version_detectada(self, tag_name: str, release_url: str):
     """Muestra el banner informando de la nueva version."""
+    parsed_url = urllib.parse.urlparse(release_url or "")
+    if (
+        parsed_url.scheme.lower() != "https"
+        or (parsed_url.hostname or "").lower() != "github.com"
+        or not parsed_url.path.startswith("/Kgamesdev/KG-TRACKER/releases")
+    ):
+        log_warning(f"URL de actualización no válida bloqueada: {release_url}")
+        return
+
     if hasattr(self, "update_banner") and hasattr(self, "update_label"):
         self.update_label.setText(f"🚀 ¡Nueva versión {tag_name} disponible!")
         if hasattr(self, "btn_descargar_update"):
@@ -245,7 +248,9 @@ def _on_nueva_version_detectada(self, tag_name: str, release_url: str):
                 self.btn_descargar_update.clicked.disconnect()
             except Exception:
                 pass
-            self.btn_descargar_update.clicked.connect(lambda: webbrowser.open_new_tab(release_url))
+            self.btn_descargar_update.clicked.connect(
+                lambda: abrir_url_externa_segura(release_url)
+            )
         self.update_banner.show()
 
 def instalar_metodos(cls):

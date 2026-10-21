@@ -7,6 +7,7 @@ from PySide6.QtGui import QImage, QPixmap
 
 from core.paths import CACHE_DIR
 from core.network import descargar_contenido_seguro
+from logger import log_error
 
 
 class _ImageWorkerSignals(QObject):
@@ -24,24 +25,29 @@ class _ImageDownloadWorker(QRunnable):
         self.signals = _ImageWorkerSignals()
 
     def run(self):
-        # Descarga segura con timeouts, límites de tamaño e hilo aislado (NET-01 & SEC-03 fix)
-        contenido = descargar_contenido_seguro(self.url)
-        if contenido:
-            img = QImage()
-            if img.loadFromData(contenido):
-                try:
-                    img.save(self.ruta_disco, "PNG")
-                except Exception:
-                    pass
+        try:
+            # Descarga segura con timeouts, límites de tamaño e hilo aislado.
+            contenido = descargar_contenido_seguro(self.url)
+            if contenido:
+                img = QImage()
+                if img.loadFromData(contenido):
+                    try:
+                        img.save(self.ruta_disco, "PNG")
+                    except Exception as error:
+                        log_error(f"No se pudo cachear una miniatura: {error}")
 
-                scaled = img.scaled(
-                    self.target_size[0],
-                    self.target_size[1],
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation,
-                )
-                self.signals.completado.emit(self.url, scaled)
-                return
+                    scaled = img.scaled(
+                        self.target_size[0],
+                        self.target_size[1],
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
+                    self.signals.completado.emit(self.url, scaled)
+                    return
+        except Exception as error:
+            # Una excepción no puede escapar de QRunnable.run(): PySide puede
+            # terminar el proceso si cruza la frontera C++/Python.
+            log_error(f"Error inesperado descargando miniatura: {error}", exc_info=True)
 
         self.signals.completado.emit(self.url, QImage())
 

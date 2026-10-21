@@ -56,12 +56,28 @@ CACHE_TRANSLATIONS_FILE = CACHE_DIR / "translations_cache.json"
 
 def migrar_datos_desarrollo_si_existen():
     """Migra datos locales preexistentes en 'data/' a USER_DATA_DIR en la primera ejecución."""
-    dev_data_dir = RESOURCE_DIR / "data"
+    if getattr(sys, "frozen", False):
+        dev_data_dir = Path(sys.executable).resolve().parent / "data"
+    else:
+        dev_data_dir = RESOURCE_DIR / "data"
     if dev_data_dir.exists() and dev_data_dir.is_dir() and dev_data_dir != DATA_DIR:
+        destinos = {
+            "settings.json": DATA_DIR,
+            "reclamados.json": DATA_DIR,
+            "giveaways_cache.json": CACHE_DIR,
+            "steam_cache.json": CACHE_DIR,
+            "translations_cache.json": CACHE_DIR,
+        }
         for item in dev_data_dir.iterdir():
-            target = DATA_DIR / item.name
+            target_dir = destinos.get(item.name)
+            if target_dir is None:
+                continue
+            target = target_dir / item.name
             if item.is_file() and not target.exists():
                 try:
                     shutil.copy2(item, target)
                 except Exception as e:
                     print(f"[PATH MIGRATION ERROR] No se pudo migrar {item.name}: {e}")
+
+
+migrar_datos_desarrollo_si_existen()

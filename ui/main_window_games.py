@@ -6,8 +6,12 @@ import json
 import time
 import datetime
 import concurrent.futures
+import re
+import unicodedata
+from difflib import SequenceMatcher
+from urllib.parse import urlsplit, urlunsplit
 from PySide6.QtWidgets import (
-    QApplication, QLabel, QFrame, QHBoxLayout, QPushButton,
+    QLabel, QFrame, QHBoxLayout, QPushButton,
     QGraphicsDropShadowEffect,
 )
 from PySide6.QtCore import Qt, QTimer, QObject, Signal, QThread
@@ -35,12 +39,78 @@ CACHE_GIVEAWAYS_FILE = str(USER_CACHE_GIVEAWAYS_FILE)
 
 
 def _limpiar_hilo_busqueda(self):
-    if hasattr(self, "_busqueda_thread") and self._busqueda_thread:
-        if self._busqueda_thread.isRunning():
-            self._busqueda_thread.quit()
-            self._busqueda_thread.wait(500)
+    thread = getattr(self, "_busqueda_thread", None)
+    if thread is None:
+        self._busqueda_worker = None
+        return True
+
+    try:
+        if thread.isRunning():
+            thread.requestInterruption()
+            thread.quit()
+            return False
+    except RuntimeError:
+        # El QThread pudo terminar y ser eliminado antes de procesarse su señal.
+        pass
+
+    if getattr(self, "_busqueda_thread", None) is thread:
         self._busqueda_thread = None
-    self._busqueda_worker = None
+        self._busqueda_worker = None
+    return True
+
+
+def _esperar_hilo_busqueda(self, timeout_ms=15000):
+    """Detiene una búsqueda y espera a que su hilo termine antes del cierre."""
+    thread = getattr(self, "_busqueda_thread", None)
+    if thread is None:
+        return True
+    try:
+        if thread.isRunning():
+            thread.requestInterruption()
+            thread.quit()
+            terminado = thread.wait() if timeout_ms is None else thread.wait(timeout_ms)
+            if not terminado:
+                log_warning("La búsqueda sigue activa durante el cierre; esperando su finalización segura.")
+                thread.wait()
+        if getattr(self, "_busqueda_thread", None) is thread:
+            self._busqueda_thread = None
+            self._busqueda_worker = None
+        return True
+    except RuntimeError:
+        self._busqueda_thread = None
+        self._busqueda_worker = None
+        return True
+
+
+def _normalizar_titulo_oferta(titulo):
+    titulo = unicodedata.normalize("NFKD", str(titulo or ""))
+    titulo = "".join(c for c in titulo if not unicodedata.combining(c)).casefold()
+    titulo = re.sub(
+        r"\s*[\[(]\s*(?:epic(?: games)?(?: store)?|egs|steam|gog|itch(?:\.io)?)\s*[\])]\s*$",
+        "",
+        titulo,
+    )
+    titulo = re.sub(r"\b(?:free|gratis|giveaway|on steam|on epic games|on gog)\b", " ", titulo)
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", titulo).split())
+
+
+def _titulos_equivalentes_entre_fuentes(titulo_a, titulo_b):
+    """Reconoce títulos iguales o raíces compartidas antes de subtítulos traducidos."""
+    if not str(titulo_a or "").strip() or not str(titulo_b or "").strip():
+        return False
+    original_a, original_b = str(titulo_a), str(titulo_b)
+    normal_a = _normalizar_titulo_oferta(original_a)
+    normal_b = _normalizar_titulo_oferta(original_b)
+    if normal_a == normal_b:
+        return True
+
+    # El nombre de producto anterior al separador suele mantenerse aunque
+    # el subtítulo cambie de idioma (p. ej., "Agent A - ..." / "Agent A: ...").
+    base_a = re.split(r":\s*|\s+[-–—]\s+", original_a, maxsplit=1)[0]
+    base_b = re.split(r":\s*|\s+[-–—]\s+", original_b, maxsplit=1)[0]
+    if _normalizar_titulo_oferta(base_a) == _normalizar_titulo_oferta(base_b):
+        return True
+    return SequenceMatcher(None, normal_a, normal_b).ratio() >= 0.96
 
 
 class _BusquedaWorker(QObject):
@@ -49,50 +119,83 @@ class _BusquedaWorker(QObject):
 
     def run(self):
         import requests
-        try:
+        juegos_encontrados = []
+        respuesta_api_valida = False
+        respuesta_api_vacia = False
+
+        def _obtener_gamerpower():
             response = requests.get(API_URL, headers=API_HEADERS, timeout=5.0)
             response.raise_for_status()
-            giveaways = response.json()
-            if isinstance(giveaways, list) and len(giveaways) > 0:
-                _guardar_en_cache_disco(giveaways)
-                self.terminado.emit(giveaways, "gamerpower")
-                return
-        except Exception as e:
-            log_warning(f"GamerPower inaccesible o timeout 1.2s ({e}).")
-            log_info("Activando motor autónomo de tiendas directas...")
+            datos = response.json()
+            if not isinstance(datos, list):
+                raise ValueError("GamerPower devolvió un formato inesperado")
+            return datos
 
+        def _ejecutar_scraper_con_sesion(fn):
+            with requests.Session() as session:
+                return fn(session=session)
+
+        # Combinamos GamerPower y los scrapers para ampliar la cobertura; las
+        # coincidencias entre rutas se eliminan al preparar la vista.
         try:
-            juegos_hibridos = []
-
-            def _ejecutar_scraper_con_sesion(fn):
-                with requests.Session() as s:
-                    return fn(session=s)
-
-            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                f_epic = executor.submit(_ejecutar_scraper_con_sesion, _obtener_epic_directo)
-                f_itch = executor.submit(_ejecutar_scraper_con_sesion, _obtener_itch_directo)
-                f_gog = executor.submit(_ejecutar_scraper_con_sesion, _obtener_gog_directo)
-                f_steam = executor.submit(_ejecutar_scraper_con_sesion, _obtener_steam_directo)
-
-                for f in (f_epic, f_itch, f_gog, f_steam):
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                fuentes = {
+                    executor.submit(_obtener_gamerpower): "GamerPower",
+                    executor.submit(_ejecutar_scraper_con_sesion, _obtener_epic_directo): "Epic Games",
+                    executor.submit(_ejecutar_scraper_con_sesion, _obtener_itch_directo): "Itch.io",
+                    executor.submit(_ejecutar_scraper_con_sesion, _obtener_gog_directo): "GOG",
+                    executor.submit(_ejecutar_scraper_con_sesion, _obtener_steam_directo): "Steam",
+                }
+                completadas, pendientes = concurrent.futures.wait(
+                    fuentes,
+                    timeout=6.0,
+                    return_when=concurrent.futures.ALL_COMPLETED,
+                )
+                for future in completadas:
+                    fuente = fuentes[future]
                     try:
-                        res = f.result(timeout=6.0)
-                        if res:
-                            juegos_hibridos.extend(res)
-                    except Exception as err_f:
-                        log_warning(f"Error en subfuente directa: {err_f}")
+                        resultados = future.result() or []
+                        if fuente == "GamerPower":
+                            respuesta_api_valida = True
+                            respuesta_api_vacia = not resultados
+                            if resultados:
+                                _guardar_en_cache_disco(resultados)
+                        for juego in resultados:
+                            if isinstance(juego, dict):
+                                juego.setdefault("_kg_source", fuente)
+                        juegos_encontrados.extend(resultados)
+                    except Exception as error_fuente:
+                        log_warning(f"No se pudieron consultar ofertas en {fuente}: {error_fuente}")
+                if pendientes:
+                    nombres = ", ".join(fuentes[future] for future in pendientes)
+                    log_warning(f"Búsqueda parcial: se agotó el tiempo para {nombres}.")
+                    for future in pendientes:
+                        future.cancel()
 
-            tiendas_vivas = ("Epic Games", "Itch.io", "GOG", "Steam")
-            juegos_otras_tiendas = _cargar_cache_otras_tiendas(excluir_tiendas=tiendas_vivas)
-            if juegos_otras_tiendas:
-                juegos_hibridos.extend(juegos_otras_tiendas)
+            # Si GamerPower no respondió o quedó vacío, completa también el
+            # resto de plataformas desde su caché local.
+            if not respuesta_api_valida or respuesta_api_vacia:
+                if not respuesta_api_valida:
+                    log_info("GamerPower inaccesible; usando caché y scrapers de respaldo.")
+                cache = _cargar_cache_otras_tiendas(
+                    excluir_tiendas=("Epic Games", "Itch.io", "GOG", "Steam")
+                ) or []
+                for juego in cache:
+                    if isinstance(juego, dict):
+                        juego.setdefault("_kg_source", "GamerPower-cache")
+                juegos_encontrados.extend(cache)
+        except Exception as error_busqueda:
+            log_error(f"Error en la búsqueda combinada: {error_busqueda}", exc_info=True)
 
-            if juegos_hibridos:
-                log_info(f"Motor híbrido completado: {len(juegos_hibridos)} juegos confirmados.")
-                self.terminado.emit(juegos_hibridos, "hibrido")
-                return
-        except Exception as err_hibrido:
-            log_error(f"Error en motor autónomo: {err_hibrido}")
+        if QThread.currentThread().isInterruptionRequested():
+            return
+        if juegos_encontrados:
+            log_info(
+                f"Búsqueda combinada completada: {len(juegos_encontrados)} resultados "
+                f"(API válida: {respuesta_api_valida})."
+            )
+            self.terminado.emit(juegos_encontrados, "combinado")
+            return
 
         self.error.emit("No se encontraron ofertas gratuitas activas en este momento.")
 
@@ -125,13 +228,19 @@ def _iniciar_animacion_busqueda(self):
     timer = getattr(self, "_busqueda_neon_timer", None)
     if timer is None:
         timer = QTimer(self)
-        timer.setInterval(35)
+        # Ocho actualizaciones por segundo bastan para el spinner y reducen
+        # trabajo de pintado durante las peticiones de red.
+        timer.setInterval(125)
         timer.timeout.connect(self._actualizar_animacion_busqueda)
         self._busqueda_neon_timer = timer
 
     self._busqueda_neon_inicio = time.monotonic()
     self._busqueda_neon_activo = True
+    self._busqueda_spinner_index = -1
     self.status_pill.setText(t("status.searching"))
+    self._set_status(t("status.searching"), "info")
+    if hasattr(self, "btn_actualizar"):
+        self.btn_actualizar.setEnabled(False)
     timer.start()
     self._actualizar_animacion_busqueda()
 
@@ -139,15 +248,14 @@ def _iniciar_animacion_busqueda(self):
 def _actualizar_animacion_busqueda(self):
     if not getattr(self, "_busqueda_neon_activo", False):
         return
-    import math
-    fase = (time.monotonic() - getattr(self, "_busqueda_neon_inicio", time.monotonic())) * 6.5
-    pulso = (1.0 + math.sin(fase)) / 2.0
-    
-    color_arriba = "#FFA726" if pulso > 0.5 else "#FB8C00"
-    color_abajo = "#E65100" if pulso > 0.5 else "#BF360C"
-    
-    estilo = f"background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {color_arriba}, stop:1 {color_abajo}); color: #FFFFFF; border: 1.5px solid #FFE082; border-radius: 10px; font-weight: bold; padding: 0 10px;"
-    self.status_pill.setStyleSheet(estilo)
+    transcurrido = time.monotonic() - getattr(self, "_busqueda_neon_inicio", time.monotonic())
+    if hasattr(self, "btn_actualizar"):
+        frames = ("◐", "◓", "◑", "◒")
+        spinner_index = int(transcurrido * 8) % len(frames)
+        if spinner_index != getattr(self, "_busqueda_spinner_index", -1):
+            self._busqueda_spinner_index = spinner_index
+            frame = frames[spinner_index]
+            self.btn_actualizar.setText(f"{frame}  {t('status.searching').replace('● ', '')}")
 
 
 def _detener_animacion_busqueda(self):
@@ -155,6 +263,9 @@ def _detener_animacion_busqueda(self):
     timer = getattr(self, "_busqueda_neon_timer", None)
     if timer is not None:
         timer.stop()
+    if hasattr(self, "btn_actualizar"):
+        self.btn_actualizar.setEnabled(True)
+        self.btn_actualizar.setText(t("search.button"))
 
 
 def _finalizar_busqueda(self, giveaways, inicio, fuente="gamerpower"):
@@ -177,16 +288,56 @@ def _finalizar_busqueda(self, giveaways, inicio, fuente="gamerpower"):
         juegos_unicos = {}
         urls_vistas = set()
         for juego in juegos_validos:
-            clave = self._clave_juego(juego)
-            url_canonica = str(juego.get("open_giveaway_url") or "").strip().rstrip("/").lower()
-            if url_canonica and url_canonica in urls_vistas:
+            # API y scraper pueden titular la misma oferta de forma distinta.
+            titulo = _normalizar_titulo_oferta(juego.get("title"))
+            tienda = str(self._asignar_tienda(juego) or "").casefold().strip()
+            clave = (tienda, titulo) if titulo else self._clave_juego(juego)
+
+            url = str(juego.get("open_giveaway_url") or "").strip()
+            url_canonica = ""
+            if url:
+                try:
+                    partes = urlsplit(url)
+                    host = (partes.hostname or "").casefold().removeprefix("www.")
+                    puerto = f":{partes.port}" if partes.port else ""
+                    ruta = re.sub(r"/{2,}", "/", partes.path).rstrip("/").casefold()
+                    # Epic publica la misma ficha bajo prefijos regionales
+                    # (/es-ES/, /en-US/, etc.). La región no identifica otra oferta.
+                    if host == "store.epicgames.com":
+                        ruta = re.sub(r"^/[a-z]{2}-[a-z]{2}(?=/)", "", ruta)
+                    url_canonica = urlunsplit((partes.scheme.casefold() or "https", host + puerto, ruta, "", ""))
+                except ValueError:
+                    url_canonica = url.casefold().split("?", 1)[0].split("#", 1)[0].rstrip("/")
+
+            duplicado_cruzado = False
+            fuente = str(juego.get("_kg_source") or "")
+            if tienda == "epic games" and fuente:
+                for existente in juegos_unicos.values():
+                    otra_fuente = str(existente.get("_kg_source") or "")
+                    if (
+                        otra_fuente
+                        and otra_fuente != fuente
+                        and self._asignar_tienda(existente) == "Epic Games"
+                        and any(
+                            origen.casefold().startswith("gamerpower")
+                            for origen in (fuente, otra_fuente)
+                        )
+                        and _titulos_equivalentes_entre_fuentes(
+                            existente.get("title"), juego.get("title")
+                        )
+                    ):
+                        duplicado_cruzado = True
+                        break
+            if (url_canonica and url_canonica in urls_vistas) or clave in juegos_unicos or duplicado_cruzado:
                 continue
-            if clave not in juegos_unicos:
-                juegos_unicos[clave] = juego
-                if url_canonica:
-                    urls_vistas.add(url_canonica)
+            juegos_unicos[clave] = juego
+            if url_canonica:
+                urls_vistas.add(url_canonica)
 
         self.juegos_cache_global = list(juegos_unicos.values())
+
+        # La búsqueda carga ofertas y actualiza los contadores, pero no activa
+        # ni despliega tiendas por sí sola. El usuario elige qué tienda abrir.
 
         historico_actualizado = False
         for juego in self.juegos_cache_global:
@@ -212,9 +363,6 @@ def _finalizar_busqueda(self, giveaways, inicio, fuente="gamerpower"):
         self.actualizar_insignias(conteos)
         self.mostrando_reclamados = False
 
-        transcurrido = int((time.monotonic() - inicio) * 1000)
-        espera_total = max(0, 2400 - transcurrido)
-
         def mostrar_juegos_y_estado():
             self._detener_animacion_busqueda()
             if len(disponibles) > 0:
@@ -224,15 +372,13 @@ def _finalizar_busqueda(self, giveaways, inicio, fuente="gamerpower"):
             self._actualizar_visibilidad_atras()
             self._actualizar_vista_juegos()
             self._busqueda_en_curso = False
-            self._busqueda_thread = None
-            self._busqueda_worker = None
 
-        QTimer.singleShot(espera_total, mostrar_juegos_y_estado)
+        mostrar_juegos_y_estado()
 
     except Exception as e:
         self._detener_animacion_busqueda()
         self._busqueda_en_curso = False
-        log_error(f"Error procesando lista de juegos: {e}")
+        log_error(f"Error procesando lista de juegos: {e}", exc_info=True)
         self._set_status("● ERROR", "error")
 
 
@@ -255,12 +401,13 @@ def buscar_juegos(self):
     if getattr(self, "_busqueda_en_curso", False):
         return
 
-    self._limpiar_hilo_busqueda()
+    if not self._limpiar_hilo_busqueda():
+        log_warning("Se omitió una búsqueda duplicada mientras terminaba la anterior.")
+        return
     limpiar_cache_imagenes()
     self._busqueda_en_curso = True
     self._busqueda_inicio = time.monotonic()
     self._iniciar_animacion_busqueda()
-    QApplication.processEvents()
 
     thread = QThread(self)
     worker = _BusquedaWorker()
@@ -273,11 +420,20 @@ def buscar_juegos(self):
     worker.terminado.connect(thread.quit)
     worker.error.connect(thread.quit)
     thread.finished.connect(worker.deleteLater)
+    thread.finished.connect(self._busqueda_hilo_terminado)
     thread.finished.connect(thread.deleteLater)
     
     self._busqueda_thread = thread
     self._busqueda_worker = worker
     thread.start()
+
+
+def _busqueda_hilo_terminado(self):
+    """Libera referencias cuando el hilo ya no puede recibir llamadas."""
+    thread = self.sender()
+    if thread is getattr(self, "_busqueda_thread", None):
+        self._busqueda_thread = None
+        self._busqueda_worker = None
 
 
 def _asignar_tienda(self, juego):
@@ -336,7 +492,6 @@ def _actualizar_visibilidad_contenedor_juegos(self):
 
 def _actualizar_vista_juegos(self):
     from core.i18n import t
-    from PySide6.QtWidgets import QApplication
     from PySide6.QtCore import QParallelAnimationGroup, QSequentialAnimationGroup, QPauseAnimation
 
     root = self.centralWidget()
@@ -438,7 +593,6 @@ def _actualizar_vista_juegos(self):
 
         self.frame_lista_layout.addStretch(1)
         self.frame_lista_layout.activate()
-        QApplication.processEvents()
 
     finally:
         if root is not None:
@@ -466,6 +620,8 @@ def _actualizar_vista_juegos(self):
 def instalar_metodos(cls):
     cls.game_widgets_map = {}
     cls._limpiar_hilo_busqueda = _limpiar_hilo_busqueda
+    cls._esperar_hilo_busqueda = _esperar_hilo_busqueda
+    cls._busqueda_hilo_terminado = _busqueda_hilo_terminado
     cls._set_status = _set_status
     cls._recibir_resultados_busqueda = _recibir_resultados_busqueda
     cls._buscar_juegos_error = _buscar_juegos_error

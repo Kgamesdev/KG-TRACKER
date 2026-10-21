@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QVBoxLayout,
 )
@@ -22,6 +23,7 @@ from core.autostart import habilitar_autostart, deshabilitar_autostart, autostar
 from core.i18n import t, establecer_idioma, obtener_idioma, IDIOMAS, MAPEO_FRECUENCIA, MAPEO_TEMAS
 
 from core.paths import SETTINGS_FILE
+from logger import log_error, log_warning
 
 
 def cargar_ajustes():
@@ -36,16 +38,17 @@ def cargar_ajustes():
 def guardar_ajustes(data):
     os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
     try:
-        guardar_json_atomico(SETTINGS_FILE, data)
-    except Exception:
-        pass
+        return bool(guardar_json_atomico(SETTINGS_FILE, data))
+    except Exception as error:
+        log_error(f"No se pudieron guardar los ajustes: {error}", exc_info=True)
+        return False
 
 
 class SettingsModal(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(t("settings.title"))
-        self.setFixedSize(520, 430)
+        self.setFixedSize(520, 510)
 
         if os.path.exists(ICON_PATH):
             self.setWindowIcon(QIcon(ICON_PATH))
@@ -114,7 +117,19 @@ class SettingsModal(QDialog):
         row_auto.addWidget(QLabel(t("settings.autostart_label")))
         row_auto.addStretch()
         self.chk_autostart = QCheckBox()
-        self.chk_autostart.setChecked(autostart_activo())
+        self._autostart_disponible = True
+        try:
+            autostart_habilitado = autostart_activo()
+        except Exception as error:
+            autostart_habilitado = False
+            self._autostart_disponible = False
+            log_warning(f"No se pudo consultar el inicio automático de Windows: {error}")
+        self.chk_autostart.setChecked(autostart_habilitado)
+        if not self._autostart_disponible:
+            self.chk_autostart.setEnabled(False)
+            self.chk_autostart.setToolTip(
+                "No se pudo consultar esta opción por permisos de Windows."
+            )
         row_auto.addWidget(self.chk_autostart)
         options.addLayout(row_auto)
 
@@ -126,6 +141,26 @@ class SettingsModal(QDialog):
         self.chk_notif.setChecked(self.config_actual.get("notificaciones_activas", True))
         row_notif.addWidget(self.chk_notif)
         options.addLayout(row_notif)
+
+        # 6. Música de fondo
+        row_music = QHBoxLayout()
+        row_music.addWidget(QLabel(t("settings.music_label")))
+        row_music.addStretch()
+        self.chk_music = QCheckBox()
+        self.chk_music.setChecked(self.config_actual.get("musica_activa", True))
+        row_music.addWidget(self.chk_music)
+        options.addLayout(row_music)
+
+        # Al cerrar se puede salir de la aplicación o dejarla en la bandeja.
+        row_close = QHBoxLayout()
+        row_close.addWidget(QLabel(t("settings.minimize_close_label")))
+        row_close.addStretch()
+        self.chk_minimize_on_close = QCheckBox()
+        self.chk_minimize_on_close.setChecked(
+            self.config_actual.get("minimizar_al_cerrar", False)
+        )
+        row_close.addWidget(self.chk_minimize_on_close)
+        options.addLayout(row_close)
 
         layout.addLayout(options)
         layout.addStretch()
@@ -194,23 +229,43 @@ class SettingsModal(QDialog):
 
         idioma_seleccionado_txt = self.combos["idioma"].currentText()
         lang_code = "en" if "English" in idioma_seleccionado_txt else "es"
+        nuevos_ajustes = dict(self.config_actual)
+        nuevos_ajustes["frecuencia_busqueda"] = self.combos["frecuencia_busqueda"].currentText()
+        nuevos_ajustes["idioma"] = idioma_seleccionado_txt
+        nuevos_ajustes["idioma_codigo"] = lang_code
+        nuevos_ajustes["tema"] = tema_elegido_txt
+        nuevos_ajustes["tema_clave"] = tema_clave
+        nuevos_ajustes["notificaciones_activas"] = self.chk_notif.isChecked()
+        nuevos_ajustes["musica_activa"] = self.chk_music.isChecked()
+        nuevos_ajustes["minimizar_al_cerrar"] = self.chk_minimize_on_close.isChecked()
+        if not guardar_ajustes(nuevos_ajustes):
+            QMessageBox.warning(
+                self,
+                t("settings.title"),
+                t("settings.save_error"),
+            )
+            return
+
+        self.config_actual = nuevos_ajustes
         establecer_idioma(lang_code)
 
-        self.config_actual["frecuencia_busqueda"] = self.combos["frecuencia_busqueda"].currentText()
-        self.config_actual["idioma"] = idioma_seleccionado_txt
-        self.config_actual["idioma_codigo"] = lang_code
-        self.config_actual["tema"] = tema_elegido_txt
-        self.config_actual["tema_clave"] = tema_clave
-        self.config_actual["notificaciones_activas"] = self.chk_notif.isChecked()
-        guardar_ajustes(self.config_actual)
-
-        if self.chk_autostart.isChecked():
-            habilitar_autostart()
-        else:
-            deshabilitar_autostart()
+        if self._autostart_disponible and self.chk_autostart.isChecked():
+            try:
+                if not habilitar_autostart():
+                    log_warning("No se pudo aplicar el inicio automático de Windows.")
+            except Exception as error:
+                log_warning(f"No se pudo activar el inicio con Windows: {error}")
+        elif self._autostart_disponible:
+            try:
+                if not deshabilitar_autostart():
+                    log_warning("No se pudo quitar el inicio automático de Windows.")
+            except Exception as error:
+                log_warning(f"No se pudo desactivar el inicio con Windows: {error}")
 
         parent = self.parent()
         if parent:
+            if hasattr(parent, "aplicar_preferencia_musica"):
+                parent.aplicar_preferencia_musica(nuevos_ajustes["musica_activa"])
             if hasattr(parent, "_actualizar_textos_idioma"):
                 parent._actualizar_textos_idioma()
             if hasattr(parent, "_tray") and parent._tray:

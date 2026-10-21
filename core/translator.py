@@ -138,17 +138,21 @@ class GameTranslator(QObject):
             return
 
         clave = self._generar_clave(texto_limpio, lang_normalizado)
+        texto_cacheado = None
 
         with self._lock:
             if clave in self._cache and self._cache[clave].lower() != texto_limpio.lower():
-                callback(self._cache[clave])
-                return
-
-            if clave in self._pendientes:
+                texto_cacheado = self._cache[clave]
+            elif clave in self._pendientes:
                 self._pendientes[clave].append(callback)
                 return
 
-            self._pendientes[clave] = [callback]
+            else:
+                self._pendientes[clave] = [callback]
+
+        if texto_cacheado is not None:
+            callback(texto_cacheado)
+            return
         self._cola.put((clave, texto_limpio, lang_normalizado))
 
     def precargar_async(self, lista_textos: list, target_lang: str):
@@ -161,12 +165,16 @@ class GameTranslator(QObject):
 
     def _al_terminar_traduccion(self, clave: str, texto_orig: str, traducido: str):
         callbacks = []
+        cache_snapshot = None
         with self._lock:
             if traducido and traducido.lower() != texto_orig.lower():
                 self._cache[clave] = traducido
-                _guardar_cache(self._cache)
+                cache_snapshot = dict(self._cache)
 
             callbacks = self._pendientes.pop(clave, [])
+
+        if cache_snapshot is not None:
+            _guardar_cache(cache_snapshot)
 
         for cb in callbacks:
             try:

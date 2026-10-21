@@ -31,6 +31,7 @@ TIENDAS_PERMITIDAS: Set[str] = {
     "www.gamerpower.com",
     "ko-fi.com",
     "www.ko-fi.com",
+    "github.com",
 }
 
 
@@ -76,7 +77,7 @@ def abrir_url_externa_segura(url: str) -> bool:
     """
     if es_url_segura(url):
         try:
-            webbrowser.open(url)
+            webbrowser.open(url.strip())
             return True
         except Exception:
             return False

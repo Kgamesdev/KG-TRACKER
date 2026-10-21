@@ -17,6 +17,8 @@ def _normalizar_titulo_clave(titulo):
 from core.i18n import t
 from core.storage import guardar_json_atomico, cargar_json_seguro
 from core.paths import RECLAMADOS_FILE
+from core.validators import abrir_url_externa_segura
+from logger import log_error, log_warning
 """Histórico de juegos reclamados."""
 
 
@@ -27,7 +29,6 @@ import os
 
 import re
 
-import webbrowser
 
 from datetime import datetime
 
@@ -93,12 +94,14 @@ def _cargar_reclamados(self):
 
     if limpios != datos:
       try:
-        guardar_json_atomico(ruta, limpios)
-      except Exception:
-        pass
+        if not guardar_json_atomico(ruta, limpios):
+          log_warning(f"No se pudo normalizar el histórico de reclamados en {ruta}.")
+      except Exception as error:
+        log_error(f"No se pudo normalizar el histórico de reclamados: {error}", exc_info=True)
 
     return limpios
-  except Exception:
+  except Exception as error:
+    log_error(f"No se pudo leer el histórico de reclamados: {error}", exc_info=True)
     return {}
 
 
@@ -214,9 +217,13 @@ def _actualizar_contador_ahorrado(self):
 
 def _guardar_reclamados(self):
   try:
-    guardar_json_atomico(self._ruta_reclamados(), self.reclamados)
+    if not guardar_json_atomico(self._ruta_reclamados(), self.reclamados):
+      raise OSError("el guardado atómico no pudo completar la escritura")
+    return True
   except Exception as e:
+    log_error(f"No se pudo guardar el histórico de reclamados: {e}", exc_info=True)
     QMessageBox.warning(self, "Aviso", f"No se pudo guardar el histórico de reclamados: {e}")
+    return False
 
 
 
@@ -266,7 +273,7 @@ def _abrir_reclamacion(self, url):
 
   if url:
 
-    webbrowser.open(url)
+    abrir_url_externa_segura(url)
 
 
 
@@ -279,6 +286,7 @@ def _alternar_reclamado(self, juego):
   clave = self._clave_juego(juego)
 
   estaba_reclamado = clave in self.reclamados
+  registro_anterior = self.reclamados.get(clave)
 
   if estaba_reclamado:
 
@@ -314,7 +322,14 @@ def _alternar_reclamado(self, juego):
 
 
 
-  self._guardar_reclamados()
+  if not self._guardar_reclamados():
+    # No dejar la interfaz en un estado que se perdería al cerrar la app.
+    if estaba_reclamado:
+      self.reclamados[clave] = registro_anterior
+    else:
+      self.reclamados.pop(clave, None)
+    self._actualizar_contador_ahorrado()
+    return False
 
   self._actualizar_contador_ahorrado()
 
@@ -365,6 +380,8 @@ def _alternar_reclamado(self, juego):
   else:
 
     self._set_status(t("status.offers", count=len(disponibles)), "success")
+
+  return True
 
 
 

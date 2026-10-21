@@ -75,6 +75,12 @@ class VentanaPrincipal(QMainWindow):
     def showEvent(self, event):
         """Intercepta el instante exacto en que la ventana se posiciona en Windows."""
         super().showEvent(event)
+
+        # Arrancar la búsqueda en el primer evento de ventana visible. Esto
+        # cubre tanto main.py como la apertura directa de VentanaPrincipal.
+        if not getattr(self, "_busqueda_inicio_programada", False):
+            self._busqueda_inicio_programada = True
+            QTimer.singleShot(100, self.buscar_juegos)
         
         # 2. Descongelar los gráficos e iniciar el Fade In fluido solo cuando la geometrÃ­a es 100% estable
         if not self.updatesEnabled():

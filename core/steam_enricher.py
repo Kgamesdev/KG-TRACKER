@@ -95,30 +95,38 @@ def _consultar_steam_red(session, titulo_limpio: str) -> dict:
 
 
 class _SteamWorker(QRunnable):
-    def __init__(self, titulo, callback, enricher):
+    def __init__(self, titulo, clave, enricher):
         super().__init__()
         self.titulo = titulo
-        self.callback = callback
+        self.clave = clave
         self.enricher = enricher
 
     def run(self):
-        with requests.Session() as session:
-            datos = self.enricher._obtener_resenas_sincrono(self.titulo, session=session)
-        self.enricher.signals.resultado.emit(self.titulo, datos, self.callback)
+        try:
+            with requests.Session() as session:
+                datos = self.enricher._obtener_resenas_sincrono(self.titulo, session=session)
+        except Exception:
+            datos = {"found": False}
+        self.enricher.signals.resultado.emit(self.clave, datos, None)
 
 
 class _SteamSignals(QObject):
     resultado = Signal(str, dict, object)
 
 
-class SteamEnricher:
+class SteamEnricher(QObject):
     _instance = None
 
     def __init__(self):
+        super().__init__()
         self._lock = threading.Lock()
         self.cache = _cargar_cache()
+        self._pendientes = {}
         self.signals = _SteamSignals()
         self.signals.resultado.connect(self._al_emitir_resultado)
+        # Las tarjetas no deben saturar el pool global de imágenes y búsquedas.
+        self._pool = QThreadPool(self)
+        self._pool.setMaxThreadCount(2)
 
     @classmethod
     def get_instance(cls):
@@ -148,11 +156,39 @@ class SteamEnricher:
         return res
 
     def obtener_resenas_async(self, titulo: str, callback):
-        worker = _SteamWorker(titulo, callback, self)
-        QThreadPool.globalInstance().start(worker)
+        clave = limpiar_titulo(titulo).lower()
+        if not clave:
+            callback({"found": False})
+            return
 
-    def _al_emitir_resultado(self, titulo, datos, callback):
-        if callable(callback):
+        with self._lock:
+            cached = self.cache.get(clave)
+            if cached:
+                datos_cacheados = dict(cached)
+                if datos_cacheados.get("appid") and "banner_url" not in datos_cacheados:
+                    datos_cacheados["banner_url"] = (
+                        f"https://cdn.akamai.steamstatic.com/steam/apps/"
+                        f"{datos_cacheados['appid']}/header.jpg"
+                    )
+            else:
+                datos_cacheados = None
+            if datos_cacheados is None:
+                callbacks = self._pendientes.setdefault(clave, [])
+                callbacks.append(callback)
+                if len(callbacks) > 1:
+                    return
+
+        if datos_cacheados is not None:
+            callback(datos_cacheados)
+            return
+
+        worker = _SteamWorker(titulo, clave, self)
+        self._pool.start(worker)
+
+    def _al_emitir_resultado(self, clave, datos, _callback=None):
+        with self._lock:
+            callbacks = self._pendientes.pop(clave, [])
+        for callback in callbacks:
             try:
                 callback(datos)
             except Exception:
