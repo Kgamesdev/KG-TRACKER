@@ -6,6 +6,7 @@ env/
 __pycache__/
 *.pyc
 *.pyo
+.pytest_cache/
 
 # Salidas locales de PyInstaller; no forman parte del código fuente
 /build/
@@ -23,6 +24,7 @@ data/*.bak
 # Archivos temporales, respaldos y bloqueos ofimáticos
 *.tmp
 *.bak
+*.bak-*
 *.log
 BACKUP_*
 .~lock.*#
