@@ -1,5 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from pathlib import Path
+from PyInstaller.building.datastruct import TOC
 
 a = Analysis(
     ['main.py'],
@@ -9,11 +11,21 @@ a = Analysis(
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=['rthook_pyside6_dlls.py'],
+    runtime_hooks=[],
     excludes=[],
     noarchive=False,
     optimize=0,
 )
+
+# The build host may expose Poppler's ICU DLLs through PATH. They are not the
+# ICU implementation expected by the system Qt build and shadow Windows' ICU,
+# causing QtCore to fail with WinError 127. Let Qt resolve the OS ICU instead.
+incompatible_icu_dlls = {'icuuc.dll', 'icudt78.dll'}
+a.binaries = TOC(
+    entry for entry in a.binaries
+    if Path(entry[0]).name.casefold() not in incompatible_icu_dlls
+)
+
 pyz = PYZ(a.pure)
 
 exe = EXE(
