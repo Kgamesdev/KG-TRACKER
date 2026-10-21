@@ -1,94 +1,77 @@
-﻿# K GAME TRACKER (KG Tracker)
+# K GAME TRACKER
 
 <p align="center">
-  <img src="assets/LogoKG_transparente.png" alt="KG Tracker Logo" width="130"/>
+  <img src="assets/LogoKG_transparente.png" alt="KG Tracker" width="132"/>
+</p>
+
+<p align="center"><strong>Find free PC game offers across stores, all from one Windows app.</strong></p>
+
+<p align="center">
+  <a href="#quick-start">Get started</a> ·
+  <a href="#features">Explore features</a> ·
+  <a href="https://github.com/Kgamesdev/KG-TRACKER/issues">Share an idea or report a bug</a> ·
+  <a href="https://github.com/Kgamesdev/KG-TRACKER">Star the project</a>
 </p>
 
 <p align="center">
-  <strong>Desktop control center to track, centralize, and claim time-limited free PC video games.</strong>
+  <a href="README_ES.md"><strong>Leer en español</strong></a>
 </p>
 
 <p align="center">
-  <a href="README_ES.md"><strong>Español / Spanish Version</strong></a>
+  <img src="https://img.shields.io/badge/version-v0.3.4-blue?style=for-the-badge" alt="Version 0.3.4"/>
+  <img src="https://img.shields.io/badge/Python-3.12%20tested-yellow?style=for-the-badge" alt="Python 3.12 tested"/>
+  <img src="https://img.shields.io/badge/GUI-PySide6%20%2B%20Qt%206-41CD52?style=for-the-badge" alt="PySide6 and Qt 6"/>
+  <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=for-the-badge" alt="Windows 10 and 11"/>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Non--Commercial-orange?style=for-the-badge" alt="Non-commercial license"/></a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.3.0-blue?style=for-the-badge" alt="Version"/>
-  <img src="https://img.shields.io/badge/python-3.14+-yellow?style=for-the-badge" alt="Python Version"/>
-  <img src="https://img.shields.io/badge/framework-PySide6%20(Qt%206)-41CD52?style=for-the-badge" alt="PySide6"/>
-  <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=for-the-badge" alt="Platform"/>
-  <img src="https://img.shields.io/badge/license-Non--Commercial-orange?style=for-the-badge" alt="License"/>
-</p>
-
----
-
-## Project Description
-
-**KG Tracker** is a native Windows desktop application built with **Python** and **PySide6 (Qt 6)**. Its primary purpose is to keep gamers informed about all 100% free, time-limited game offers across major PC digital distribution stores, automatically filtering out DLCs, demos, season passes, and soundtracks.
-
-It features a real-time data enrichment engine that cross-references each giveaway with **Steam community reviews** and dynamically translates store descriptions in the background.
-
----
-
-## Key Features
-
-- **Centralized Multi-Store Tracking:** Monitors giveaways from Epic Games, Steam, GOG, Amazon Prime Gaming, Itch.io, Humble Store, Fanatical, and IndieGala via the GamerPower API.
-- **Smart Filtering:** Automatically excludes expansions, skins, demos, betas, and secondary content, displaying exclusively full video games.
-- **Live Steam API Integration:** Displays community scores and positive review percentages (e.g., `Steam: 95% (Very Positive)`) even for giveaways hosted on Epic Games, GOG, or Prime Gaming.
-- **Dynamic Description Translator:** Asynchronous engine with multi-channel fallback (Google Mobile Web + MyMemory) that translates descriptions in the background without freezing the UI.
-- **Full Internationalization (i18n):** On-the-fly bilingual support (Spanish / English) for buttons, status badges, modals, context menus, and push notifications.
-- **High-Performance Architecture (60 FPS):** Asynchronous thumbnail loading and rendering (`QThreadPool` + `QRunnable`) with multi-level RAM and disk caching for fluid scrolling.
-- **Windows System Tray Integration:** Minimizes to the tray area next to the clock with native bilingual push notifications and a configurable sweep timer (2h, 4h, 8h, 24h).
-- **Claim History & Savings Tracker:** Safely stores claimed games locally using atomic I/O and calculates total accumulated savings in USD (`$ SAVED`).
-- **Configurable Background Audio:** Background music player with smooth audio transitions (*Fade Out* on minimize, *Fade In* on restore).
-
----
-
-## About the Author
-
-> This personal project was created by me, a nurse who never had much time to study programming, but always had an overwhelming desire to learn. I developed this project guided solely by research and AI. I hope you enjoy the hours and care I have put into it.
-
----
-
-## Architecture & Tech Stack
-
-| Component | Technology |
-| :--- | :--- |
-| **Language** | Python 3.14 |
-| **GUI Framework** | PySide6 (Qt 6.x) with dynamic QSS stylesheets |
-| **Image Processing** | Pillow (`PIL`) |
-| **Networking & APIs** | `requests` with concurrent session pooling |
-| **Audio Engine** | `pygame-ce` |
-| **Persistence** | Transactional JSON with atomic writing (`fsync` + safe replace) |
-
-
----
-
-## ☕ Support the Project
-
-If you find KG Tracker useful and would like to support ongoing development, feel free to buy me a coffee:
-
-<p align="center">
-  <a href="https://ko-fi.com/kurigamedeveloper" target="_blank">
-    <img src="https://storage.ko-fi.com/cdn/kofi3.png?v=3" alt="Buy Me a Coffee at ko-fi.com" height="42"/>
-  </a>
-</p>
-<p align="center">
-  <a href="https://ko-fi.com/kurigamedeveloper"><strong>ko-fi.com/kurigamedeveloper</strong></a>
+  <a href="https://github.com/Kgamesdev/KG-TRACKER/stargazers"><img src="https://img.shields.io/github/stars/Kgamesdev/KG-TRACKER?style=social" alt="Star KG Tracker on GitHub"/></a>
+  <a href="https://github.com/Kgamesdev/KG-TRACKER/issues"><img src="https://img.shields.io/github/issues/Kgamesdev/KG-TRACKER" alt="Open issues"/></a>
 </p>
 
 ---
 
-## 📋 Recent Highlights (v0.3.0)
+KG Tracker helps you catch limited-time PC game giveaways without checking every store by hand. It combines **GamerPower** listings with checks of supported store pages, then brings the offers together in one desktop app.
 
-- **Fluid Accordion Opening:** Seamless drawer deployment displaying game cards instantly with unified `OutCubic` motion.
-- **Theme Cross-Fade:** Native screen dissolve transition between Dark and Light visual themes.
-- **Direct Ko-fi Integration:** Verified, whitelist-compliant creator link directly into `kurigamedeveloper`.
-- **Render Pipeline Optimization:** Cleaned up Qt graphics painter synchronization and removed console warnings.
+## Features
 
----
+- **More places to find games:** combines giveaway listings and supported store sources to improve coverage.
+- **Cleaner results:** filters out many demos and add-ons, and reduces duplicate offers when stores use different titles or languages.
+- **Useful game details:** shows Steam review information when available and translates descriptions in the background.
+- **Stay in the loop:** check offers manually or let the app scan periodically and send Windows notifications from the system tray.
+- **Keep track of claims:** stores claimed games locally and shows your accumulated savings.
+- **Make it yours:** Spanish and English interface, light and dark themes, persistent music and volume settings, and optional start with Windows.
 
-## License
+KG Tracker is built for Windows 10 and 11 with Python and PySide6. Offers can expire or vary by region, account, and store.
 
-This project is licensed under a **Non-Commercial License**. See the [**LICENSE**](LICENSE) file for more information.
+## Quick start
 
+### Requirements
+
+- Windows 10 or 11
+- Python 3.12 (tested)
+
+### Run from source
+
+```powershell
+git clone https://github.com/Kgamesdev/KG-TRACKER.git
+cd KG-TRACKER
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe main.py
+```
+
+## Help shape the project
+
+Found a bug, missing a store, or have an idea? [Open an issue](https://github.com/Kgamesdev/KG-TRACKER/issues) and include what you expected and what happened. If KG Tracker is useful to you, [give the repository a star](https://github.com/Kgamesdev/KG-TRACKER/stargazers)—it helps other players discover it.
+
+Contributions are welcome: fork the repository, make a focused change, and open a pull request. Please read the [license](LICENSE) before reusing the code; this project is **non-commercial**.
+
+## Support
+
+KG Tracker is a personal learning project. If you would like to support its development, you can [buy me a coffee on Ko-fi](https://ko-fi.com/kurigamedeveloper).
+
+## Credits
+
+Giveaway data is provided by [GamerPower](https://www.gamerpower.com/). The app also uses Steam community review information where available.
