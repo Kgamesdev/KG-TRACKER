@@ -13,7 +13,7 @@
 <p align="center"><a href="README_ES.md"><strong>🇪🇸 Leer en español</strong></a></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.3.4-blue?style=for-the-badge" alt="Version 0.3.4"/>
+  <img src="https://img.shields.io/badge/version-v0.4.0-blue?style=for-the-badge" alt="Version 0.4.0"/>
   <img src="https://img.shields.io/badge/Python-3.12%20tested-yellow?style=for-the-badge" alt="Python 3.12 tested"/>
   <img src="https://img.shields.io/badge/framework-PySide6%20%2B%20Qt%206-41CD52?style=for-the-badge" alt="PySide6 and Qt 6"/>
   <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=for-the-badge" alt="Windows 10 and 11"/>
@@ -33,17 +33,29 @@
 
 ## ✨ Key Features
 
-- **Centralized multi-store tracking:** combines GamerPower listings with direct searches of Epic Games, Steam, GOG and itch.io.
-- **Smart filtering and deduplication:** filters many demos and add-ons, and merges duplicate offers even when titles differ by language.
+- **Broad free-game search:** combines GamerPower with direct searches of Epic Games, Steam, GOG, itch.io, Amazon Prime Gaming and Fanatical. Some additional stores can appear through GamerPower listings; direct coverage depends on each store's public data.
+- **Automatic checks:** searches when the app starts and can repeat at the interval selected in Settings. Results load in the app; store pages open only when you choose an offer.
+- **Smart filtering and deduplication:** filters demos and add-ons and merges duplicate offers across sources, regional links and translated titles.
 - **Useful game details:** shows Steam review information when available and translates descriptions in the background.
-- **Notifications and background checks:** scan on demand or periodically, with Windows notifications from the system tray.
+- **Notifications and background checks:** scan on demand or periodically, with Windows notifications from the system tray while the app is minimized.
 - **Claim history and savings:** saves claimed games locally and tracks their accumulated value.
-- **Personal settings:** English and Spanish interface, light and dark themes, persistent music and volume settings, and optional start with Windows.
+- **Personal settings:** English and Spanish interface, softened light and dark themes, saved music preference, mute and volume controls, search interval, notifications, and optional start with Windows.
+- **Window behavior:** single-instance protection, minimize to the system tray, and a setting to minimize or exit when closing the window.
 - **Responsive interface:** loads game artwork asynchronously and uses caching to keep browsing smooth.
 
 ## 🚀 Quick Start
 
 **Requirements:** Windows 10 or 11 and Python 3.12.
+
+**Ready-to-use app:** download the Windows build from the [v0.4.0 release](https://github.com/Kgamesdev/KG-TRACKER/releases/tag/v0.4.0).
+
+### Windows SmartScreen and SHA-256 verification
+
+Windows SmartScreen may warn when downloading or starting KG Tracker because the executable is not signed with a publicly trusted code-signing certificate. This is a publisher/file reputation warning; by itself it does not prove the program is malicious or guarantee that it is safe.
+
+Download the EXE only from the [official GitHub release](https://github.com/Kgamesdev/KG-TRACKER/releases/tag/v0.4.0). Each release includes a `.sha256` file to compare the executable's fingerprint. In PowerShell, calculate it with `Get-FileHash .\KG-TRACKER.exe -Algorithm SHA256` and compare the value with the published one.
+
+SHA-256 only verifies that a file matches the bytes covered by that fingerprint. It does not certify who created the file, prove it is malware-free, or remove the SmartScreen warning.
 
 ```powershell
 git clone https://github.com/Kgamesdev/KG-TRACKER.git
@@ -69,13 +81,15 @@ py -3.12 -m venv .venv
 
 ## 🔌 Credits and Data Sources
 
-KG Tracker uses the following services and public endpoints. Availability and offer data are controlled by their providers.
+KG Tracker uses the following services, public endpoints and store pages. Some sources are public web pages rather than formal APIs. Availability and offer data are controlled by their providers.
 
 - **[GamerPower API](https://www.gamerpower.com/api/)** — giveaway listings and offer details.
 - **[Epic Games Store](https://store-site-backend-static.ak.epicgames.com/)** — free game promotions catalog.
 - **[Steam Store](https://store.steampowered.com/)** — featured free/discounted games, app search and community reviews; artwork is served from the Steam CDN.
 - **[itch.io](https://itch.io/games/on-sale?format=json)** — games-on-sale listing.
 - **[GOG Catalog](https://catalog.gog.com/)** — discounted game catalog.
+- **[Amazon Games / Luna](https://www.amazongamestudios.com/en-us/news)** — Prime Gaming offer announcements and public claim pages.
+- **[Fanatical Promotions](https://support.fanatical.com/hc/en-us/articles/360018002197-Promotions-Summary-Terms-and-Conditions)** — promotion details used to identify current giveaways.
 - **[Google Translate](https://translate.googleapis.com/)** — primary description translation source.
 - **[MyMemory Translation API](https://mymemory.translated.net/)** — translation fallback.
 - **[GitHub Releases API](https://docs.github.com/en/rest/releases/releases)** — latest release check inside the app.
@@ -84,12 +98,14 @@ KG Tracker uses the following services and public endpoints. Availability and of
 
 If KG Tracker is useful to you and you would like to support its development, you can [buy me a coffee on Ko-fi](https://ko-fi.com/kurigamedeveloper).
 
-## 📋 Recent Highlights (v0.3.4)
+## 📋 Recent Highlights (v0.4.0)
 
-- Broader free-game coverage by combining giveaway listings with direct store searches.
-- Improved duplicate detection for the same game listed in different languages.
-- Persistent music preferences and working playback controls.
-- Single-instance protection, with clearer close and minimize-to-tray behavior.
+- Added direct free-game sources for Amazon Prime Gaming and Fanatical alongside the existing store search and GamerPower fallback.
+- Improved duplicate detection for equivalent titles across languages, sources and regional store URLs.
+- Added automatic search on startup, persistent audio settings, and clearer minimize-to-tray versus exit behavior.
+- Updated the light theme and settings interaction, and kept store tabs closed until the user opens an offer.
+- Made artwork loading more resilient to temporary failures and added alternative images where available.
+- Reorganized visual components internally for easier maintenance while preserving interface behavior.
 
 ## 🤝 Help Improve the Project
 

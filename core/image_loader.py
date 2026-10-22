@@ -2,12 +2,14 @@
 
 import os
 import hashlib
+import time
+from urllib.parse import urlsplit
 from PySide6.QtCore import QObject, Signal, QRunnable, QThreadPool, Qt
 from PySide6.QtGui import QImage, QPixmap
 
 from core.paths import CACHE_DIR
 from core.network import descargar_contenido_seguro
-from logger import log_error
+from logger import log_error, log_warning
 
 
 class _ImageWorkerSignals(QObject):
@@ -26,24 +28,31 @@ class _ImageDownloadWorker(QRunnable):
 
     def run(self):
         try:
-            # Descarga segura con timeouts, límites de tamaño e hilo aislado.
-            contenido = descargar_contenido_seguro(self.url)
-            if contenido:
-                img = QImage()
-                if img.loadFromData(contenido):
-                    try:
-                        img.save(self.ruta_disco, "PNG")
-                    except Exception as error:
-                        log_error(f"No se pudo cachear una miniatura: {error}")
+            # Reintentar una vez los fallos transitorios de red o decodificación.
+            # La espera ocurre en el worker para no bloquear el hilo de la interfaz.
+            for intento in range(2):
+                contenido = descargar_contenido_seguro(self.url)
+                if contenido:
+                    img = QImage()
+                    if img.loadFromData(contenido):
+                        try:
+                            img.save(self.ruta_disco, "PNG")
+                        except Exception as error:
+                            log_error(f"No se pudo cachear una miniatura: {error}")
 
-                    scaled = img.scaled(
-                        self.target_size[0],
-                        self.target_size[1],
-                        Qt.AspectRatioMode.KeepAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation,
-                    )
-                    self.signals.completado.emit(self.url, scaled)
-                    return
+                        scaled = img.scaled(
+                            self.target_size[0],
+                            self.target_size[1],
+                            Qt.AspectRatioMode.KeepAspectRatio,
+                            Qt.TransformationMode.SmoothTransformation,
+                        )
+                        self.signals.completado.emit(self.url, scaled)
+                        return
+                if intento == 0:
+                    time.sleep(0.4)
+
+            host = urlsplit(self.url).hostname or "desconocido"
+            log_warning(f"No se pudo cargar la miniatura desde {host} tras 2 intentos.")
         except Exception as error:
             # Una excepción no puede escapar de QRunnable.run(): PySide puede
             # terminar el proceso si cruza la frontera C++/Python.
@@ -68,6 +77,7 @@ class ImageLoader(QObject):
         os.makedirs(CACHE_DIR, exist_ok=True)
         self._ram_cache = {}          
         self._descargas_en_curso = {}  
+        self._workers = {}
         self._pool = QThreadPool.globalInstance()
 
     def _ruta_cache(self, url: str) -> str:
@@ -96,6 +106,10 @@ class ImageLoader(QObject):
                 self._ram_cache[url] = scaled
                 callback(url, scaled)
                 return
+            try:
+                os.remove(ruta)
+            except OSError:
+                pass
 
         if url in self._descargas_en_curso:
             self._descargas_en_curso[url].append(callback)
@@ -104,10 +118,13 @@ class ImageLoader(QObject):
         self._descargas_en_curso[url] = [callback]
 
         worker = _ImageDownloadWorker(url, ruta, target_size)
+        # Mantener vivo el wrapper Python hasta recibir la señal de finalización.
+        self._workers[url] = worker
         worker.signals.completado.connect(self._al_terminar_descarga)
         self._pool.start(worker)
 
     def _al_terminar_descarga(self, url: str, img: QImage):
+        self._workers.pop(url, None)
         callbacks = self._descargas_en_curso.pop(url, [])
         pixmap = None
 

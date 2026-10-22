@@ -673,16 +673,20 @@ def _actualizar_vista_juegos(self):
             widget.setParent(None)
             widget.deleteLater()
 
-        while self.frame_lista_layout.count() > 0:
-            last_item = self.frame_lista_layout.itemAt(self.frame_lista_layout.count() - 1)
-            if last_item.spacerItem():
-                self.frame_lista_layout.removeItem(last_item)
-            else:
-                break
+        # Vaciar el orden anterior antes de volver a añadir los widgets. Qt
+        # reduce el índice al mover widgets que ya están dentro del layout, lo
+        # que hacía que insertWidget(i, widget) emitiera avisos y dejara el orden
+        # de las tarjetas inconsistente al cambiar de tienda.
+        while self.frame_lista_layout.count():
+            item = self.frame_lista_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None and widget not in self.game_widgets_map.values():
+                widget.hide()
+                widget.deleteLater()
 
         widgets_to_animate = []
 
-        for i, clave in enumerate(juegos_visibles_ordenados):
+        for clave in juegos_visibles_ordenados:
             es_nuevo = False
             if clave not in self.game_widgets_map:
                 data = juegos_a_mostrar_map[clave]
@@ -705,7 +709,7 @@ def _actualizar_vista_juegos(self):
                 if hasattr(widget, "graphicsEffect") and widget.graphicsEffect():
                     widget.graphicsEffect().setOpacity(1.0)
                     
-            self.frame_lista_layout.insertWidget(i, widget)
+            self.frame_lista_layout.addWidget(widget)
             widget.show()
 
         self.frame_lista_layout.addStretch(1)

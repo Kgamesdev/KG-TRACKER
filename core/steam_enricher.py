@@ -65,11 +65,15 @@ def _consultar_steam_red(session, titulo_limpio: str) -> dict:
             return {"found": False}
 
         banner_url = f"https://cdn.akamai.steamstatic.com/steam/apps/{appid}/header.jpg"
+        fallback_image_url = candidato.get("tiny_image")
 
         url_reviews = f"https://store.steampowered.com/appreviews/{appid}?json=1&language=all&purchase_type=all"
         resp_rev = session.get(url_reviews, headers=headers, timeout=5)
         if resp_rev.status_code != 200:
-            return {"found": True, "appid": appid, "banner_url": banner_url, "percent": 0}
+            return {
+                "found": True, "appid": appid, "banner_url": banner_url,
+                "fallback_image_url": fallback_image_url, "percent": 0,
+            }
 
         data_rev = resp_rev.json()
         summary = data_rev.get("query_summary", {})
@@ -78,7 +82,10 @@ def _consultar_steam_red(session, titulo_limpio: str) -> dict:
         review_desc = summary.get("review_score_desc", "")
 
         if total_reviews <= 0:
-            return {"found": True, "appid": appid, "banner_url": banner_url, "percent": 0}
+            return {
+                "found": True, "appid": appid, "banner_url": banner_url,
+                "fallback_image_url": fallback_image_url, "percent": 0,
+            }
 
         percent = int(round((total_positive / total_reviews) * 100))
         return {
@@ -89,6 +96,7 @@ def _consultar_steam_red(session, titulo_limpio: str) -> dict:
             "desc_es": RESENAS_ES.get(review_desc.lower(), review_desc),
             "total_reviews": total_reviews,
             "banner_url": banner_url,
+            "fallback_image_url": fallback_image_url,
         }
     except Exception:
         return {"found": False}
@@ -145,6 +153,8 @@ class SteamEnricher(QObject):
             if cached:
                 if cached.get("appid") and "banner_url" not in cached:
                     cached["banner_url"] = f"https://cdn.akamai.steamstatic.com/steam/apps/{cached['appid']}/header.jpg"
+                if cached.get("appid") and "fallback_image_url" not in cached:
+                    cached["fallback_image_url"] = f"https://cdn.akamai.steamstatic.com/steam/apps/{cached['appid']}/capsule_sm_120.jpg"
                 return cached
 
         s = session or requests
@@ -169,6 +179,11 @@ class SteamEnricher(QObject):
                     datos_cacheados["banner_url"] = (
                         f"https://cdn.akamai.steamstatic.com/steam/apps/"
                         f"{datos_cacheados['appid']}/header.jpg"
+                    )
+                if datos_cacheados.get("appid") and "fallback_image_url" not in datos_cacheados:
+                    datos_cacheados["fallback_image_url"] = (
+                        f"https://cdn.akamai.steamstatic.com/steam/apps/"
+                        f"{datos_cacheados['appid']}/capsule_sm_120.jpg"
                     )
             else:
                 datos_cacheados = None

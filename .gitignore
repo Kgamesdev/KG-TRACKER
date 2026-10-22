@@ -11,6 +11,7 @@ __pycache__/
 # Salidas locales de PyInstaller; no forman parte del código fuente
 /build/
 /dist/
+/release_build/
 /logs/
 
 # Caches locales (no deben subir a GitHub)
