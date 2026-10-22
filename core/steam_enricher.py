@@ -5,6 +5,8 @@ import threading
 import json
 import os
 import re
+import difflib
+import unicodedata
 import urllib.parse
 from PySide6.QtCore import QObject, Signal, QThreadPool, QRunnable
 import requests
@@ -43,6 +45,30 @@ def limpiar_titulo(titulo: str) -> str:
     return " ".join(t.split()).strip()
 
 
+def _normalizar_titulo(titulo: str) -> str:
+    """Normaliza títulos para evitar asignar la carátula de otro juego."""
+    valor = unicodedata.normalize("NFKD", str(titulo or "").casefold())
+    valor = "".join(c for c in valor if not unicodedata.combining(c))
+    return " ".join(re.findall(r"[a-z0-9]+", valor))
+
+
+def _titulos_coinciden(titulo_buscado: str, titulo_candidato: str) -> bool:
+    """Acepta variantes menores del título, pero evita portadas de homónimos."""
+    buscado = _normalizar_titulo(titulo_buscado)
+    candidato = _normalizar_titulo(titulo_candidato)
+    if not buscado or not candidato:
+        return False
+    if buscado == candidato:
+        return True
+
+    tokens_buscados = set(buscado.split())
+    tokens_candidato = set(candidato.split())
+    if not tokens_buscados or not tokens_candidato:
+        return False
+    cobertura = len(tokens_buscados & tokens_candidato) / len(tokens_buscados)
+    return cobertura >= 0.8 and difflib.SequenceMatcher(None, buscado, candidato).ratio() >= 0.92
+
+
 def _consultar_steam_red(session, titulo_limpio: str) -> dict:
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -59,20 +85,28 @@ def _consultar_steam_red(session, titulo_limpio: str) -> dict:
         if not items:
             return {"found": False}
 
-        candidato = items[0]
+        titulo_buscado = _normalizar_titulo(titulo_limpio)
+        # La búsqueda de Steam es aproximada y puede devolver otro juego. No
+        # debemos usar su imagen ni sus reseñas si el nombre no coincide.
+        candidato = next((item for item in items if _titulos_coinciden(
+            titulo_buscado, item.get("name", "")
+        )), None)
+        if not candidato:
+            return {"found": False}
         appid = candidato.get("id")
         if not appid:
             return {"found": False}
 
-        banner_url = f"https://cdn.akamai.steamstatic.com/steam/apps/{appid}/header.jpg"
+        # tiny_image viene del propio resultado de Steam y apunta al recurso
+        # existente. No fabricar header.jpg: muchos appid no tienen ese asset.
         fallback_image_url = candidato.get("tiny_image")
 
         url_reviews = f"https://store.steampowered.com/appreviews/{appid}?json=1&language=all&purchase_type=all"
         resp_rev = session.get(url_reviews, headers=headers, timeout=5)
         if resp_rev.status_code != 200:
             return {
-                "found": True, "appid": appid, "banner_url": banner_url,
-                "fallback_image_url": fallback_image_url, "percent": 0,
+                "found": True, "title_match": True, "appid": appid,
+                "fallback_image_url": fallback_image_url, "steam_title": candidato.get("name"), "percent": 0,
             }
 
         data_rev = resp_rev.json()
@@ -83,20 +117,21 @@ def _consultar_steam_red(session, titulo_limpio: str) -> dict:
 
         if total_reviews <= 0:
             return {
-                "found": True, "appid": appid, "banner_url": banner_url,
-                "fallback_image_url": fallback_image_url, "percent": 0,
+                "found": True, "title_match": True, "appid": appid,
+                "fallback_image_url": fallback_image_url, "steam_title": candidato.get("name"), "percent": 0,
             }
 
         percent = int(round((total_positive / total_reviews) * 100))
         return {
             "found": True,
+            "title_match": True,
             "appid": appid,
             "percent": percent,
             "desc_en": review_desc,
             "desc_es": RESENAS_ES.get(review_desc.lower(), review_desc),
             "total_reviews": total_reviews,
-            "banner_url": banner_url,
             "fallback_image_url": fallback_image_url,
+            "steam_title": candidato.get("name"),
         }
     except Exception:
         return {"found": False}
@@ -150,11 +185,9 @@ class SteamEnricher(QObject):
         clave = t_limpio.lower()
         with self._lock:
             cached = self.cache.get(clave)
-            if cached:
-                if cached.get("appid") and "banner_url" not in cached:
-                    cached["banner_url"] = f"https://cdn.akamai.steamstatic.com/steam/apps/{cached['appid']}/header.jpg"
-                if cached.get("appid") and "fallback_image_url" not in cached:
-                    cached["fallback_image_url"] = f"https://cdn.akamai.steamstatic.com/steam/apps/{cached['appid']}/capsule_sm_120.jpg"
+            # Las entradas antiguas contenían portadas inventadas a partir
+            # del appid. Actualizarlas una vez para conservar solo URLs reales.
+            if cached and cached.get("title_match"):
                 return cached
 
         s = session or requests
@@ -173,18 +206,8 @@ class SteamEnricher(QObject):
 
         with self._lock:
             cached = self.cache.get(clave)
-            if cached:
+            if cached and cached.get("title_match"):
                 datos_cacheados = dict(cached)
-                if datos_cacheados.get("appid") and "banner_url" not in datos_cacheados:
-                    datos_cacheados["banner_url"] = (
-                        f"https://cdn.akamai.steamstatic.com/steam/apps/"
-                        f"{datos_cacheados['appid']}/header.jpg"
-                    )
-                if datos_cacheados.get("appid") and "fallback_image_url" not in datos_cacheados:
-                    datos_cacheados["fallback_image_url"] = (
-                        f"https://cdn.akamai.steamstatic.com/steam/apps/"
-                        f"{datos_cacheados['appid']}/capsule_sm_120.jpg"
-                    )
             else:
                 datos_cacheados = None
             if datos_cacheados is None:

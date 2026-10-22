@@ -13,7 +13,7 @@
 <p align="center"><a href="README_ES.md"><strong>🇪🇸 Leer en español</strong></a></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.4.0-blue?style=for-the-badge" alt="Version 0.4.0"/>
+  <img src="https://img.shields.io/badge/version-v0.4.1-blue?style=for-the-badge" alt="Version 0.4.1"/>
   <img src="https://img.shields.io/badge/Python-3.12%20tested-yellow?style=for-the-badge" alt="Python 3.12 tested"/>
   <img src="https://img.shields.io/badge/framework-PySide6%20%2B%20Qt%206-41CD52?style=for-the-badge" alt="PySide6 and Qt 6"/>
   <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=for-the-badge" alt="Windows 10 and 11"/>
@@ -47,7 +47,7 @@
 
 **Requirements:** Windows 10 or 11 and Python 3.12.
 
-**Windows downloads:** see the [published releases](https://github.com/Kgamesdev/KG-TRACKER/releases). The [v0.4.0 source code](https://github.com/Kgamesdev/KG-TRACKER/tree/v0.4.0) is also available.
+**Windows downloads:** see the [published releases](https://github.com/Kgamesdev/KG-TRACKER/releases). The [v0.4.1 source code](https://github.com/Kgamesdev/KG-TRACKER/tree/v0.4.1) is also available.
 
 ### Windows SmartScreen and SHA-256 verification
 
@@ -98,8 +98,11 @@ KG Tracker uses the following services, public endpoints and store pages. Some s
 
 If KG Tracker is useful to you and you would like to support its development, you can [buy me a coffee on Ko-fi](https://ko-fi.com/kurigamedeveloper).
 
-## 📋 Recent Highlights (v0.4.0)
+## 📋 Recent Highlights (v0.4.1)
 
+- Prevented missing and mismatched game artwork with store-specific image extraction, verified Steam title matching, and clearer diagnostics when an image cannot be loaded.
+- Added regression tests for nested Itch.io cards, Amazon Prime artwork matching, and Steam fallback title verification.
+- Preserved the v0.4.0 improvements: additional store sources, cross-language duplicate detection, automatic startup search, persistent audio settings, light theme refinements, and more reliable Windows single-instance startup.
 - Added direct free-game sources for Amazon Prime Gaming and Fanatical alongside the existing store search and GamerPower fallback.
 - Improved duplicate detection for equivalent titles across languages, sources and regional store URLs.
 - Added automatic search on startup, persistent audio settings, and clearer minimize-to-tray versus exit behavior.

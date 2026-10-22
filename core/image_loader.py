@@ -19,11 +19,12 @@ class _ImageWorkerSignals(QObject):
 class _ImageDownloadWorker(QRunnable):
     """Worker que descarga y cachea la imagen en un hilo secundario de forma aislada e independiente."""
 
-    def __init__(self, url: str, ruta_disco: str, target_size: tuple = (190, 104)):
+    def __init__(self, url: str, ruta_disco: str, target_size: tuple = (190, 104), context: str = ""):
         super().__init__()
         self.url = url
         self.ruta_disco = ruta_disco
         self.target_size = target_size
+        self.context = context
         self.signals = _ImageWorkerSignals()
 
     def run(self):
@@ -52,7 +53,8 @@ class _ImageDownloadWorker(QRunnable):
                     time.sleep(0.4)
 
             host = urlsplit(self.url).hostname or "desconocido"
-            log_warning(f"No se pudo cargar la miniatura desde {host} tras 2 intentos.")
+            detalle = f" para {self.context}" if self.context else ""
+            log_warning(f"No se pudo cargar la miniatura{detalle} desde {host} tras 2 intentos.")
         except Exception as error:
             # Una excepción no puede escapar de QRunnable.run(): PySide puede
             # terminar el proceso si cruza la frontera C++/Python.
@@ -84,7 +86,7 @@ class ImageLoader(QObject):
         hash_url = hashlib.sha256(url.encode("utf-8")).hexdigest()
         return os.path.join(CACHE_DIR, f"{hash_url}.png")
 
-    def cargar(self, url: str, callback, target_size: tuple = (190, 104)):
+    def cargar(self, url: str, callback, target_size: tuple = (190, 104), context: str = ""):
         if not url:
             callback(url, None)
             return
@@ -117,7 +119,7 @@ class ImageLoader(QObject):
 
         self._descargas_en_curso[url] = [callback]
 
-        worker = _ImageDownloadWorker(url, ruta, target_size)
+        worker = _ImageDownloadWorker(url, ruta, target_size, context)
         # Mantener vivo el wrapper Python hasta recibir la señal de finalización.
         self._workers[url] = worker
         worker.signals.completado.connect(self._al_terminar_descarga)

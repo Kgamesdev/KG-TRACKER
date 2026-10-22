@@ -96,6 +96,52 @@ class TestHistory(unittest.TestCase):
         self.assertEqual(url_juego, "https://itch.io/games/retro-quest")
         self.assertEqual(titulo, "Retro Quest")
 
+    def test_itch_tarjeta_no_se_fragmenta_por_ids_anidados(self):
+        from core.scrapers.store_scrapers import _extraer_celdas_itch
+
+        html_tarjeta = (
+            '<div class="game_cell" data-game_id="123">'
+            '<div class="game_title"><a href="/games/agent-a">Agent A</a></div>'
+            '<div class="game_actions" data-game_id="123">'
+            '<img data-lazy_src="//img.itch.zone/agent-a.jpg">'
+            '</div></div>'
+        )
+        tarjetas = _extraer_celdas_itch(html_tarjeta)
+
+        self.assertEqual(len(tarjetas), 1)
+        self.assertIn('href="/games/agent-a"', tarjetas[0])
+        self.assertIn('data-lazy_src="//img.itch.zone/agent-a.jpg"', tarjetas[0])
+
+    def test_prime_asocia_imagen_catalogo_con_titulo_normalizado(self):
+        from unittest.mock import MagicMock
+        from core.scrapers.store_scrapers import _obtener_enlaces_individuales_prime
+
+        response = MagicMock(status_code=200)
+        response.text = (
+            '<article class="free-catalog-card">'
+            '<h3>El Juego: Edición Especial</h3>'
+            '<img src="https://m.media-amazon.com/images/I/test.jpg">'
+            '</article>'
+        )
+        session = MagicMock()
+        session.get.return_value = response
+
+        enlaces, imagenes = _obtener_enlaces_individuales_prime(session)
+
+        self.assertEqual(enlaces, {})
+        self.assertEqual(
+            imagenes["el juego edicion especial"],
+            "https://m.media-amazon.com/images/I/test.jpg",
+        )
+
+    def test_respaldo_steam_rechaza_titulo_no_coincidente(self):
+        from core.steam_enricher import _titulos_coinciden
+
+        self.assertTrue(_titulos_coinciden("Agent A", "Agent A"))
+        self.assertTrue(_titulos_coinciden("Cafe Simulator", "Café Simulator"))
+        self.assertFalse(_titulos_coinciden("Agent A", "Agent 47"))
+        self.assertFalse(_titulos_coinciden("Wall World 2", "World War Z"))
+
     def test_scrapers_aceptan_y_usan_sesion_http(self):
         import requests
         from unittest.mock import MagicMock

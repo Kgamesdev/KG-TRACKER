@@ -536,6 +536,7 @@ class GameCard(NeonFrame):
             url_img,
             self._on_miniatura_cargada,
             (self._image_label.width(), self._image_label.height()),
+            context=f"{self.nombre_tienda}: {self.juego.get('title', 'juego')}",
         )
 
     def _on_miniatura_cargada(self, url, pixmap):
@@ -601,9 +602,13 @@ class GameCard(NeonFrame):
             return
 
         # Steam solo aporta respaldos: no sustituir la imagen de la tienda
-        # mientras sigue descargándose, porque el banner inferido puede ser 404.
+        # mientras sigue descargándose. Solo se usa la miniatura real devuelta
+        # por Steam para un título coincidente; nunca se inventa una URL.
         if not self._imagen_cargada_con_exito:
-            candidatos = (datos.get("banner_url"), datos.get("fallback_image_url"))
+            candidatos = (
+                (datos.get("fallback_image_url"),)
+                if datos.get("title_match") else ()
+            )
             self._image_fallbacks = [
                 url for url in candidatos
                 if url and url != getattr(self, "_current_url", None)

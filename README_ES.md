@@ -13,7 +13,7 @@
 <p align="center"><a href="README.md"><strong>🇬🇧 Read in English</strong></a></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.4.0-blue?style=for-the-badge" alt="Versión 0.4.0"/>
+  <img src="https://img.shields.io/badge/version-v0.4.1-blue?style=for-the-badge" alt="Versión 0.4.1"/>
   <img src="https://img.shields.io/badge/Python-3.12%20probado-yellow?style=for-the-badge" alt="Python 3.12 probado"/>
   <img src="https://img.shields.io/badge/framework-PySide6%20%2B%20Qt%206-41CD52?style=for-the-badge" alt="PySide6 y Qt 6"/>
   <img src="https://img.shields.io/badge/plataforma-Windows%2010%20%7C%2011-0078D6?style=for-the-badge" alt="Windows 10 y 11"/>
@@ -47,7 +47,7 @@
 
 **Requisitos:** Windows 10 u 11 y Python 3.12.
 
-**Descargas para Windows:** consulta la [página de versiones publicadas](https://github.com/Kgamesdev/KG-TRACKER/releases). El [código fuente de v0.4.0](https://github.com/Kgamesdev/KG-TRACKER/tree/v0.4.0) también está disponible.
+**Descargas para Windows:** consulta la [página de versiones publicadas](https://github.com/Kgamesdev/KG-TRACKER/releases). El [código fuente de v0.4.1](https://github.com/Kgamesdev/KG-TRACKER/tree/v0.4.1) también está disponible.
 
 ### Aviso de Windows y comprobación SHA-256
 
@@ -98,8 +98,11 @@ KG Tracker utiliza los siguientes servicios, endpoints públicos y páginas de l
 
 Si KG Tracker te resulta útil y quieres apoyar su desarrollo, puedes [invitarme a un café en Ko-fi](https://ko-fi.com/kurigamedeveloper).
 
-## 📋 Novedades Recientes (v0.4.0)
+## 📋 Novedades Recientes (v0.4.1)
 
+- Prevención de portadas ausentes o incorrectas mediante extracción específica por tienda, verificación estricta del título en Steam y avisos más claros cuando no se puede cargar una imagen.
+- Pruebas de regresión para tarjetas anidadas de Itch.io, asociación de portadas de Amazon Prime y verificación de títulos para el respaldo de Steam.
+- Se mantienen las mejoras de la v0.4.0: más fuentes de tiendas, detección de duplicados entre idiomas, búsqueda automática al iniciar, ajustes de sonido persistentes, mejoras del tema claro y un arranque de instancia única más fiable en Windows.
 - Nuevas búsquedas directas de juegos gratis en Amazon Prime Gaming y Fanatical, además de las tiendas existentes y el respaldo de GamerPower.
 - Mejor detección de duplicados entre idiomas, fuentes y enlaces regionales de una misma oferta.
 - Búsqueda automática al iniciar, ajustes de audio persistentes y comportamiento más claro al minimizar a la bandeja o salir.

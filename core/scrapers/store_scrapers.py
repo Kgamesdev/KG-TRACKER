@@ -228,13 +228,18 @@ def obtener_itch_directo(session=None):
             return []
         data = res.json()
         content_html = data.get("content", "")
-        chunks = content_html.split('data-game_id="')[1:]
+        # No dividir por data-game_id: Itch repite el atributo en los botones
+        # internos de cada tarjeta y eso separaba la miniatura de su título.
+        chunks = _extraer_celdas_itch(content_html)
 
         for chunk in chunks:
             if "-100%" not in chunk and 'class="price_value">$0</div>' not in chunk:
                 continue
 
-            game_id = chunk.split('"')[0]
+            game_id_match = re.search(r'data-game_id="(\d+)"', chunk)
+            if not game_id_match:
+                continue
+            game_id = game_id_match.group(1)
 
             title_m = re.search(r'<div class="game_title">\s*<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', chunk, re.DOTALL)
             if not title_m:
@@ -280,6 +285,20 @@ def obtener_itch_directo(session=None):
     except Exception as err:
         log_error(f"Error consultando Itch.io directo: {err}")
     return juegos
+
+
+def _extraer_celdas_itch(content_html):
+    """Separa tarjetas Itch por contenedor; los atributos de id se repiten dentro."""
+    inicios = list(re.finditer(
+        r'<div\b[^>]*\bclass=["\'][^"\']*\bgame_cell\b[^"\']*["\'][^>]*>',
+        content_html,
+        re.IGNORECASE,
+    ))
+    return [
+        content_html[inicio.start():
+                     (inicios[indice + 1].start() if indice + 1 < len(inicios) else len(content_html))]
+        for indice, inicio in enumerate(inicios)
+    ]
 
 
 def obtener_gog_directo(session=None):
@@ -385,7 +404,7 @@ class _AmazonArticleText(HTMLParser):
 
 
 def _obtener_enlaces_individuales_prime(session):
-    """Lee enlaces de reclamo Luna individualizados desde su índice público."""
+    """Lee enlaces e imágenes de Luna desde su índice público."""
     url = "https://www.couchloot.com/free"
     try:
         response = session.get(
@@ -394,8 +413,33 @@ def _obtener_enlaces_individuales_prime(session):
             timeout=4,
         )
         if response.status_code != 200:
-            return {}
+            return {}, {}
         enlaces = {}
+        imagenes = {}
+
+        # El índice publica las portadas de los juegos Prime como imágenes de
+        # Amazon. Extraerlas aquí cubre ofertas cuyos artículos de Amazon no
+        # incluyen imagen y que no existen en Steam.
+        patron_tarjeta = re.compile(
+            r'<article\b[^>]*class=["\'][^"\']*\bfree-catalog-card\b[^"\']*["\'][^>]*>(.*?)</article\s*>',
+            re.IGNORECASE | re.DOTALL,
+        )
+        for tarjeta_match in patron_tarjeta.finditer(response.text):
+            tarjeta = tarjeta_match.group(1)
+            titulo_match = re.search(r'<h3\b[^>]*>(.*?)</h3\s*>', tarjeta, re.IGNORECASE | re.DOTALL)
+            imagen_match = re.search(r'<img\b[^>]*\bsrc=["\']([^"\']+)', tarjeta, re.IGNORECASE)
+            if not titulo_match or not imagen_match:
+                continue
+            titulo = html.unescape(re.sub(r'<[^>]+>', '', titulo_match.group(1))).strip()
+            imagen = html.unescape(imagen_match.group(1)).strip()
+            host = (urllib.parse.urlsplit(imagen).hostname or '').lower().rstrip('.')
+            if titulo and imagen.startswith('https://') and (
+                host == 'media-amazon.com' or host.endswith('.media-amazon.com')
+            ):
+                normalizado = unicodedata.normalize('NFKD', titulo.casefold())
+                normalizado = ''.join(c for c in normalizado if not unicodedata.combining(c))
+                normalizado = ' '.join(re.findall(r'[a-z0-9]+', normalizado))
+                imagenes[normalizado] = imagen
         scripts = re.findall(
             r'<script\b[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script\s*>',
             response.text,
@@ -423,10 +467,10 @@ def _obtener_enlaces_individuales_prime(session):
                 recorrer(json.loads(html.unescape(source)))
             except (ValueError, TypeError):
                 continue
-        return enlaces
+        return enlaces, imagenes
     except Exception as err:
         log_warning(f"No se pudieron resolver enlaces individuales de Amazon Prime: {err}")
-        return {}
+        return {}, {}
 
 
 def obtener_amazon_prime_directo(session=None):
@@ -503,11 +547,14 @@ def obtener_amazon_prime_directo(session=None):
     # El anuncio de Amazon enlaza a una página general. Este índice público
     # añade los deep links oficiales de Luna; solo aceptamos destinos en
     # luna.amazon.com y los asociamos por título exacto normalizado.
-    enlaces_individuales = _obtener_enlaces_individuales_prime(s)
+    enlaces_individuales, imagenes_prime = _obtener_enlaces_individuales_prime(s)
     for oferta in resultado.values():
         normalizado = unicodedata.normalize("NFKD", oferta["title"].casefold())
         normalizado = "".join(c for c in normalizado if not unicodedata.combining(c))
         normalizado = " ".join(re.findall(r"[a-z0-9]+", normalizado))
+        imagen = imagenes_prime.get(normalizado)
+        oferta["thumbnail"] = imagen
+        oferta["image"] = imagen
         oferta["open_giveaway_url"] = enlaces_individuales.get(
             normalizado, oferta["open_giveaway_url"]
         )
