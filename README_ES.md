@@ -47,13 +47,13 @@
 
 **Requisitos:** Windows 10 u 11 y Python 3.12.
 
-**App lista para usar:** descarga la versión de Windows desde la [versión 0.4.0](https://github.com/Kgamesdev/KG-TRACKER/releases/tag/v0.4.0).
+**Descargas para Windows:** consulta la [página de versiones publicadas](https://github.com/Kgamesdev/KG-TRACKER/releases). El [código fuente de v0.4.0](https://github.com/Kgamesdev/KG-TRACKER/tree/v0.4.0) también está disponible.
 
 ### Aviso de Windows y comprobación SHA-256
 
 Windows SmartScreen puede mostrar una advertencia al descargar o iniciar KG Tracker porque el ejecutable no está firmado con un certificado de firma de código de confianza pública. Es una advertencia de reputación del editor/archivo; por sí sola no demuestra que el programa sea malicioso ni garantiza que sea seguro.
 
-Descarga el EXE únicamente desde la [versión oficial en GitHub](https://github.com/Kgamesdev/KG-TRACKER/releases/tag/v0.4.0). Cada versión incluye un archivo `.sha256` para comparar la huella del ejecutable. En PowerShell puedes obtenerla con `Get-FileHash .\KG-TRACKER.exe -Algorithm SHA256` y comparar el valor con el publicado.
+Cuando haya un EXE publicado, descárgalo únicamente desde las [versiones oficiales de GitHub](https://github.com/Kgamesdev/KG-TRACKER/releases) y compara su huella con el archivo `.sha256` adjunto. En PowerShell puedes calcularla con `Get-FileHash .\KG-TRACKER.exe -Algorithm SHA256`.
 
 SHA-256 solo permite comprobar que el archivo coincide byte por byte con el archivo al que corresponde la huella. No certifica quién lo creó, que esté libre de malware ni elimina la advertencia de SmartScreen.
 
