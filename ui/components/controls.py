@@ -9,6 +9,7 @@ from config import (
     COLOR_BG_CARD, COLOR_BORDER, COLOR_HOVER,
 )
 from core.i18n import t
+from ui.design_system import FONT_FAMILY, FONT_SIZE_BODY_PT
 from PySide6.QtCore import (
     QEasingCurve, QParallelAnimationGroup, QPoint, QPropertyAnimation, QRectF,
     QSize, Qt,
@@ -100,7 +101,7 @@ class RoundedButton(QPushButton):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setProperty('role', role)
 
-        self.setFont(QFont('Segoe UI', 8, QFont.Weight.Bold) if role != 'secondary' else QFont('Segoe UI', 7, QFont.Weight.Bold))
+        self.setFont(QFont(FONT_FAMILY, FONT_SIZE_BODY_PT, QFont.Weight.Bold))
 
         self._anim = QVariantAnimation(self)
         self._anim.setStartValue(0.0)
@@ -467,7 +468,7 @@ class VolumeSlider(QSlider):
         if self._hover_progress > 0.25:
             txt_alpha = int(((self._hover_progress - 0.25) / 0.75) * 255)
             p.setPen(QColor(255, 255, 255, txt_alpha))
-            p.setFont(QFont('Segoe UI', 7, QFont.Weight.Bold))
+            p.setFont(QFont('Segoe UI', 8, QFont.Weight.Bold))
             p.drawText(handle_rect, Qt.AlignmentFlag.AlignCenter, f"{self.value()}%")
 
         p.end()

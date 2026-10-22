@@ -68,7 +68,7 @@ class DesktopToast(QWidget):
 
         self.desc_label = QLabel(mensaje)
         c_desc = "#E2E8F0" if es_oscuro else "#334155"
-        self.desc_label.setStyleSheet(f"color: {c_desc}; font: 8.5pt 'Segoe UI';")
+        self.desc_label.setStyleSheet(f"color: {c_desc}; font: 8pt 'Segoe UI';")
         self.desc_label.setWordWrap(True)
         text_layout.addWidget(self.desc_label)
 

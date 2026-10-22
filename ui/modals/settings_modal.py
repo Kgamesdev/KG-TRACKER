@@ -237,27 +237,31 @@ class SettingsModal(QDialog):
 
     def _aplicar_estilos_modal(self):
         es_claro = (config.CURRENT_THEME == "light")
-        bg_dialog = "#E9EDF2" if es_claro else "#1E1E2E"
-        panel = "#F1F3F6" if es_claro else "#252638"
-        texto_color = "#303946" if es_claro else "#FFFFFF"
-        combo_bg = "#E4E9F0" if es_claro else "#2A2A3A"
-        borde_color = "#CFD7E2" if es_claro else "#3A3A50"
+        paleta = config.THEMES[config.CURRENT_THEME]
+        bg_dialog = paleta["COLOR_BG"]
+        panel = paleta["COLOR_BG_CARD"]
+        texto_color = paleta["COLOR_TEXT_PRIMARY"]
+        combo_bg = paleta["COLOR_BG_DESC"]
+        borde_color = paleta["COLOR_BORDER"]
         separador = borde_color
-        btn_bg = "#C6D6EA" if es_claro else "#6366F1"
-        btn_hover = "#B9CCE3" if es_claro else "#4F46E5"
-        btn_text = "#354E76" if es_claro else "#FFFFFF"
+        btn_bg = paleta["COLOR_ACCENT"]
+        btn_hover = paleta["COLOR_ACCENT_HOVER"]
+        btn_text = "#FFFFFF"
 
         self.setStyleSheet(f"""
             QDialog {{ background: {bg_dialog}; color: {texto_color}; }}
-            QLabel {{ color: {texto_color}; font: 10pt 'Segoe UI'; }}
+            QLabel {{ color: {texto_color}; font: 9pt 'Segoe UI'; }}
             #dialogTitle {{ font: bold 14pt 'Segoe UI'; }}
             #separator {{ color: {separador}; background: {separador}; max-height: 1px; }}
             QGroupBox {{ background: {panel}; color: {texto_color}; border: 1px solid {borde_color}; border-radius: 9px; margin-top: 8px; padding-top: 7px; font: bold 9pt 'Segoe UI'; }}
             QGroupBox::title {{ subcontrol-origin: margin; left: 12px; padding: 0 5px; }}
-            QComboBox {{ background: {combo_bg}; color: {texto_color}; border: 1px solid {borde_color}; padding: 5px; border-radius: 4px; }}
-            QComboBox QAbstractItemView {{ background: {bg_dialog}; color: {texto_color}; selection-background-color: {btn_bg}; }}
+            QComboBox {{ background: {combo_bg}; color: {texto_color}; border: 1px solid {borde_color}; padding: 7px 32px 7px 10px; border-radius: 8px; min-height: 22px; font: 9pt 'Segoe UI'; }}
+            QComboBox:hover, QComboBox:on {{ border-color: {btn_bg}; }}
+            QComboBox::drop-down {{ subcontrol-origin: padding; subcontrol-position: top right; width: 28px; border-left: 1px solid {borde_color}; }}
+            QComboBox QAbstractItemView {{ background: {panel}; color: {texto_color}; border: 1px solid {borde_color}; selection-background-color: {btn_bg}; selection-color: {btn_text}; outline: 0; padding: 4px; font: 9pt 'Segoe UI'; }}
+            QComboBox QAbstractItemView::item {{ min-height: 28px; padding: 5px 9px; border-radius: 5px; }}
             QCheckBox {{ color: {texto_color}; }}
-            #accentButton {{ background: {btn_bg}; color: {btn_text}; border: 1px solid {btn_bg}; font: bold 10pt 'Segoe UI'; padding: 10px; border-radius: 7px; }}
+            #accentButton {{ background: {btn_bg}; color: {btn_text}; border: 1px solid {btn_bg}; font: bold 9pt 'Segoe UI'; padding: 10px; border-radius: 8px; }}
             #accentButton:hover {{ background: {btn_hover}; border-color: {btn_hover}; }}
             #accentButton:pressed {{ background: {'#555BB5' if es_claro else '#4338CA'}; }}
         """)

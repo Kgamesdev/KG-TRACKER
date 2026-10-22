@@ -5,7 +5,7 @@ import config
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtWidgets import (
   QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea,
-  QSizePolicy, QVBoxLayout, QWidget,
+  QSizePolicy, QVBoxLayout, QWidget, QLineEdit, QComboBox,
 )
 from config import (
   LOGO_PATH, STORES_MAPPING, COLOR_SIDEBAR, COLOR_ACCENT, COLOR_TEXT_PRIMARY,
@@ -191,6 +191,46 @@ def _build_ui(self):
   content_layout.addWidget(self.btn_actualizar)
   content_layout.addSpacing(12)
 
+  self.wishlist_search_panel = QWidget(self.content)
+  self.wishlist_search_panel.setObjectName("wishlistSearchPanel")
+  wishlist_search_layout = QVBoxLayout(self.wishlist_search_panel)
+  wishlist_search_layout.setContentsMargins(0, 0, 0, 8)
+  wishlist_search_layout.setSpacing(8)
+  wishlist_input_row = QHBoxLayout()
+  wishlist_input_row.setSpacing(8)
+  self.wishlist_query = QLineEdit()
+  self.wishlist_query.setObjectName("wishlistQuery")
+  self.wishlist_query.setPlaceholderText("Nombre del juego que quieres seguir…")
+  self.wishlist_query.setMinimumHeight(42)
+  self.wishlist_search_button = QPushButton("BUSCAR JUEGO")
+  self.wishlist_search_button.setProperty("wishlistRole", "search")
+  self.wishlist_search_button.setMinimumHeight(42)
+  self.wishlist_search_button.clicked.connect(self._buscar_juegos_wishlist)
+  self.wishlist_query.returnPressed.connect(self._buscar_juegos_wishlist)
+  wishlist_input_row.addWidget(self.wishlist_query, 1)
+  wishlist_input_row.addWidget(self.wishlist_search_button)
+  wishlist_search_layout.addLayout(wishlist_input_row)
+  self.wishlist_results = QComboBox()
+  self.wishlist_results.setObjectName("wishlistResults")
+  self.wishlist_results.setPlaceholderText("Selecciona un juego de los resultados")
+  self.wishlist_results.setMaxVisibleItems(8)
+  self.wishlist_results.setMinimumHeight(42)
+  self.wishlist_results.view().setMinimumWidth(440)
+  self.wishlist_results.setCursor(Qt.CursorShape.PointingHandCursor)
+  self.wishlist_results.hide()
+  wishlist_search_layout.addWidget(self.wishlist_results)
+  self.wishlist_add_button = QPushButton("AÑADIR A WISHLIST")
+  self.wishlist_add_button.setProperty("wishlistRole", "search")
+  self.wishlist_add_button.setMinimumHeight(38)
+  self.wishlist_add_button.clicked.connect(self._anadir_juego_wishlist)
+  self.wishlist_add_button.hide()
+  wishlist_search_layout.addWidget(self.wishlist_add_button)
+  self.wishlist_source_label = QLabel("Precios de España verificados en Steam y GOG · resto en USD sin verificar")
+  self.wishlist_source_label.setObjectName("wishlistSourceLabel")
+  wishlist_search_layout.addWidget(self.wishlist_source_label)
+  self.wishlist_search_panel.hide()
+  content_layout.addWidget(self.wishlist_search_panel)
+
   self.container = QWidget()
   container_layout = QVBoxLayout(self.container)
   container_layout.setContentsMargins(0, 0, 0, 0)
@@ -244,6 +284,21 @@ def _build_ui(self):
     font=("Segoe UI", 8, "bold"), role="secondary",
   )
   bottom_layout.addWidget(self.btn_reclamados)
+
+  self.btn_wishlist = RoundedButton(
+    self.bottom, text="♡ WISHLIST",
+    command=self.alternar_wishlist,
+    width=142, height=34, bg=COLOR_BG_CARD,
+    hover_bg=COLOR_HOVER, fg=COLOR_ACCENT_LIGHT,
+    border=COLOR_BORDER, radius=10,
+    font=("Segoe UI", 8, "bold"), role="secondary",
+  )
+  self.wishlist_notification_badge = QLabel("0", self.btn_wishlist)
+  self.wishlist_notification_badge.setObjectName("wishlistNotificationBadge")
+  self.wishlist_notification_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+  self.wishlist_notification_badge.setFixedSize(18, 18)
+  self.wishlist_notification_badge.hide()
+  bottom_layout.addWidget(self.btn_wishlist)
 
   self.ahorro_pill = RoundedButton(
     self.bottom, text=t("saved.pill", amount="0.00"),

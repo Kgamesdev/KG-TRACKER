@@ -13,7 +13,7 @@
 <p align="center"><a href="README.md"><strong>🇬🇧 Read in English</strong></a></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.4.1-blue?style=for-the-badge" alt="Versión 0.4.1"/>
+  <img src="https://img.shields.io/badge/version-v0.5.0-blue?style=for-the-badge" alt="Versión 0.5.0"/>
   <img src="https://img.shields.io/badge/Python-3.12%20probado-yellow?style=for-the-badge" alt="Python 3.12 probado"/>
   <img src="https://img.shields.io/badge/framework-PySide6%20%2B%20Qt%206-41CD52?style=for-the-badge" alt="PySide6 y Qt 6"/>
   <img src="https://img.shields.io/badge/plataforma-Windows%2010%20%7C%2011-0078D6?style=for-the-badge" alt="Windows 10 y 11"/>
@@ -47,7 +47,7 @@
 
 **Requisitos:** Windows 10 u 11 y Python 3.12.
 
-**Descargas para Windows:** consulta la [página de versiones publicadas](https://github.com/Kgamesdev/KG-TRACKER/releases). El [código fuente de v0.4.1](https://github.com/Kgamesdev/KG-TRACKER/tree/v0.4.1) también está disponible.
+**Descargas para Windows:** consulta la [página de versiones publicadas](https://github.com/Kgamesdev/KG-TRACKER/releases). El [código fuente de v0.5.0](https://github.com/Kgamesdev/KG-TRACKER/tree/v0.5.0) también está disponible.
 
 ### Aviso de Windows y comprobación SHA-256
 
@@ -98,7 +98,16 @@ KG Tracker utiliza los siguientes servicios, endpoints públicos y páginas de l
 
 Si KG Tracker te resulta útil y quieres apoyar su desarrollo, puedes [invitarme a un café en Ko-fi](https://ko-fi.com/kurigamedeveloper).
 
-## 📋 Novedades Recientes (v0.4.1)
+## 📋 Novedades Recientes (v0.5.0)
+
+- Wishlist persistente para seguir juegos y consultar disponibilidad, ofertas y precios por tienda.
+- Indicadores de tienda visibles en cada juego seguido; la tienda con oferta se resalta y muestra precio anterior y actual al pasar el cursor.
+- Búsqueda de juegos con tolerancia a errores tipográficos y consultas periódicas de precios.
+- Acceso a la Wishlist desde la ventana principal, con contador de juegos que tienen ofertas.
+- Unificación de tipografía y mejoras en el estilo de ventanas, controles y menús.
+- Cierre ordenado de las consultas de Wishlist al salir de la aplicación.
+
+### Se mantienen las mejoras de v0.4.1
 
 - Prevención de portadas ausentes o incorrectas mediante extracción específica por tienda, verificación estricta del título en Steam y avisos más claros cuando no se puede cargar una imagen.
 - Pruebas de regresión para tarjetas anidadas de Itch.io, asociación de portadas de Amazon Prime y verificación de títulos para el respaldo de Steam.

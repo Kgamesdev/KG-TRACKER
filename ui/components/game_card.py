@@ -212,7 +212,7 @@ class GameCard(NeonFrame):
                 border: 1px solid #818CF8;
                 border-radius: 6px;
                 padding: 2px 8px;
-                font: bold 7.5pt "Segoe UI";
+                font: bold 8pt "Segoe UI";
             }
         """)
         meta_row.addWidget(store)
@@ -236,7 +236,7 @@ class GameCard(NeonFrame):
                         border: 1px solid #F59E0B;
                         border-radius: 6px;
                         padding: 2px 8px;
-                        font: bold 7.5pt "Segoe UI";
+                        font: bold 8pt "Segoe UI";
                     }
                 """)
             else:
@@ -247,7 +247,7 @@ class GameCard(NeonFrame):
                         border: 1.2px solid #F59E0B;
                         border-radius: 6px;
                         padding: 2px 8px;
-                        font: bold 7.5pt "Segoe UI";
+                        font: bold 8pt "Segoe UI";
                     }
                 """)
             meta_row.addWidget(worth)
@@ -286,7 +286,7 @@ class GameCard(NeonFrame):
                                 border: 1px solid #EC4899;
                                 border-radius: 6px;
                                 padding: 2px 8px;
-                                font: bold 7.5pt "Segoe UI";
+                                font: bold 8pt "Segoe UI";
                             }
                         """)
                     else:
@@ -297,7 +297,7 @@ class GameCard(NeonFrame):
                                 border: 1.2px solid #EC4899;
                                 border-radius: 6px;
                                 padding: 2px 8px;
-                                font: bold 7.5pt "Segoe UI";
+                                font: bold 8pt "Segoe UI";
                             }
                         """)
                     meta_row.addWidget(time_label)
@@ -641,8 +641,7 @@ class GameCard(NeonFrame):
                 border: 1px solid {color_accent};
                 border-radius: 6px;
                 padding: 2px 8px;
-                font: bold 7.5pt "Segoe UI";
+                font: bold 8pt "Segoe UI";
             }}
         """)
         self._steam_badge.show()
-

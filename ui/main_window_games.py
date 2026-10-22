@@ -611,6 +611,10 @@ def _actualizar_vista_juegos(self):
     from core.i18n import t
     from PySide6.QtCore import QParallelAnimationGroup, QSequentialAnimationGroup, QPauseAnimation
 
+    if getattr(self, "mostrando_wishlist", False):
+        self._render_wishlist()
+        return
+
     root = self.centralWidget()
     if root is not None:
         root.setUpdatesEnabled(False)

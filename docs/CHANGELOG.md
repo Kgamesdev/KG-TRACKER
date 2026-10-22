@@ -2,6 +2,15 @@
 
 Todos los cambios notables en este proyecto se documentan en este archivo.
 
+## [v0.5.0] - 2026-10-22
+### Añadido
+- Wishlist persistente con búsqueda tolerante a erratas, consulta periódica y seguimiento de disponibilidad y precios.
+- Indicadores de tiendas por juego; las ofertas activas se resaltan y muestran el precio anterior y actual al pasar el cursor.
+- Contador de juegos de la Wishlist con ofertas en el acceso de la ventana principal.
+### Mejorado
+- Tipografía y estilos más coherentes entre la ventana principal, controles y ajustes.
+- Cierre ordenado de las consultas de precios de la Wishlist.
+
 ## [v0.2.33] - 2026-09-15
 ### Corregido
 - **Concurrencia:** Aislamiento de señales en `_busqueda_thread` al cancelar/reiniciar búsquedas en segundo plano.

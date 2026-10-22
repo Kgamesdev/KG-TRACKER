@@ -127,7 +127,7 @@ class KofiModal(QDialog):
             QLabel {
                 color: #B8C0E0;
                 font-family: 'Segoe UI', sans-serif;
-                font-size: 10.5pt;
+                font-size: 9pt;
                 line-height: 1.45;
             }
             #kofiButton {
@@ -135,7 +135,7 @@ class KofiModal(QDialog):
                 color: #FFFFFF;
                 font-family: 'Segoe UI', sans-serif;
                 font-weight: bold;
-                font-size: 10.5pt;
+                font-size: 9pt;
                 border-radius: 8px;
                 padding: 9px 20px;
                 border: none;
@@ -150,7 +150,7 @@ class KofiModal(QDialog):
                 background: #363A4F;
                 color: #CAD3F5;
                 font-family: 'Segoe UI', sans-serif;
-                font-size: 10pt;
+                font-size: 9pt;
                 border-radius: 8px;
                 padding: 9px 18px;
                 border: none;

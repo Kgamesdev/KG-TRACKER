@@ -391,6 +391,9 @@ def _alternar_reclamado(self, juego):
 
 def mostrar_reclamados(self):
 
+  if getattr(self, "mostrando_wishlist", False):
+    self.alternar_wishlist()
+
   self.mostrando_reclamados = not self.mostrando_reclamados
 
   if self.mostrando_reclamados:

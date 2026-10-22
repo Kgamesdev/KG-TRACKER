@@ -77,6 +77,12 @@ def _ajustar_ventana_por_estado(self, expandida):
 
 def _actualizar_visibilidad_atras(self):
     """Muestra Atrás solo cuando existe un estado que realmente se puede deshacer."""
+    if getattr(self, "mostrando_wishlist", False):
+        self.btn_side_todas.hide()
+        self.btn_side_back.setVisible(True)
+        self._ajustar_ventana_por_estado(True)
+        return
+
     hay_filtros = any(self.active_filters.values())
     hay_todas = bool(self.todas_activado)
     hay_reclamados = bool(self.mostrando_reclamados)
@@ -118,6 +124,8 @@ def toggle_todas(self):
 
 
 def _toggle_tienda(self, store):
+    if getattr(self, "mostrando_wishlist", False):
+        self.alternar_wishlist()
     root = self.centralWidget()
     if root is not None:
         root.setUpdatesEnabled(False)
@@ -144,6 +152,10 @@ def _toggle_tienda(self, store):
 
 
 def volver_atras(self):
+    if getattr(self, "mostrando_wishlist", False):
+        self.alternar_wishlist()
+        self._set_status(t("status.ready"), "success")
+        return
     self.mostrando_reclamados = False
     self.btn_reclamados.setText(t("claimed.btn"))
     self.btn_reclamados.setProperty("role", "secondary")

@@ -49,6 +49,7 @@ for path in (DATA_DIR, CACHE_DIR, LOGS_DIR):
 # Archivos de datos y caché
 SETTINGS_FILE = DATA_DIR / "settings.json"
 RECLAMADOS_FILE = DATA_DIR / "reclamados.json"
+WISHLIST_FILE = DATA_DIR / "wishlist.json"
 CACHE_GIVEAWAYS_FILE = CACHE_DIR / "giveaways_cache.json"
 CACHE_STEAM_FILE = CACHE_DIR / "steam_cache.json"
 CACHE_TRANSLATIONS_FILE = CACHE_DIR / "translations_cache.json"

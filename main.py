@@ -263,8 +263,11 @@ def main():
     from PySide6.QtCore import QTimer
 
     from PySide6.QtWidgets import QApplication
+    from PySide6.QtGui import QFont
+    from ui.design_system import FONT_FAMILY, FONT_SIZE_BODY_PT
 
     app = QApplication.instance() or QApplication(sys.argv)
+    app.setFont(QFont(FONT_FAMILY, FONT_SIZE_BODY_PT))
 
     from core.single_instance import SingleInstance
 
@@ -325,6 +328,12 @@ def main():
                     ventana._limpiar_hilo_busqueda()
             except Exception as error_busqueda:
                 log_error(f"Error cerrando el hilo de búsqueda: {error_busqueda}", exc_info=True)
+
+            try:
+                if hasattr(ventana, "_wait_wishlist_worker"):
+                    ventana._wait_wishlist_worker(timeout_ms=15000)
+            except Exception as error_wishlist:
+                log_error(f"Error cerrando la consulta de Wishlist: {error_wishlist}", exc_info=True)
 
             try:
                 if hasattr(ventana, "_detener_audio"):

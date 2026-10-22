@@ -4,6 +4,11 @@ Design System centralizado para KG Tracker con cumplimiento WCAG 2.1 AA.
 Resuelve UX-02 (Contraste y Accesibilidad) y define la paleta oficial.
 """
 
+FONT_FAMILY = "Segoe UI"
+FONT_SIZE_BODY_PT = 9
+FONT_SIZE_SECONDARY_PT = 8
+FONT_SIZE_TITLE_PT = 11
+
 # Tokens de Color - Tema Oscuro (Cyberpunk Dark)
 DARK_PALETTE = {
     "bg_main": "#12121A",

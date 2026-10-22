@@ -1,6 +1,7 @@
 """Tema QSS y sincronización visual de la ventana principal."""
 
 import config
+from ui.design_system import FONT_FAMILY, FONT_SIZE_BODY_PT
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QIcon
 from config import (
@@ -18,6 +19,16 @@ def _apply_theme_qss(self):
     return tema[name]
 
   qss = f"""
+  QWidget {{
+    font-family: "{FONT_FAMILY}";
+    font-size: {FONT_SIZE_BODY_PT}pt;
+  }}
+
+  QMainWindow, QDialog {{
+    font-family: "{FONT_FAMILY}";
+    font-size: {FONT_SIZE_BODY_PT}pt;
+  }}
+
   QToolTip {{
     background: {c("COLOR_BG_CARD")};
     color: {c("COLOR_TEXT_PRIMARY")};
@@ -58,7 +69,7 @@ def _apply_theme_qss(self):
   QLabel#storeLabel {{
     color: {c("COLOR_TEXT_PRIMARY")};
     background: transparent;
-    font: bold 8pt "Segoe UI";
+    font: bold 9pt "{FONT_FAMILY}";
   }}
 
   QFrame#storeBubble[hovering="true"] QLabel#storeLabel {{
@@ -66,8 +77,97 @@ def _apply_theme_qss(self):
   }}
 
   QFrame#storeBubble[active="true"] QLabel#storeLabel {{
-    color: {c("COLOR_SUCCESS")};
+    color: {c("COLOR_ACCENT_LIGHT")};
   }}
+
+  QWidget#wishlistSearchPanel {{ background: transparent; }}
+  QLabel#wishlistSourceLabel {{ color: {c("COLOR_TEXT_SECONDARY")}; font-size: 8pt; padding-left: 4px; }}
+  QLineEdit {{
+    background: {c("COLOR_BG_DESC")}; color: {c("COLOR_TEXT_PRIMARY")};
+    border: 1px solid {c("COLOR_BORDER")}; border-radius: 10px;
+    padding: 8px 12px; selection-background-color: {c("COLOR_ACCENT")}; selection-color: #FFFFFF;
+  }}
+  QLineEdit:focus {{ border-color: {c("COLOR_ACCENT_LIGHT")}; }}
+  QLineEdit::placeholder {{ color: {c("COLOR_TEXT_MUTED")}; }}
+  QComboBox {{
+    background: {c("COLOR_BG_CARD")}; color: {c("COLOR_TEXT_PRIMARY")};
+    border: 1px solid {c("COLOR_BORDER")}; border-radius: 10px;
+    padding: 7px 34px 7px 12px; min-height: 24px;
+  }}
+  QComboBox:hover, QComboBox:on {{ border-color: {c("COLOR_ACCENT_LIGHT")}; }}
+  QComboBox::drop-down {{
+    subcontrol-origin: padding; subcontrol-position: top right; width: 30px;
+    border-left: 1px solid {c("COLOR_BORDER")};
+    border-top-right-radius: 9px; border-bottom-right-radius: 9px;
+  }}
+  QComboBox QAbstractItemView {{
+    background: {c("COLOR_BG_CARD")}; color: {c("COLOR_TEXT_PRIMARY")};
+    border: 1px solid {c("COLOR_BORDER")}; border-radius: 10px; padding: 5px;
+    outline: 0; selection-background-color: {c("COLOR_ACCENT")}; selection-color: #FFFFFF;
+  }}
+  QComboBox QAbstractItemView::item {{ min-height: 30px; padding: 6px 10px; border-radius: 6px; }}
+
+  QFrame#wishlistCard {{
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 {c("COLOR_BG_CARD")}, stop:1 {c("COLOR_BG")});
+    border: 1px solid {c("COLOR_BORDER")}; border-radius: 12px;
+  }}
+  QFrame#wishlistCard:hover {{ border-color: {c("COLOR_ACCENT_LIGHT")}; }}
+  QLabel#wishlistCover {{
+    background: {c("COLOR_BG_DESC")}; color: {c("COLOR_TEXT_MUTED")};
+    border: 1px solid {c("COLOR_BORDER")}; border-radius: 9px;
+    font-size: 19pt;
+  }}
+  QLabel#wishlistTitle {{ color: {c("COLOR_TEXT_PRIMARY")}; font: bold 11pt "{FONT_FAMILY}"; border: none; }}
+  QLabel#wishlistPrice {{ color: {c("COLOR_ACCENT_LIGHT")}; font: bold 9pt "{FONT_FAMILY}"; border: none; }}
+  QLabel#wishlistTarget {{ color: {c("COLOR_WARNING")}; font: 8pt "{FONT_FAMILY}"; border: none; }}
+  QLabel#wishlistDeal {{ color: {c("COLOR_TEXT_SECONDARY")}; font: 9pt "{FONT_FAMILY}"; border: none; }}
+  QLabel#wishlistEmpty {{ color: {c("COLOR_TEXT_MUTED")}; font: 9pt "{FONT_FAMILY}"; background: transparent; }}
+  QFrame#wishlistStoreChip {{
+    background: {c("COLOR_BG_DESC")}; border: 1px solid {c("COLOR_ACCENT")};
+    border-radius: 8px; min-height: 30px;
+  }}
+  QFrame#wishlistStoreChip[onSale="true"] {{
+    background: {c("COLOR_BG_CARD")}; border: 1.5px solid {c("COLOR_SUCCESS")};
+  }}
+  QPushButton#wishlistStoreButton {{
+    background: {c("COLOR_ACCENT")}; color: #FFFFFF;
+    border: 1px solid {c("COLOR_ACCENT_LIGHT")}; border-radius: 5px;
+    padding: 3px 8px; font: bold 8pt "{FONT_FAMILY}";
+  }}
+  QPushButton#wishlistStoreButton:hover {{ background: {c("COLOR_ACCENT_HOVER")}; }}
+  QFrame#wishlistStoreChip[onSale="true"] QPushButton#wishlistStoreButton {{
+    background: {c("COLOR_SUCCESS")}; border-color: {c("COLOR_SUCCESS")};
+  }}
+  QFrame#wishlistStoreChip[onSale="true"] QPushButton#wishlistStoreButton:hover {{
+    background: {c("COLOR_ACCENT_HOVER")};
+  }}
+  QLabel#wishlistStoreCurrentPrice {{
+    color: {c("COLOR_TEXT_PRIMARY")}; font: bold 8pt "{FONT_FAMILY}";
+    background: transparent; border: none;
+  }}
+  QLabel#wishlistStorePriceBadge {{
+    background: {c("COLOR_BG_CARD")}; color: {c("COLOR_WARNING")};
+    border: 1px solid {c("COLOR_WARNING")}; border-radius: 6px;
+    padding: 2px 6px; font: bold 8pt "{FONT_FAMILY}";
+  }}
+  QLabel#wishlistNotificationBadge {{
+    background: {c("COLOR_ERROR")}; color: #FFFFFF; border-radius: 9px;
+    font: bold 8pt "{FONT_FAMILY}"; border: 1px solid {c("COLOR_BG")};
+  }}
+  QPushButton#wishlistRemoveButton {{
+    background: transparent; color: {c("COLOR_TEXT_MUTED")}; border: 1px solid {c("COLOR_BORDER")};
+    border-radius: 8px; font: bold 12pt "{FONT_FAMILY}"; padding: 0;
+  }}
+  QPushButton#wishlistRemoveButton:hover {{ color: {c("COLOR_ERROR")}; border-color: {c("COLOR_ERROR")}; }}
+  QPushButton[wishlistRole="offer"], QPushButton[wishlistRole="remove"], QPushButton[wishlistRole="search"] {{
+    background: {c("COLOR_BG_DESC")}; color: {c("COLOR_TEXT_PRIMARY")};
+    border: 1px solid {c("COLOR_BORDER")}; border-radius: 9px; padding: 7px 13px;
+    font: bold 8pt "{FONT_FAMILY}";
+  }}
+  QPushButton[wishlistRole="search"] {{ background: {c("COLOR_ACCENT")}; color: #FFFFFF; border-color: {c("COLOR_ACCENT_LIGHT")}; }}
+  QPushButton[wishlistRole="offer"]:hover, QPushButton[wishlistRole="remove"]:hover {{ background: {c("COLOR_HOVER")}; border-color: {c("COLOR_ACCENT_LIGHT")}; color: {c("COLOR_ACCENT_LIGHT")}; }}
+  QPushButton[wishlistRole="search"]:hover {{ background: {c("COLOR_ACCENT_HOVER")}; }}
+  QPushButton[wishlistRole="offer"]:pressed, QPushButton[wishlistRole="remove"]:pressed, QPushButton[wishlistRole="search"]:pressed {{ background: {c("COLOR_ACCENT_HOVER")}; }}
 
   QLabel#storeBadge {{
     background: {c("COLOR_ERROR")};
@@ -102,13 +202,13 @@ def _apply_theme_qss(self):
 
   QLabel#gameTitle {{
     color: {c("COLOR_TEXT_PRIMARY")};
-    font: bold 11.5pt "Segoe UI";
+    font: bold 11pt "Segoe UI";
     padding-bottom: 1px;
   }}
 
   QLabel#gameDescription {{
     color: {c("COLOR_TEXT_SECONDARY")};
-    font: 8.5pt "Segoe UI";
+    font: 8pt "Segoe UI";
     line-height: 1.2;
   }}
 
@@ -119,7 +219,7 @@ def _apply_theme_qss(self):
     border: 1px solid #818CF8;
     border-radius: 6px;
     padding: 2px 8px;
-    font: bold 7.5pt "Segoe UI";
+    font: bold 8pt "Segoe UI";
   }}
 
   QLabel#gameWorth {{
@@ -128,7 +228,7 @@ def _apply_theme_qss(self):
     border: 1px solid #F59E0B;
     border-radius: 6px;
     padding: 2px 8px;
-    font: bold 7.5pt "Segoe UI";
+    font: bold 8pt "Segoe UI";
   }}
 
   QLabel#statusPill {{
@@ -155,7 +255,8 @@ def _apply_theme_qss(self):
   }}
 
   QPushButton {{
-    font-family: "Segoe UI";
+    font-family: "{FONT_FAMILY}";
+    font-size: 9pt;
   }}
 
   /* BOTONES DE LA BARRA LATERAL */
@@ -186,7 +287,7 @@ def _apply_theme_qss(self):
     border: 1.2px solid #818CF8;
     border-radius: 12px;
     font-weight: bold;
-    font-size: 9.5pt;
+    font-size: 9pt;
     letter-spacing: 0.5px;
   }}
 
@@ -229,7 +330,7 @@ def _apply_theme_qss(self):
     border: 1px solid {c("COLOR_BORDER")};
     border-radius: 10px;
     font-weight: bold;
-    font-size: 8.5pt;
+    font-size: 8pt;
   }}
 
   QPushButton[role="secondary"]:hover {{
@@ -294,7 +395,7 @@ def _apply_theme_qss(self):
 
   QLabel#storeContextTitle {{
     color: {c("COLOR_TEXT_PRIMARY")};
-    font: bold 9.5pt "Segoe UI";
+    font: bold 9pt "Segoe UI";
     letter-spacing: 0.8px;
     background: transparent;
   }}
@@ -459,4 +560,3 @@ def instalar_metodos(cls):
     cls.alternar_tema = alternar_tema
     cls._actualizar_estilo_botones = _actualizar_estilo_botones
     cls._set_button_role = _set_button_role
-

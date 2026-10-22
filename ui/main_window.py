@@ -23,6 +23,7 @@ from ui.main_window_history import instalar_metodos as instalar_metodos_history
 from ui.main_window_tray import instalar_metodos as instalar_metodos_tray
 from ui.main_window_navigation import instalar_metodos as instalar_metodos_navigation
 from ui.main_window_helpers import instalar_metodos as instalar_metodos_helpers
+from ui.main_window_wishlist import instalar_metodos as instalar_metodos_wishlist
 
 
 class VentanaPrincipal(QMainWindow):
@@ -57,9 +58,11 @@ class VentanaPrincipal(QMainWindow):
         self.bubble_widgets = {}
         self._image_refs = []
         self.mostrando_reclamados = False
+        self.mostrando_wishlist = False
         self.reclamados = self._cargar_reclamados()
 
         self._build_ui()
+        self._initialize_wishlist()
         self._apply_theme_qss()
         self._ajustar_ventana_por_estado(False)
         
@@ -107,6 +110,7 @@ instalar_metodos_history(VentanaPrincipal)
 instalar_metodos_navigation(VentanaPrincipal)
 instalar_metodos_helpers(VentanaPrincipal)
 instalar_metodos_tray(VentanaPrincipal)
+instalar_metodos_wishlist(VentanaPrincipal)
 
 
 if __name__ == "__main__":
