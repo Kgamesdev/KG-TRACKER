@@ -86,6 +86,11 @@ class SingleInstance(QObject):
                 create_mutex = kernel32.CreateMutexW
                 create_mutex.argtypes = (wintypes.LPVOID, wintypes.BOOL, wintypes.LPCWSTR)
                 create_mutex.restype = wintypes.HANDLE
+                # CreateMutex solo garantiza ERROR_ALREADY_EXISTS cuando el
+                # objeto ya existía; de lo contrario GetLastError conserva el
+                # valor anterior. Límpialo para no confundir una instancia
+                # nueva con un error residual del cargador o de Qt.
+                ctypes.set_last_error(0)
                 handle = create_mutex(None, False, f"Local\\KGTracker_{lock_name}")
                 if not handle:
                     return False

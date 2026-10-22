@@ -106,6 +106,7 @@ Si KG Tracker te resulta útil y quieres apoyar su desarrollo, puedes [invitarme
 - Tema claro actualizado y pestañas de tiendas cerradas hasta que el usuario abra una oferta.
 - Carga de imágenes más resistente a fallos temporales y uso de imágenes alternativas cuando están disponibles.
 - Reorganización interna de componentes visuales para facilitar el mantenimiento, manteniendo el comportamiento de la interfaz.
+- Protección de instancia única más fiable en Windows al limpiar errores residuales antes de adquirir el mutex del proceso.
 
 ## 🤝 Ayuda a Mejorar el Proyecto
 

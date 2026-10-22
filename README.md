@@ -106,6 +106,7 @@ If KG Tracker is useful to you and you would like to support its development, yo
 - Updated the light theme and settings interaction, and kept store tabs closed until the user opens an offer.
 - Made artwork loading more resilient to temporary failures and added alternative images where available.
 - Reorganized visual components internally for easier maintenance while preserving interface behavior.
+- Hardened Windows single-instance startup by clearing stale system error state before acquiring the process mutex.
 
 ## 🤝 Help Improve the Project
 
