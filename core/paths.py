@@ -65,6 +65,7 @@ def migrar_datos_desarrollo_si_existen():
         destinos = {
             "settings.json": DATA_DIR,
             "reclamados.json": DATA_DIR,
+            "wishlist.json": DATA_DIR,
             "giveaways_cache.json": CACHE_DIR,
             "steam_cache.json": CACHE_DIR,
             "translations_cache.json": CACHE_DIR,

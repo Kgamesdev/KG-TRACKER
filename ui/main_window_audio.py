@@ -35,7 +35,8 @@ def _guardar_estado_audio(self):
                 self.volumen_anterior = volumen
             datos["volumen_musica"] = int(getattr(self, "volumen_anterior", 5))
         from core.storage import guardar_json_atomico
-        guardar_json_atomico(SETTINGS_FILE, datos)
+        if not guardar_json_atomico(SETTINGS_FILE, datos):
+            log_error("No se pudo guardar el estado de la música; los cambios podrían perderse al cerrar.")
     except Exception as error:
         log_error(f"No se pudo guardar el estado de la música: {error}")
 

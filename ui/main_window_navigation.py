@@ -3,41 +3,51 @@ from core.i18n import t
 """Interacción y navegación de la ventana principal."""
 
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QSize
-from PySide6.QtGui import QIcon, QPixmap, QColor, QPainter, QPen
+from PySide6.QtGui import QIcon, QPixmap, QColor, QPainter, QPen, QBrush, QLinearGradient
 from PySide6.QtWidgets import QApplication, QSizePolicy
 
 
 def _crear_icono_seleccion(self, seleccionar_todas):
-    """Crea un icono compacto para seleccionar o deseleccionar todas."""
-    pixmap = QPixmap(28, 28)
+    """Dibuja un grupo de tiendas con un indicador claro de seleccionar/quitar."""
+    pixmap = QPixmap(32, 32)
     pixmap.fill(Qt.GlobalColor.transparent)
 
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
     es_claro = config.CURRENT_THEME == "light"
-    if seleccionar_todas:
-        color = QColor("#536B9D" if es_claro else "#00F3FF")
-        marcar = True
-    else:
-        color = QColor("#8B5557" if es_claro else "#FF0055")
-        marcar = False
+    inicio = QColor("#536B9D" if es_claro else "#00F3FF")
+    fin = QColor("#8A72D6" if es_claro else "#C45BFF")
+    gradiente = QLinearGradient(4, 4, 27, 27)
+    gradiente.setColorAt(0.0, inicio)
+    gradiente.setColorAt(1.0, fin)
 
-    pen = QPen(color, 2)
-    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-    painter.setPen(pen)
+    # Cuatro pequeñas tarjetas representan el conjunto de tiendas, en línea
+    # con el estilo luminoso de los iconos de la aplicación.
     painter.setBrush(Qt.BrushStyle.NoBrush)
+    for x, y in ((3, 4), (14, 4), (3, 15), (14, 15)):
+        glow = QPen(QColor(inicio.red(), inicio.green(), inicio.blue(), 48), 4.2)
+        painter.setPen(glow)
+        painter.drawRoundedRect(x, y, 9, 8, 2.5, 2.5)
+        outline = QPen(QBrush(gradiente), 1.5)
+        outline.setCapStyle(Qt.PenCapStyle.RoundCap)
+        outline.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        painter.setPen(outline)
+        painter.drawRoundedRect(x, y, 9, 8, 2.5, 2.5)
+        painter.setPen(QPen(QBrush(gradiente), 1.1))
+        painter.drawLine(x + 2, y + 5.5, x + 7, y + 5.5)
 
-    for y in (5, 13, 21):
-        painter.drawRect(3, y - 2, 6, 6)
-        painter.drawLine(12, y + 1, 24, y + 1)
-        if marcar:
-            painter.drawLine(4, y + 1, 6, y + 3)
-            painter.drawLine(6, y + 3, 9, y - 1)
-        else:
-            painter.drawLine(14, y - 2, 19, y + 3)
-            painter.drawLine(19, y - 2, 14, y + 3)
+    # El distintivo indica la acción disponible: añadir todas o quitar todas.
+    badge_fill = QColor(config.THEMES[config.CURRENT_THEME]["COLOR_BG_CARD"])
+    painter.setBrush(badge_fill)
+    painter.setPen(QPen(QColor(inicio.red(), inicio.green(), inicio.blue(), 60), 4))
+    painter.drawEllipse(17, 17, 13, 13)
+    painter.setPen(QPen(QBrush(gradiente), 1.5))
+    painter.drawEllipse(17, 17, 13, 13)
+    painter.setPen(QPen(QBrush(gradiente), 1.8, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+    painter.drawLine(20.5, 23.5, 26.5, 23.5)
+    if seleccionar_todas:
+        painter.drawLine(23.5, 20.5, 23.5, 26.5)
 
     painter.end()
     return QIcon(pixmap)
@@ -79,6 +89,7 @@ def _ajustar_ventana_por_estado(self, expandida):
 
 def _actualizar_visibilidad_atras(self):
     """Muestra Atrás solo cuando existe un estado que realmente se puede deshacer."""
+    _actualizar_visibilidad_boton_busqueda(self)
     if getattr(self, "mostrando_wishlist", False):
         self.btn_side_todas.hide()
         self.btn_side_back.setVisible(True)
@@ -97,6 +108,13 @@ def _actualizar_visibilidad_atras(self):
     self.btn_side_todas.setVisible(hay_estado)
     self.btn_side_back.setVisible(hay_estado)
     self._ajustar_ventana_por_estado(hay_estado)
+
+
+def _actualizar_visibilidad_boton_busqueda(self):
+    """Oculta la búsqueda global mientras hay una tienda concreta abierta."""
+    hay_tienda_abierta = any(getattr(self, "active_filters", {}).values())
+    mostrar = not hay_tienda_abierta and not getattr(self, "mostrando_wishlist", False)
+    self.btn_actualizar.setVisible(mostrar)
 
 
 def toggle_todas(self):
@@ -173,7 +191,9 @@ def volver_atras(self):
     self.btn_side_todas.hide()
     self._sync_store_states()
 
-    self.juegos_cache_global = []
+    # Mantener las ofertas ya cargadas al cerrar una tienda. La vista se
+    # oculta, pero los datos deben seguir disponibles para la siguiente
+    # apertura sin obligar a ejecutar otra búsqueda.
     self._actualizar_visibilidad_atras()
     self._actualizar_vista_juegos()
     self._set_status(t("status.ready"), "success")
@@ -188,6 +208,7 @@ def instalar_metodos(cls):
     cls._crear_icono_seleccion = _crear_icono_seleccion
     cls._ajustar_ventana_por_estado = _ajustar_ventana_por_estado
     cls._actualizar_visibilidad_atras = _actualizar_visibilidad_atras
+    cls._actualizar_visibilidad_boton_busqueda = _actualizar_visibilidad_boton_busqueda
     cls.toggle_todas = toggle_todas
     cls._toggle_tienda = _toggle_tienda
     cls.volver_atras = volver_atras

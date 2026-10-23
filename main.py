@@ -269,6 +269,18 @@ def main():
     app = QApplication.instance() or QApplication(sys.argv)
     app.setFont(QFont(FONT_FAMILY, FONT_SIZE_BODY_PT))
 
+    if "--smoke-test" in sys.argv:
+        from ui.main_window import VentanaPrincipal
+        ventana = VentanaPrincipal(mostrar=False)
+        try:
+            ventana._detener_audio()
+            ventana._wait_wishlist_worker(timeout_ms=1000)
+        finally:
+            ventana.close()
+            app.processEvents()
+        print("KG-TRACKER startup smoke check passed")
+        return 0
+
     from core.single_instance import SingleInstance
 
     app.setApplicationName("KGameTracker")
@@ -347,8 +359,7 @@ def main():
                 pool.clear()
                 terminado = pool.waitForDone(15000)
                 if not terminado:
-                    log_warning("Siguen finalizando tareas de fondo durante el cierre.")
-                    pool.waitForDone()
+                    log_warning("El plazo de cierre de tareas de fondo expiró; la aplicación continuará cerrándose.")
             except Exception:
                 pass
 

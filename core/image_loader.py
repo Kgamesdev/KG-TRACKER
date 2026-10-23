@@ -19,11 +19,10 @@ class _ImageWorkerSignals(QObject):
 class _ImageDownloadWorker(QRunnable):
     """Worker que descarga y cachea la imagen en un hilo secundario de forma aislada e independiente."""
 
-    def __init__(self, url: str, ruta_disco: str, target_size: tuple = (190, 104), context: str = ""):
+    def __init__(self, url: str, ruta_disco: str, context: str = ""):
         super().__init__()
         self.url = url
         self.ruta_disco = ruta_disco
-        self.target_size = target_size
         self.context = context
         self.signals = _ImageWorkerSignals()
 
@@ -41,13 +40,7 @@ class _ImageDownloadWorker(QRunnable):
                         except Exception as error:
                             log_error(f"No se pudo cachear una miniatura: {error}")
 
-                        scaled = img.scaled(
-                            self.target_size[0],
-                            self.target_size[1],
-                            Qt.AspectRatioMode.KeepAspectRatio,
-                            Qt.TransformationMode.SmoothTransformation,
-                        )
-                        self.signals.completado.emit(self.url, scaled)
+                        self.signals.completado.emit(self.url, img)
                         return
                 if intento == 0:
                     time.sleep(0.4)
@@ -91,8 +84,9 @@ class ImageLoader(QObject):
             callback(url, None)
             return
 
-        if url in self._ram_cache:
-            callback(url, self._ram_cache[url])
+        cache_key = (url, tuple(target_size))
+        if cache_key in self._ram_cache:
+            callback(url, self._ram_cache[cache_key])
             return
 
         ruta = self._ruta_cache(url)
@@ -105,7 +99,7 @@ class ImageLoader(QObject):
                     Qt.AspectRatioMode.KeepAspectRatio,
                     Qt.TransformationMode.SmoothTransformation,
                 )
-                self._ram_cache[url] = scaled
+                self._ram_cache[cache_key] = scaled
                 callback(url, scaled)
                 return
             try:
@@ -114,12 +108,12 @@ class ImageLoader(QObject):
                 pass
 
         if url in self._descargas_en_curso:
-            self._descargas_en_curso[url].append(callback)
+            self._descargas_en_curso[url].append((callback, tuple(target_size)))
             return
 
-        self._descargas_en_curso[url] = [callback]
+        self._descargas_en_curso[url] = [(callback, tuple(target_size))]
 
-        worker = _ImageDownloadWorker(url, ruta, target_size, context)
+        worker = _ImageDownloadWorker(url, ruta, context)
         # Mantener vivo el wrapper Python hasta recibir la señal de finalización.
         self._workers[url] = worker
         worker.signals.completado.connect(self._al_terminar_descarga)
@@ -130,12 +124,16 @@ class ImageLoader(QObject):
         callbacks = self._descargas_en_curso.pop(url, [])
         pixmap = None
 
-        if not img.isNull():
-            pixmap = QPixmap.fromImage(img)
-            self._ram_cache[url] = pixmap
-
-        for cb in callbacks:
+        for cb, target_size in callbacks:
             try:
+                pixmap = None
+                if not img.isNull():
+                    pixmap = QPixmap.fromImage(img).scaled(
+                        target_size[0], target_size[1],
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
+                    self._ram_cache[(url, target_size)] = pixmap
                 cb(url, pixmap)
             except Exception:
                 pass

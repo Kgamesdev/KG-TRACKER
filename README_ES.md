@@ -13,7 +13,7 @@
 <p align="center"><a href="README.md"><strong>🇬🇧 Read in English</strong></a></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.5.0-blue?style=for-the-badge" alt="Versión 0.5.0"/>
+  <img src="https://img.shields.io/badge/version-v0.5.1-blue?style=for-the-badge" alt="Versión 0.5.1"/>
   <img src="https://img.shields.io/badge/Python-3.12%20probado-yellow?style=for-the-badge" alt="Python 3.12 probado"/>
   <img src="https://img.shields.io/badge/framework-PySide6%20%2B%20Qt%206-41CD52?style=for-the-badge" alt="PySide6 y Qt 6"/>
   <img src="https://img.shields.io/badge/plataforma-Windows%2010%20%7C%2011-0078D6?style=for-the-badge" alt="Windows 10 y 11"/>
@@ -47,7 +47,7 @@
 
 **Requisitos:** Windows 10 u 11 y Python 3.12.
 
-**Descargas para Windows:** consulta la [página de versiones publicadas](https://github.com/Kgamesdev/KG-TRACKER/releases). El [código fuente de v0.5.0](https://github.com/Kgamesdev/KG-TRACKER/tree/v0.5.0) también está disponible.
+**Descargas para Windows:** consulta la [página de versiones publicadas](https://github.com/Kgamesdev/KG-TRACKER/releases). El [código fuente de v0.5.1](https://github.com/Kgamesdev/KG-TRACKER/tree/v0.5.1) también está disponible.
 
 ### Aviso de Windows y comprobación SHA-256
 
@@ -98,7 +98,14 @@ KG Tracker utiliza los siguientes servicios, endpoints públicos y páginas de l
 
 Si KG Tracker te resulta útil y quieres apoyar su desarrollo, puedes [invitarme a un café en Ko-fi](https://ko-fi.com/kurigamedeveloper).
 
-## 📋 Novedades Recientes (v0.5.0)
+## 📋 Novedades Recientes (v0.5.1)
+
+- Alertas de Wishlist por tienda para ofertas nuevas, bajadas de precio y objetivos alcanzados, con avisos agrupados y sin duplicar el aviso de objetivo.
+- Mayor fiabilidad al cerrar consultas de Wishlist y al guardar o retirar juegos seguidos.
+- Búsquedas más ágiles ante fuentes lentas, mejoras al conservar resultados disponibles y carga de imágenes con caché independiente por tamaño.
+- Pipeline de compilación con pruebas y comprobación de arranque del ejecutable antes de calcular SHA-256.
+
+### Se mantienen las mejoras de v0.5.0
 
 - Wishlist persistente para seguir juegos y consultar disponibilidad, ofertas y precios por tienda.
 - Indicadores de tienda visibles en cada juego seguido; la tienda con oferta se resalta y muestra precio anterior y actual al pasar el cursor.

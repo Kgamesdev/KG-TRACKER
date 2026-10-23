@@ -13,7 +13,7 @@
 <p align="center"><a href="README_ES.md"><strong>🇪🇸 Leer en español</strong></a></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.5.0-blue?style=for-the-badge" alt="Version 0.5.0"/>
+  <img src="https://img.shields.io/badge/version-v0.5.1-blue?style=for-the-badge" alt="Version 0.5.1"/>
   <img src="https://img.shields.io/badge/Python-3.12%20tested-yellow?style=for-the-badge" alt="Python 3.12 tested"/>
   <img src="https://img.shields.io/badge/framework-PySide6%20%2B%20Qt%206-41CD52?style=for-the-badge" alt="PySide6 and Qt 6"/>
   <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=for-the-badge" alt="Windows 10 and 11"/>
@@ -47,7 +47,7 @@
 
 **Requirements:** Windows 10 or 11 and Python 3.12.
 
-**Windows downloads:** see the [published releases](https://github.com/Kgamesdev/KG-TRACKER/releases). The [v0.5.0 source code](https://github.com/Kgamesdev/KG-TRACKER/tree/v0.5.0) is also available.
+**Windows downloads:** see the [published releases](https://github.com/Kgamesdev/KG-TRACKER/releases). The [v0.5.1 source code](https://github.com/Kgamesdev/KG-TRACKER/tree/v0.5.1) is also available.
 
 ### Windows SmartScreen and SHA-256 verification
 
@@ -98,7 +98,14 @@ KG Tracker uses the following services, public endpoints and store pages. Some s
 
 If KG Tracker is useful to you and you would like to support its development, you can [buy me a coffee on Ko-fi](https://ko-fi.com/kurigamedeveloper).
 
-## 📋 Recent Highlights (v0.5.0)
+## 📋 Recent Highlights (v0.5.1)
+
+- Per-store Wishlist alerts for new deals, price drops, and target prices, grouped into concise notifications without duplicating a target alert.
+- More reliable Wishlist refresh shutdown and saving/removal of tracked games.
+- Faster searches when sources are slow, better retention of available results, and image caching by requested size.
+- Build pipeline runs tests and checks the executable startup before calculating SHA-256.
+
+### v0.5.0 highlights
 
 - Persistent wishlist for tracking games and checking store availability, deals and prices.
 - Store indicators remain visible on each tracked game; active deals are highlighted and expose the before and current prices on hover.

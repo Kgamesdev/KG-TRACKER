@@ -1,28 +1,29 @@
-﻿# POLÍTICA DE PRIVACIDAD — KG TRACKER
+# Política de privacidad — KG Tracker
 
-**Última actualización:** Versión v0.2.35
+**Versión documentada:** 0.5.1
+**Última revisión:** 23 de octubre de 2026
 
-KG Tracker es una aplicación de escritorio diseñada bajo el principio de **Privacidad por Diseño (Privacy by Design)**.
+KG Tracker consulta catálogos y promociones públicas para mostrar ofertas. No requiere una cuenta de KG Tracker.
 
-## 1. Recolección de Datos
-* **0% Credenciales:** KG Tracker **NUNCA** solicita, almacena ni gestiona contraseñas, tokens de inicio de sesión ni datos bancarios de Steam, Epic Games, GOG ni de ninguna otra tienda.
-* **0% Telemetría:** No recopilamos analíticas de uso, seguimiento de clicks ni identificadores únicos de usuario.
+## Datos y almacenamiento
 
-## 2. Almacenamiento Local
-Todos tus datos personales de uso se guardan **exclusivamente en tu dispositivo local** en la siguiente ruta:
-`%LOCALAPPDATA%\KGTracker\`
+- La aplicación no solicita ni almacena contraseñas, cookies de tienda, tokens de acceso ni datos bancarios.
+- No integra telemetría ni analítica de uso propia.
+- Preferencias, juegos reclamados y Wishlist se guardan en el equipo, bajo `%LOCALAPPDATA%\KGTracker\` en Windows. La carpeta `cache` contiene imágenes y datos públicos de ofertas para acelerar la interfaz.
+- La Wishlist guarda los identificadores y títulos elegidos, la carátula, el objetivo de precio, precios/ofertas consultados y la fecha de actualización. No contiene credenciales de las tiendas.
+- El usuario puede borrar esos datos cerrando la aplicación y eliminando `%LOCALAPPDATA%\KGTracker\`.
 
-Archivos locales:
-* `settings.json`: Preferencias de interfaz e idioma.
-* `reclamados.json`: Lista de títulos que has marcado como reclamados.
-* `cache/`: Miniaturas e historial de ofertas públicas cacheados para acelerar la interfaz.
+## Conexiones de red
 
-## 3. Conexiones de Red Externas
-KG Tracker realiza consultas exclusivas de lectura en protocolo **HTTPS** a las siguientes APIs públicas de promociones:
-* Steam API (`store.steampowered.com`)
-* Epic Games Store API (`store.epicgames.com`)
-* GamerPower API (`gamerpower.com`)
-* Servicio de Traducción Pública Google Translate / MyMemory
+La aplicación hace peticiones HTTPS a servicios externos para sus funciones:
 
-## 4. Control del Usuario
-Puedes borrar en cualquier momento todo el historial de la aplicación eliminando la carpeta `%LOCALAPPDATA%\KGTracker\`.
+- **GamerPower** y las API públicas de **Epic Games**, **Steam** e **itch.io** para ofertas gratuitas.
+- **CheapShark** para búsqueda de juegos, tiendas admitidas y ofertas/precios de Wishlist.
+- Las API de **Steam** y el catálogo público de **GOG** para precios regionales de España en EUR cuando hay una coincidencia exacta.
+- Catálogos/páginas públicas de **Fanatical**, **GOG**, **Amazon Luna** y otros proveedores usados por sus conectores; fuentes de imágenes de las tiendas y sus CDNs.
+- **Google Translate** y **MyMemory** para traducir descripciones cuando hace falta.
+- **GitHub Releases API** para comprobar si hay una versión nueva.
+
+Los servicios externos reciben las peticiones necesarias para responder a la función solicitada, incluida la búsqueda de títulos. KG Tracker no garantiza su disponibilidad ni sus condiciones. La cobertura de precios de Wishlist depende de cada fuente: hoy se verifican precios regionales exactos para Steam y GOG; otras tiendas solo aparecen cuando CheapShark las lista y sus precios pueden no tener verificación regional en EUR. La aplicación no inventa ni convierte precios USD para presentarlos como precios españoles.
+
+Los enlaces de compra y el enlace de Ko-fi se abren en el navegador solo como consecuencia de la acción del usuario.

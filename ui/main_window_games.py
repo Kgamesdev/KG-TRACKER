@@ -5,8 +5,9 @@ import os
 import json
 import time
 import datetime
-import concurrent.futures
+import queue
 import re
+import threading
 import unicodedata
 from difflib import SequenceMatcher
 from urllib.parse import urlsplit, urlunsplit
@@ -214,41 +215,66 @@ class _BusquedaWorker(QObject):
         # Combinamos GamerPower y los scrapers para ampliar la cobertura; las
         # coincidencias entre rutas se eliminan al preparar la vista.
         try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
-                fuentes = {
-                    executor.submit(_obtener_gamerpower): "GamerPower",
-                    executor.submit(_ejecutar_scraper_con_sesion, _obtener_epic_directo): "Epic Games",
-                    executor.submit(_ejecutar_scraper_con_sesion, _obtener_itch_directo): "Itch.io",
-                    executor.submit(_ejecutar_scraper_con_sesion, _obtener_gog_directo): "GOG",
-                    executor.submit(_ejecutar_scraper_con_sesion, _obtener_steam_directo): "Steam",
-                    executor.submit(_ejecutar_scraper_con_sesion, _obtener_amazon_prime_directo): "Amazon Prime",
-                    executor.submit(_ejecutar_scraper_con_sesion, _obtener_fanatical_directo): "Fanatical",
-                }
-                completadas, pendientes = concurrent.futures.wait(
-                    fuentes,
-                    timeout=6.0,
-                    return_when=concurrent.futures.ALL_COMPLETED,
+            fuentes = {
+                "GamerPower": _obtener_gamerpower,
+                "Epic Games": lambda: _ejecutar_scraper_con_sesion(_obtener_epic_directo),
+                "Itch.io": lambda: _ejecutar_scraper_con_sesion(_obtener_itch_directo),
+                "GOG": lambda: _ejecutar_scraper_con_sesion(_obtener_gog_directo),
+                "Steam": lambda: _ejecutar_scraper_con_sesion(_obtener_steam_directo),
+                "Amazon Prime": lambda: _ejecutar_scraper_con_sesion(_obtener_amazon_prime_directo),
+                "Fanatical": lambda: _ejecutar_scraper_con_sesion(_obtener_fanatical_directo),
+            }
+            respuestas = queue.Queue()
+
+            def _consultar_fuente(nombre, consulta):
+                try:
+                    respuestas.put((nombre, consulta() or [], None))
+                except Exception as error:
+                    respuestas.put((nombre, None, error))
+
+            hilos = [
+                threading.Thread(
+                    target=_consultar_fuente,
+                    args=(nombre, consulta),
+                    name=f"KGSearch-{nombre.replace(' ', '')}",
+                    daemon=True,
                 )
-                for future in completadas:
-                    fuente = fuentes[future]
-                    try:
-                        resultados = future.result() or []
-                        fuentes_exitosas += 1
-                        if fuente == "GamerPower":
-                            respuesta_api_valida = True
-                            if resultados:
-                                _guardar_en_cache_disco(resultados)
-                        for juego in resultados:
-                            if isinstance(juego, dict):
-                                juego.setdefault("_kg_source", fuente)
-                        juegos_encontrados.extend(resultados)
-                    except Exception as error_fuente:
-                        log_warning(f"No se pudieron consultar ofertas en {fuente}: {error_fuente}")
-                if pendientes:
-                    nombres = ", ".join(fuentes[future] for future in pendientes)
-                    log_warning(f"Búsqueda parcial: se agotó el tiempo para {nombres}.")
-                    for future in pendientes:
-                        future.cancel()
+                for nombre, consulta in fuentes.items()
+            ]
+            for hilo in hilos:
+                hilo.start()
+
+            # El límite es real: no se usa ThreadPoolExecutor como context
+            # manager, cuyo cierre implícito esperaría a las tareas lentas.
+            deadline = time.monotonic() + 6.0
+            completadas = set()
+            while len(completadas) < len(fuentes):
+                if QThread.currentThread().isInterruptionRequested():
+                    return
+                restante = deadline - time.monotonic()
+                if restante <= 0:
+                    break
+                try:
+                    fuente, resultados, error_fuente = respuestas.get(timeout=min(0.1, restante))
+                except queue.Empty:
+                    continue
+                completadas.add(fuente)
+                if error_fuente is not None:
+                    log_warning(f"No se pudieron consultar ofertas en {fuente}: {error_fuente}")
+                    continue
+                fuentes_exitosas += 1
+                if fuente == "GamerPower":
+                    respuesta_api_valida = True
+                    if resultados:
+                        _guardar_en_cache_disco(resultados)
+                for juego in resultados:
+                    if isinstance(juego, dict):
+                        juego.setdefault("_kg_source", fuente)
+                juegos_encontrados.extend(resultados)
+
+            pendientes = set(fuentes) - completadas
+            if pendientes:
+                log_warning(f"Búsqueda parcial: se agotó el tiempo para {', '.join(sorted(pendientes))}.")
 
             # Completa resultados parciales por oferta, no por tienda: una
             # respuesta actual de la tienda no invalida las demás entradas de

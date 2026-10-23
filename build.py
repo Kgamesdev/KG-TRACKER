@@ -8,6 +8,7 @@ import hashlib
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent
@@ -41,7 +42,7 @@ def main():
 
     # 2. Ejecutar la suite completa de tests
     print("\n🧪 Ejecutando suite de pruebas unitarias e integración...")
-    if not ejecutar_comando([sys.executable, "-m", "unittest", "discover", "-s", "tests"], "SUITE DE TESTS"):
+    if not ejecutar_comando([sys.executable, "-m", "pytest", "-q", "tests"], "SUITE DE TESTS"):
         print("🛑 Compilación abortada: Los tests fallaron.")
         sys.exit(1)
 
@@ -57,6 +58,33 @@ def main():
     # 4. Verificar ejecutable generado y calcular checksum SHA256
     exe_path = ROOT_DIR / "dist" / "KG-TRACKER.exe"
     if exe_path.exists():
+        print("\n🔄 [ARRANQUE DEL EJECUTABLE] Comprobando carga de Qt y ventana principal...")
+        try:
+            with tempfile.TemporaryDirectory(prefix="kgtracker-smoke-") as smoke_data_dir:
+                smoke_env = os.environ.copy()
+                smoke_env["LOCALAPPDATA"] = smoke_data_dir
+                smoke = subprocess.run(
+                    [str(exe_path), "--smoke-test"],
+                    cwd=ROOT_DIR,
+                    env=smoke_env,
+                    timeout=60,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                )
+        except subprocess.TimeoutExpired:
+            print("❌ [ARRANQUE DEL EJECUTABLE] Superó 60 segundos.")
+            sys.exit(1)
+        if smoke.returncode != 0:
+            print("❌ [ARRANQUE DEL EJECUTABLE] El ejecutable no pudo iniciar correctamente.")
+            if smoke.stdout:
+                print(smoke.stdout[-4000:])
+            if smoke.stderr:
+                print(smoke.stderr[-4000:])
+            sys.exit(1)
+        print("✅ [ARRANQUE DEL EJECUTABLE] Qt y la ventana principal cargaron correctamente.")
+
         size_mb = exe_path.stat().st_size / (1024 * 1024)
         checksum = calcular_sha256(exe_path)
 

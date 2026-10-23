@@ -1,10 +1,16 @@
-﻿# POLÍTICA DE SEGURIDAD Y REPORTE DE VULNERABILIDADES
+# Seguridad — KG Tracker
 
-## Medidas de Seguridad Implementadas (v0.2.35)
-* **Aislamiento de Código:** Ningún dato procedente de fuentes externas se ejecuta como código. Las notificaciones nativas de Windows utilizan deserialización JSON por STDIN sin comandos de consola dinámicos.
-* **Validación de URLs:** Apertura estricta de dominios oficiales verificados bajo protocolo seguro HTTPS.
-* **Persistencia Atómica:** Las escrituras en disco emplean reemplazo atómico para evitar corrupción de archivos.
-* **Descargas Seguras:** Límites estrictos de tamaño (10MB) y timeouts en la obtención de recursos remotos.
+**Versión documentada:** 0.5.1
+**Última revisión:** 23 de octubre de 2026
 
-## Reporte Responsable de Vulnerabilidades
-Si descubres un problema de seguridad en KG Tracker, por favor abre una incidencia o ponte en contacto directo con el mantenedor del proyecto de forma privada antes de su divulgación pública.
+## Protecciones actuales
+
+- Las peticiones de imágenes usan HTTPS, validan dominios permitidos, limitan el tamaño descargado y aplican tiempos máximos de conexión y lectura.
+- Las respuestas externas se tratan como datos; no se ejecutan como código.
+- La configuración, los juegos reclamados y la Wishlist se escriben mediante persistencia atómica. Si no se puede guardar un cambio de Wishlist, la interfaz informa del error y revierte cambios locales puntuales cuando corresponde.
+- La compilación de release ejecuta la suite de pruebas y comprueba que el ejecutable generado carga Qt y construye la ventana principal antes de generar el checksum.
+- La aplicación no gestiona credenciales de las tiendas.
+
+## Reportar una vulnerabilidad
+
+Abre una incidencia en el repositorio de KG Tracker con pasos de reproducción y el impacto observado. Para un problema que pueda comprometer datos de usuarios, contacta primero de forma privada con el mantenedor y evita publicar detalles explotables hasta que exista una corrección.

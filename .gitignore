@@ -41,6 +41,7 @@ scripts/Auditoria/
 # Datos de usuario runtime y configuraciones locales
 data/reclamados.json
 data/settings.json
+data/wishlist.json
 scripts/Auditoria.txt
  
 _audit/

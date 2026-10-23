@@ -11,11 +11,12 @@ import requests
 from config import STORES_MAPPING
 
 BASE_URL = "https://www.cheapshark.com/api/1.0"
-HEADERS = {"User-Agent": "KGTracker/0.5.0 (game wishlist)"}
+HEADERS = {"User-Agent": "KGTracker/0.5.1 (game wishlist)"}
+HTTP_TIMEOUT = (3.0, 4.0)
 
 
-def _get(url: str, params: dict | None = None):
-    response = requests.get(url, params=params, headers=HEADERS, timeout=12)
+def _get(url: str, params: dict | None = None, timeout=HTTP_TIMEOUT):
+    response = requests.get(url, params=params, headers=HEADERS, timeout=timeout)
     response.raise_for_status()
     return response.json()
 
@@ -143,6 +144,8 @@ def _canonical_app_store(store_name: str) -> str | None:
         "epicgamesstore": "Epic Games",
         "gog": "GOG",
         "amazonprime": "Amazon Prime",
+        "amazonprimegaming": "Amazon Prime",
+        "primegaming": "Amazon Prime",
         "itchio": "Itch.io",
         "humblestore": "Humble Store",
         "humblebundle": "Humble Store",
@@ -174,7 +177,12 @@ def _amount(value) -> float | None:
         return None
 
 
-def get_regional_prices(title: str, steam_app_id: str | None, store_names) -> dict[str, dict]:
+def get_regional_prices(
+    title: str,
+    steam_app_id: str | None,
+    store_names,
+    should_cancel=None,
+) -> dict[str, dict]:
     """Get real Spain/EUR prices where a store exposes a regional source.
 
     CheapShark is used for store availability and deal links, but its prices are
@@ -209,6 +217,9 @@ def get_regional_prices(title: str, steam_app_id: str | None, store_names) -> di
         except (requests.RequestException, ValueError, TypeError) as exc:
             from logger import log_warning
             log_warning(f"No se pudo verificar el precio regional de Steam: {exc}")
+
+    if callable(should_cancel) and should_cancel():
+        return prices
 
     if "GOG" in names and title:
         try:
