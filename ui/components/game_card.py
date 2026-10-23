@@ -397,8 +397,8 @@ class GameCard(NeonFrame):
 
     def _on_scale_step(self, val):
         self._hover_progress = val
-        # Elevación vertical fluida
-        self.setFixedHeight(int(124 + (val * 12)))
+        # El hover se expresa con sombra y borde; cambiar la altura desplazaba
+        # las tarjetas vecinas y producía un salto visible al terminar su entrada.
         self._border_width = 1.5 + (val * 0.8)
         self.update()
 

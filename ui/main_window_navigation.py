@@ -68,7 +68,7 @@ def _ajustar_ventana_por_estado(self, expandida):
             self._anim_ventana.stop()
 
         self._anim_ventana = QPropertyAnimation(self, b"size")
-        self._anim_ventana.setDuration(260)
+        self._anim_ventana.setDuration(440)
         self._anim_ventana.setStartValue(QSize(ancho_actual, self.height()))
         self._anim_ventana.setEndValue(QSize(ancho_objetivo, alto_objetivo))
         self._anim_ventana.setEasingCurve(QEasingCurve.Type.OutCubic)

@@ -12,9 +12,12 @@ from difflib import SequenceMatcher
 from urllib.parse import urlsplit, urlunsplit
 from PySide6.QtWidgets import (
     QLabel, QFrame, QHBoxLayout, QPushButton,
-    QGraphicsDropShadowEffect,
+    QGraphicsDropShadowEffect, QLayout, QSizePolicy, QVBoxLayout, QWidget,
 )
-from PySide6.QtCore import Qt, QObject, Signal, QThread
+from PySide6.QtCore import (
+    Qt, QObject, Signal, QThread, QPropertyAnimation, QEasingCurve,
+    QParallelAnimationGroup, QSequentialAnimationGroup, QPauseAnimation,
+)
 from config import (
     API_URL, API_HEADERS, EXCLUSIONES, STORES_MAPPING,
     COLOR_BG_CARD, COLOR_HOVER, COLOR_BORDER, COLOR_ACCENT_LIGHT,
@@ -574,13 +577,50 @@ def _actualizar_visibilidad_contenedor_juegos(self):
         self.container.setMaximumHeight(0)
         self.container.setVisible(True)
 
+
+class _RevealClip(QWidget):
+    """Reserva la altura de la fila y revela su contenido sin mover las demás."""
+
+    def __init__(self, contenido, parent=None):
+        super().__init__(parent)
+        self.contenido = contenido
+        self.altura_contenido = max(
+            contenido.minimumHeight(), contenido.sizeHint().height()
+        )
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
+        layout.addWidget(contenido)
+        self.setFixedHeight(self.altura_contenido)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+    def iniciar_revelado(self):
+        self.contenido.setMinimumHeight(0)
+        self.contenido.setMaximumHeight(0)
+
+    def completar_revelado(self):
+        self.contenido.setMinimumHeight(self.altura_contenido)
+        self.contenido.setMaximumHeight(16777215)
+
 def _actualizar_vista_juegos(self):
     from core.i18n import t
-    from PySide6.QtCore import QParallelAnimationGroup, QSequentialAnimationGroup, QPauseAnimation
 
     if getattr(self, "mostrando_wishlist", False):
         self._render_wishlist()
         return
+
+    grupo_anterior = getattr(self, "_transicion_lista_tiendas", None)
+    if grupo_anterior is not None:
+        grupo_anterior.stop()
+        grupo_anterior.deleteLater()
+        for widget in getattr(self, "_widgets_transicion_lista", []):
+            try:
+                widget.completar_revelado()
+            except RuntimeError:
+                pass
+        self._widgets_transicion_lista = []
+        self._transicion_lista_tiendas = None
 
     root = self.centralWidget()
     if root is not None:
@@ -663,18 +703,19 @@ def _actualizar_vista_juegos(self):
                 data = juegos_a_mostrar_map[clave]
                 if data.get('tipo') == 'banner':
                     from ui.components.game_card import StoreHeaderBanner
-                    widget = StoreHeaderBanner(self.frame_lista, data['titulo'])
+                    contenido = StoreHeaderBanner(self.frame_lista, data['titulo'])
                 else:
                     from ui.components.game_card import GameCard
-                    widget = GameCard(self, data['juego'], data['tienda'])
+                    contenido = GameCard(self, data['juego'], data['tienda'])
+                widget = _RevealClip(contenido, self.frame_lista)
                 self.game_widgets_map[clave] = widget
                 es_nuevo = True
 
             widget = self.game_widgets_map[clave]
             
             if es_nuevo:
-                if hasattr(widget, "preparar_animacion_cascada"):
-                    pass
+                if self.isVisible():
+                    widget.iniciar_revelado()
                     widgets_to_animate.append(widget)
             else:
                 if hasattr(widget, "graphicsEffect") and widget.graphicsEffect():
@@ -690,24 +731,41 @@ def _actualizar_vista_juegos(self):
         if root is not None:
             root.setUpdatesEnabled(True)
 
-    # Animacion fluida de acordeon sincronizado
+    # La ventana se expande con su animación propia; el contenedor debe seguir
+    # el tamaño disponible del layout. Animar también su altura máxima provoca
+    # un salto distinto según cuántas ofertas tenga cada tienda.
     if self.container.isVisible():
-        from PySide6.QtCore import QPropertyAnimation, QEasingCurve
-        target_height = min(680, max(260, len(juegos_visibles_ordenados) * 160 + 60))
-        if self.container.height() < 50:
-            anim_cajon = QPropertyAnimation(self.container, b"maximumHeight", self)
-            anim_cajon.setDuration(300)
-            anim_cajon.setStartValue(0)
-            anim_cajon.setEndValue(target_height)
-            anim_cajon.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.container.setMaximumHeight(16777215)
 
-            def _restaurar_max():
-                self.container.setMaximumHeight(16777215)
-            anim_cajon.finished.connect(_restaurar_max)
-            self._cajon_anim = anim_cajon
-            anim_cajon.start()
-        else:
-            self.container.setMaximumHeight(16777215)
+        def _animar_tarjetas():
+            if not widgets_to_animate or not self.isVisible():
+                return
+            grupo = QParallelAnimationGroup(self)
+            widgets_transicion = []
+            for indice, widget in enumerate(widgets_to_animate):
+                secuencia = QSequentialAnimationGroup(grupo)
+                secuencia.addAnimation(QPauseAnimation(min(20 + indice * 12, 120), secuencia))
+                anim_altura = QPropertyAnimation(widget.contenido, b"maximumHeight", secuencia)
+                anim_altura.setDuration(380)
+                anim_altura.setStartValue(0)
+                anim_altura.setEndValue(widget.altura_contenido)
+                anim_altura.setEasingCurve(QEasingCurve.Type.OutCubic)
+                secuencia.addAnimation(anim_altura)
+                grupo.addAnimation(secuencia)
+                widgets_transicion.append(widget)
+
+            def restaurar_alturas(widgets_transicion=widgets_transicion):
+                for widget in widgets_transicion:
+                    try:
+                        widget.completar_revelado()
+                    except RuntimeError:
+                        pass
+
+            grupo.finished.connect(restaurar_alturas)
+            self._widgets_transicion_lista = widgets_transicion
+            self._transicion_lista_tiendas = grupo
+            grupo.start()
+        _animar_tarjetas()
 
 def instalar_metodos(cls):
     cls.game_widgets_map = {}
