@@ -349,8 +349,16 @@ def _build_ui(self):
 
 
 def _abrir_kofi(self):
+  dialog = getattr(self, "_kofi_dialog", None)
+  if dialog is not None and dialog.isVisible():
+    dialog.raise_()
+    dialog.activateWindow()
+    return
   dialog = KofiModal(self)
-  dialog.exec()
+  self._kofi_dialog = dialog
+  dialog.show()
+  dialog.raise_()
+  dialog.activateWindow()
 
 
 def _abrir_settings(self):

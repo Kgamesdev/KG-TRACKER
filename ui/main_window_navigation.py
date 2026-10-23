@@ -1,3 +1,4 @@
+import config
 from core.i18n import t
 """Interacción y navegación de la ventana principal."""
 
@@ -14,11 +15,12 @@ def _crear_icono_seleccion(self, seleccionar_todas):
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
+    es_claro = config.CURRENT_THEME == "light"
     if seleccionar_todas:
-        color = QColor("#00F3FF")
+        color = QColor("#536B9D" if es_claro else "#00F3FF")
         marcar = True
     else:
-        color = QColor("#FF0055")
+        color = QColor("#8B5557" if es_claro else "#FF0055")
         marcar = False
 
     pen = QPen(color, 2)

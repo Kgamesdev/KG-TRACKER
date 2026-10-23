@@ -3,15 +3,17 @@
 import os
 import webbrowser
 
-from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve
+from PySide6.QtCore import QEvent, Qt, QPropertyAnimation, QEasingCurve, QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
-    QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, 
+    QApplication, QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout,
     QGraphicsOpacityEffect, QFrame
 )
 
+import config
 from config import ICON_PATH
 from core.i18n import obtener_idioma
+from ui.design_system import FONT_FAMILY, FONT_SIZE_BODY_PT
 
 
 class KofiModal(QDialog):
@@ -21,11 +23,13 @@ class KofiModal(QDialog):
         super().__init__(parent)
         self.setWindowTitle("KG Tracker — Ko-fi")
         self.setFixedSize(500, 320)
+        self._outside_click_filter_installed = False
 
         if os.path.exists(ICON_PATH):
             self.setWindowIcon(QIcon(ICON_PATH))
 
-        self.setModal(True)
+        self.setModal(False)
+        self.setWindowModality(Qt.WindowModality.NonModal)
 
         idioma = obtener_idioma()
         es_ingles = idioma.startswith("en")
@@ -40,6 +44,11 @@ class KofiModal(QDialog):
         title.setObjectName("dialogTitle")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
+
+        self.separator = QFrame()
+        self.separator.setFrameShape(QFrame.Shape.HLine)
+        self.separator.setObjectName("separator")
+        layout.addWidget(self.separator)
 
         # Tarjeta con tu mensaje exacto
         card_frame = QFrame()
@@ -91,7 +100,7 @@ class KofiModal(QDialog):
         buttons.addStretch()
 
         go = QPushButton(btn_kofi_text)
-        go.setObjectName("kofiButton")
+        go.setObjectName("accentButton")
         go.setCursor(Qt.CursorShape.PointingHandCursor)
         go.clicked.connect(self.ir_a_kofi)
         buttons.addWidget(go)
@@ -105,63 +114,68 @@ class KofiModal(QDialog):
         buttons.addStretch()
         layout.addLayout(buttons)
 
-        # Estilos visuales pulidos
-        self.setStyleSheet("""
-            QDialog {
-                background: #181926;
-                border: 1px solid #2B2D42;
-                border-radius: 14px;
-            }
-            #dialogTitle {
-                color: #CAD3F5;
-                font-family: 'Segoe UI', sans-serif;
-                font-weight: bold;
-                font-size: 15pt;
-                padding-bottom: 2px;
-            }
-            #messageCard {
-                background: #24273A;
-                border: 1px solid #363A4F;
-                border-radius: 10px;
-            }
-            QLabel {
-                color: #B8C0E0;
-                font-family: 'Segoe UI', sans-serif;
-                font-size: 9pt;
-                line-height: 1.45;
-            }
-            #kofiButton {
-                background: #FF5E5B;
-                color: #FFFFFF;
-                font-family: 'Segoe UI', sans-serif;
-                font-weight: bold;
-                font-size: 9pt;
-                border-radius: 8px;
-                padding: 9px 20px;
-                border: none;
-            }
-            #kofiButton:hover {
-                background: #FF706E;
-            }
-            #kofiButton:pressed {
-                background: #E54B48;
-            }
-            #cancelButton {
-                background: #363A4F;
-                color: #CAD3F5;
-                font-family: 'Segoe UI', sans-serif;
-                font-size: 9pt;
-                border-radius: 8px;
-                padding: 9px 18px;
-                border: none;
-            }
-            #cancelButton:hover {
-                background: #494D64;
-                color: #FFFFFF;
-            }
-        """)
+        self._aplicar_estilos_modal()
 
         self._inicializar_fade_in_suave()
+
+    def _aplicar_estilos_modal(self):
+        """Usa la misma paleta, tipografía y controles que Ajustes."""
+        paleta = config.THEMES[config.CURRENT_THEME]
+        bg = paleta["COLOR_BG"]
+        panel = paleta["COLOR_BG_CARD"]
+        field = paleta["COLOR_BG_DESC"]
+        text = paleta["COLOR_TEXT_PRIMARY"]
+        secondary = paleta["COLOR_TEXT_SECONDARY"]
+        border = paleta["COLOR_BORDER"]
+        accent = paleta["COLOR_ACCENT"]
+        hover = paleta["COLOR_ACCENT_HOVER"]
+
+        self.setStyleSheet(f"""
+            QDialog {{ background: {bg}; color: {text}; font-family: '{FONT_FAMILY}'; font-size: {FONT_SIZE_BODY_PT}pt; }}
+            QLabel {{ color: {text}; font: {FONT_SIZE_BODY_PT}pt '{FONT_FAMILY}'; }}
+            #dialogTitle {{ font: bold 14pt '{FONT_FAMILY}'; }}
+            #separator {{ color: {border}; background: {border}; max-height: 1px; }}
+            #messageCard {{ background: {panel}; border: 1px solid {border}; border-radius: 9px; }}
+            #messageCard QLabel {{ color: {secondary}; font: {FONT_SIZE_BODY_PT}pt '{FONT_FAMILY}'; }}
+            #accentButton {{ background: {accent}; color: #FFFFFF; border: 1px solid {accent}; font: bold {FONT_SIZE_BODY_PT}pt '{FONT_FAMILY}'; padding: 9px 18px; border-radius: 8px; }}
+            #accentButton:hover {{ background: {hover}; border-color: {hover}; }}
+            #accentButton:pressed {{ background: {'#555BB5' if config.CURRENT_THEME == 'light' else '#4338CA'}; }}
+            #cancelButton {{ background: {field}; color: {text}; border: 1px solid {border}; font: {FONT_SIZE_BODY_PT}pt '{FONT_FAMILY}'; padding: 9px 18px; border-radius: 8px; }}
+            #cancelButton:hover {{ background: {paleta['COLOR_HOVER']}; border-color: {accent}; }}
+        """)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        app = QApplication.instance()
+        if app and not self._outside_click_filter_installed:
+            app.installEventFilter(self)
+            self._outside_click_filter_installed = True
+
+    def hideEvent(self, event):
+        app = QApplication.instance()
+        if app and self._outside_click_filter_installed:
+            app.removeEventFilter(self)
+            self._outside_click_filter_installed = False
+        super().hideEvent(event)
+
+    def eventFilter(self, watched, event):
+        if event.type() == QEvent.Type.ApplicationDeactivate and self.isVisible():
+            self._cerrar_y_volver_a_principal()
+            return False
+        if event.type() == QEvent.Type.MouseButtonPress and self.isVisible():
+            if not self.frameGeometry().contains(event.globalPosition().toPoint()):
+                self._cerrar_y_volver_a_principal()
+        return super().eventFilter(watched, event)
+
+    def _cerrar_y_volver_a_principal(self):
+        if not self.isVisible():
+            return
+        self.close()
+        parent = self.parentWidget()
+        if parent is not None:
+            QTimer.singleShot(0, parent.showNormal)
+            QTimer.singleShot(0, parent.raise_)
+            QTimer.singleShot(0, parent.activateWindow)
 
     def _inicializar_fade_in_suave(self):
         self._efecto_opacidad = QGraphicsOpacityEffect(self)

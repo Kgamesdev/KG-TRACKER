@@ -16,7 +16,7 @@ from PySide6.QtCore import (
     QTimer, QVariantAnimation,
 )
 from PySide6.QtGui import (
-    QColor, QConicalGradient, QFont, QIcon, QLinearGradient, QPainter, QPen,
+    QColor, QConicalGradient, QFont, QIcon, QLinearGradient, QPainter, QPainterPath, QPen,
 )
 from PySide6.QtWidgets import (
     QGraphicsOpacityEffect, QLabel, QPushButton, QSlider,
@@ -80,6 +80,8 @@ class RoundedButton(QPushButton):
         self._icon_size = icon_size
         self._is_hover = False
         self._ang = 0.0
+        self._searching = False
+        self._search_progress = 0.0
         self._flicker_count = 0
         self._flicker_state = False
         self._target_val = 0.0
@@ -109,6 +111,13 @@ class RoundedButton(QPushButton):
         self._anim.setDuration(2200)
         self._anim.setLoopCount(-1)
         self._anim.valueChanged.connect(lambda v: (setattr(self, '_ang', v), setattr(self, '_shine_pos', -60.0 + (v / 360.0) * 240.0), self.update()))
+
+        self._search_anim = QVariantAnimation(self)
+        self._search_anim.setStartValue(0.0)
+        self._search_anim.setEndValue(1.0)
+        self._search_anim.setDuration(1450)
+        self._search_anim.setLoopCount(-1)
+        self._search_anim.valueChanged.connect(self._actualizar_progreso_busqueda)
 
         self._flicker_timer = QTimer(self)
         self._flicker_timer.setInterval(180)
@@ -144,6 +153,30 @@ class RoundedButton(QPushButton):
             else:
                 self.setStyleSheet(f'QPushButton {{ background: #C8E2D2; color: #35634B; border: 1px solid #AECFB9; border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} QPushButton:hover {{ background: #BDDBC9; border: 1px solid #9FC6AD; }} QPushButton:pressed {{ background: #B1D3BE; padding-top: 2px; }}')
 
+        elif role in ('wishlist', 'wishlist_active'):
+            active = role == 'wishlist_active'
+            if es_oscuro:
+                if active:
+                    normal = "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6366F1, stop:1 #4F46E5)"
+                    hover = "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #818CF8, stop:1 #6366F1)"
+                    fg, border, pressed = "#FFFFFF", "#818CF8", "#4338CA"
+                else:
+                    normal = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3A3B52, stop:1 #262738)"
+                    hover = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4E506B, stop:1 #3A3B52)"
+                    fg, border, pressed = "#C7D2FE", "#4E506B", "#1E1F2E"
+            elif active:
+                normal, hover = "#CED9EF", "#C2D0E9"
+                fg, border, pressed = "#354E76", "#9FB4D0", "#B7C8E4"
+            else:
+                normal, hover = "#E7EAF4", "#DCE2F0"
+                fg, border, pressed = "#4C5F82", "#BCC8DD", "#D1DAEC"
+            self.setStyleSheet(
+                f'QPushButton {{ background: {normal}; color: {fg}; border: 1px solid {border}; '
+                f'border-radius: {self._radius}px; font-weight: bold; padding: 0 8px; }} '
+                f'QPushButton:hover {{ background: {hover}; border: 1px solid {border}; }} '
+                f'QPushButton:pressed {{ background: {pressed}; padding-top: 2px; }}'
+            )
+
         elif role in ('secondary', 'sidebar'):
             # 3. BOTONES AZUL MARINO / PIZARRA (SIDEBAR, [✔], [🔗], RECLAMADOS, MUTE):
             # En tema claro: El mismo azul pizarra del tema oscuro, pero en tono acero claro satinado y visible
@@ -173,6 +206,23 @@ class RoundedButton(QPushButton):
             self.setIconSize(QSize(*self._icon_size))
         else:
             self.setIcon(QIcon())
+
+    def set_searching(self, active, text=None):
+        """Activa el tratamiento animado del botón principal durante una búsqueda."""
+        self._searching = bool(active)
+        if text is not None:
+            super().setText(str(text))
+        if self._searching:
+            self._anim.stop()
+            self._search_anim.start()
+        else:
+            self._search_anim.stop()
+            self._search_progress = 0.0
+        self.update()
+
+    def _actualizar_progreso_busqueda(self, value):
+        self._search_progress = float(value)
+        self.update()
 
     def set_colors(self, bg=None, hover=None, fg=None, border=None):
         if bg: self._bg = bg
@@ -219,6 +269,78 @@ class RoundedButton(QPushButton):
 
     def paintEvent(self, e):
         import math
+        if self._searching:
+            p = QPainter(self)
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            rect = self.rect().adjusted(1, 1, -1, -1).toRectF()
+            dark = config.CURRENT_THEME == "dark"
+            if dark:
+                top, bottom = QColor("#686BEF"), QColor("#4748C8")
+                ink, border = QColor("#FFFFFF"), QColor("#A5F3FC")
+                glow = QColor("#71F5FF")
+            else:
+                top, bottom = QColor("#D8E2F3"), QColor("#C4D2EA")
+                ink, border = QColor("#354E76"), QColor("#8FA7CB")
+                glow = QColor("#6C8DBB")
+
+            bg = QLinearGradient(0, rect.top(), 0, rect.bottom())
+            bg.setColorAt(0, top)
+            bg.setColorAt(1, bottom)
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(bg)
+            p.drawRoundedRect(rect, float(self._radius), float(self._radius))
+
+            clip = QPainterPath()
+            clip.addRoundedRect(rect, float(self._radius), float(self._radius))
+            p.save()
+            p.setClipPath(clip)
+            pulse = (math.sin(self._search_progress * math.tau) + 1.0) / 2.0
+            band_width = min(280.0, max(120.0, self.width() * 0.34))
+            band_x = -band_width + self._search_progress * (self.width() + band_width * 2)
+
+            # A broad, feathered light wash for a slower, cozier search effect.
+            bloom = QLinearGradient(band_x - band_width, 0, band_x + band_width, 0)
+            bloom.setColorAt(0.0, QColor(glow.red(), glow.green(), glow.blue(), 0))
+            bloom.setColorAt(0.22, QColor(glow.red(), glow.green(), glow.blue(), (18 if dark else 12) + int(pulse * 5)))
+            bloom.setColorAt(0.5, QColor(glow.red(), glow.green(), glow.blue(), (78 if dark else 48) + int(pulse * 18)))
+            bloom.setColorAt(0.78, QColor(glow.red(), glow.green(), glow.blue(), (18 if dark else 12) + int(pulse * 5)))
+            bloom.setColorAt(1.0, QColor(glow.red(), glow.green(), glow.blue(), 0))
+            p.fillRect(rect, bloom)
+
+            # A low-contrast center highlight keeps the beam visible without a sharp stripe.
+            core_width = max(12.0, band_width * 0.25)
+            core = QLinearGradient(band_x - core_width, 0, band_x + core_width, 0)
+            core.setColorAt(0.0, QColor(glow.red(), glow.green(), glow.blue(), 0))
+            core.setColorAt(0.5, QColor(255, 255, 255, 42 if dark else 25))
+            core.setColorAt(1.0, QColor(glow.red(), glow.green(), glow.blue(), 0))
+            p.fillRect(rect, core)
+            p.restore()
+
+            # The perimeter slowly shifts hue while breathing in brightness.
+            perimeter = QConicalGradient(rect.center(), -self._search_progress * 360.0)
+            if dark:
+                perimeter.setColorAt(0.0, QColor("#A5F3FC"))
+                perimeter.setColorAt(0.25, QColor("#818CF8"))
+                perimeter.setColorAt(0.5, QColor("#FFFFFF"))
+                perimeter.setColorAt(0.75, QColor("#22D3EE"))
+                perimeter.setColorAt(1.0, QColor("#A5F3FC"))
+            else:
+                perimeter.setColorAt(0.0, QColor("#7894BD"))
+                perimeter.setColorAt(0.25, QColor("#A9B7D1"))
+                perimeter.setColorAt(0.5, QColor("#F7FAFF"))
+                perimeter.setColorAt(0.75, QColor("#819FC8"))
+                perimeter.setColorAt(1.0, QColor("#7894BD"))
+            pen = QPen(perimeter, 1.4 + pulse * (1.2 if dark else 0.65))
+            p.setPen(pen)
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawRoundedRect(rect, float(self._radius), float(self._radius))
+
+            p.setPen(ink)
+            p.setFont(self.font())
+            p.drawText(self.rect().adjusted(12, 0, -12, 0), Qt.AlignmentFlag.AlignCenter, self.text())
+            p.end()
+            return
+
         t_up = self.text().upper()
         if 'AHORRADO' in t_up or 'SAVED' in t_up:
             p = QPainter(self)

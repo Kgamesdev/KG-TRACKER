@@ -529,7 +529,16 @@ def _actualizar_estilo_botones(self):
     self._set_button_role(self.btn_side_settings, "sidebar")
     self._set_button_role(self.btn_side_theme, "sidebar")
     self._set_button_role(self.btn_side_todas, "sidebar")
+    if hasattr(self, "_crear_icono_seleccion") and hasattr(self, "btn_side_todas"):
+        self.btn_side_todas.setIcon(
+            self._crear_icono_seleccion(not getattr(self, "todas_activado", False))
+        )
     self._set_button_role(self.btn_reclamados, "secondary")
+    if hasattr(self, "btn_wishlist"):
+        self._set_button_role(
+            self.btn_wishlist,
+            "wishlist_active" if getattr(self, "mostrando_wishlist", False) else "wishlist",
+        )
     if hasattr(self, "ahorro_pill") and self.ahorro_pill is not None:
         self.ahorro_pill.setProperty("role", "saved_pill")
         if config.CURRENT_THEME == "light":

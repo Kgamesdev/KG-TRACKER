@@ -24,6 +24,7 @@ TRADUCCIONES = {
     "es": {
         "app.title": "K GAME TRACKER",
         "search.button": "BUSCAR JUEGOS GRATUITOS",
+        "search.searching": "BUSCANDO OFERTAS...",
         "status.ready": "● LISTO",
         "status.offers": "● {count} OFERTAS",
         "status.claimed": "● {count} RECLAMADOS",
@@ -32,6 +33,7 @@ TRADUCCIONES = {
         "status.no_offers": "● SIN OFERTAS",
         "status.offline": "● TIENDAS SIN RESPUESTA",
         "status.partial": "● BÚSQUEDA PARCIAL",
+        "wishlist.updated": "Actualizada",
         "claimed.btn": "★ RECLAMADOS",
         "claimed.btn_active": "★ VER RECLAMADOS",
         "claimed.title": "★  MIS RECLAMADOS  ·  {count}",
@@ -98,6 +100,7 @@ TRADUCCIONES = {
     "en": {
         "app.title": "K GAME TRACKER",
         "search.button": "SEARCH FREE GAMES",
+        "search.searching": "SCANNING STORES...",
         "status.ready": "● READY",
         "status.offers": "● {count} OFFERS",
         "status.claimed": "● {count} CLAIMED",
@@ -106,6 +109,7 @@ TRADUCCIONES = {
         "status.no_offers": "● NO OFFERS",
         "status.offline": "● STORES UNAVAILABLE",
         "status.partial": "● PARTIAL SEARCH",
+        "wishlist.updated": "Updated",
         "claimed.btn": "★ CLAIMED",
         "claimed.btn_active": "★ VIEW CLAIMED",
         "claimed.title": "★  MY CLAIMED  ·  {count}",

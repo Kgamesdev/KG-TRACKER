@@ -115,7 +115,7 @@ def alternar_wishlist(self):
         self.btn_actualizar.hide()
         self.wishlist_search_panel.show()
         self.btn_wishlist.setText("♥ WISHLIST")
-        self.btn_wishlist.setProperty("role", "accent")
+        self._set_button_role(self.btn_wishlist, "wishlist_active")
         self.btn_reclamados.setText(t("claimed.btn"))
         self.btn_reclamados.setProperty("role", "secondary")
         self._actualizar_visibilidad_atras()
@@ -131,9 +131,7 @@ def alternar_wishlist(self):
         self.btn_actualizar.show()
         self.wishlist_search_panel.hide()
         self.btn_wishlist.setText("♡ WISHLIST")
-        self.btn_wishlist.setProperty("role", "secondary")
-        self.btn_wishlist.style().unpolish(self.btn_wishlist)
-        self.btn_wishlist.style().polish(self.btn_wishlist)
+        self._set_button_role(self.btn_wishlist, "wishlist")
         previous = getattr(self, "_wishlist_previous_view", None) or {}
         saved_filters = previous.get("filters", {})
         self.active_filters = {
@@ -166,7 +164,6 @@ def alternar_wishlist(self):
 def _buscar_juegos_wishlist(self):
     query = self.wishlist_query.text().strip()
     if len(query) < 2:
-        self._set_status("Escribe al menos 2 letras", "warning")
         return
     if self._wishlist_worker and self._wishlist_worker.isRunning():
         return
@@ -178,7 +175,6 @@ def _buscar_juegos_wishlist(self):
 def _anadir_juego_wishlist(self):
     candidate = self.wishlist_results.currentData()
     if not isinstance(candidate, dict):
-        self._set_status("Selecciona un juego de los resultados", "warning")
         return
     game_id = str(candidate.get("gameID", ""))
     if not game_id:
@@ -334,7 +330,7 @@ def _wishlist_operation_completed(self, operation, payload):
     self._save_wishlist()
     _render_wishlist(self)
     _update_wishlist_badge(self)
-    self._set_status(f"Wishlist actualizada · {len(self.wishlist_data['games'])} juegos", "success")
+    self._set_status(t("wishlist.updated"), "success")
     for message in notifications:
         tray = getattr(self, "_tray", None)
         ajustes = cargar_json_seguro(str(SETTINGS_FILE), default={})

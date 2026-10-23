@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QLabel, QFrame, QHBoxLayout, QPushButton,
     QGraphicsDropShadowEffect,
 )
-from PySide6.QtCore import Qt, QTimer, QObject, Signal, QThread
+from PySide6.QtCore import Qt, QObject, Signal, QThread
 from config import (
     API_URL, API_HEADERS, EXCLUSIONES, STORES_MAPPING,
     COLOR_BG_CARD, COLOR_HOVER, COLOR_BORDER, COLOR_ACCENT_LIGHT,
@@ -314,47 +314,14 @@ def _set_status(self, text, status="success"):
 
 
 def _iniciar_animacion_busqueda(self):
-    timer = getattr(self, "_busqueda_neon_timer", None)
-    if timer is None:
-        timer = QTimer(self)
-        # Ocho actualizaciones por segundo bastan para el spinner y reducen
-        # trabajo de pintado durante las peticiones de red.
-        timer.setInterval(125)
-        timer.timeout.connect(self._actualizar_animacion_busqueda)
-        self._busqueda_neon_timer = timer
-
-    self._busqueda_neon_inicio = time.monotonic()
-    self._busqueda_neon_activo = True
-    self._busqueda_spinner_index = -1
-    self.status_pill.setText(t("status.searching"))
     self._set_status(t("status.searching"), "info")
     if hasattr(self, "btn_actualizar"):
-        self.btn_actualizar.setEnabled(False)
-    timer.start()
-    self._actualizar_animacion_busqueda()
-
-
-def _actualizar_animacion_busqueda(self):
-    if not getattr(self, "_busqueda_neon_activo", False):
-        return
-    transcurrido = time.monotonic() - getattr(self, "_busqueda_neon_inicio", time.monotonic())
-    if hasattr(self, "btn_actualizar"):
-        frames = ("◐", "◓", "◑", "◒")
-        spinner_index = int(transcurrido * 8) % len(frames)
-        if spinner_index != getattr(self, "_busqueda_spinner_index", -1):
-            self._busqueda_spinner_index = spinner_index
-            frame = frames[spinner_index]
-            self.btn_actualizar.setText(f"{frame}  {t('status.searching').replace('● ', '')}")
+        self.btn_actualizar.set_searching(True, t("search.searching"))
 
 
 def _detener_animacion_busqueda(self):
-    self._busqueda_neon_activo = False
-    timer = getattr(self, "_busqueda_neon_timer", None)
-    if timer is not None:
-        timer.stop()
     if hasattr(self, "btn_actualizar"):
-        self.btn_actualizar.setEnabled(True)
-        self.btn_actualizar.setText(t("search.button"))
+        self.btn_actualizar.set_searching(False, t("search.button"))
 
 
 def _finalizar_busqueda(self, giveaways, inicio, fuente="gamerpower"):
@@ -752,7 +719,6 @@ def instalar_metodos(cls):
     cls._buscar_juegos_error = _buscar_juegos_error
     cls._notificar_barrido_si_pendiente = _notificar_barrido_si_pendiente
     cls.buscar_juegos = buscar_juegos
-    cls._actualizar_animacion_busqueda = _actualizar_animacion_busqueda
     cls._iniciar_animacion_busqueda = _iniciar_animacion_busqueda
     cls._detener_animacion_busqueda = _detener_animacion_busqueda
     cls._finalizar_busqueda = _finalizar_busqueda
